@@ -42,7 +42,10 @@ export async function Header() {
           </Link>
 
           {role === 'admin' ? (
-            <Link href="/admin/payments" className="text-sm font-medium text-gray-600 hover:text-black">
+            <Link
+              href="/admin/restaurants"
+              className="text-sm font-medium text-gray-600 hover:text-black"
+            >
               Admin
             </Link>
           ) : null}

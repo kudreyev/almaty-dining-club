@@ -24,9 +24,9 @@ export function Footer() {
         <div>
           <p className="text-sm font-semibold text-gray-900">MVP</p>
           <div className="mt-3 space-y-2 text-sm text-gray-600">
-            <p>Алматы</p>
-            <p>Офферы 1+1 и комплименты</p>
-            <p>Kaspi на старте</p>
+            <Link href="/terms">Условия использования</Link>
+            <Link href="/privacy">Политика конфиденциальности</Link>
+            <Link href="/support">Поддержка</Link>
           </div>
         </div>
       </div>

@@ -47,19 +47,25 @@ export async function Header() {
                 href="/admin/restaurants"
                 className="text-sm font-medium text-gray-600 hover:text-black"
               >
-                Admin: Restaurants
+                Заведения
               </Link>
               <Link
                 href="/admin/offers"
                 className="text-sm font-medium text-gray-600 hover:text-black"
               >
-                Admin: Offers
+                Офферы
               </Link>
               <Link
                 href="/admin/staff"
                 className="text-sm font-medium text-gray-600 hover:text-black"
               >
-                Admin: Staff
+                Сотрудники
+              </Link>
+              <Link
+                href="/admin/import"
+                className="text-sm font-medium text-gray-600 hover:text-black"
+              >
+                Импорт
               </Link>
             </>
           ) : null}

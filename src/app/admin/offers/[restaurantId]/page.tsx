@@ -15,7 +15,7 @@ export default async function AdminOffersForRestaurantPage({ params }: PageProps
 
   const { data: offers } = await supabase
     .from('offers')
-    .select('id, offer_type, offer_title, is_active')
+    .select('id, offer_key, offer_type, offer_title, is_active')
     .eq('restaurant_id', restaurantId)
     .order('created_at', { ascending: true })
 
@@ -39,16 +39,25 @@ export default async function AdminOffersForRestaurantPage({ params }: PageProps
           {offers?.map((o) => (
             <div key={o.id} className="flex items-center justify-between rounded-2xl border border-gray-200 p-4">
               <div>
-                <div className="flex items-center gap-3">
+                <div className="flex flex-wrap items-center gap-3">
                   <p className="font-medium">{o.offer_title}</p>
+            
                   <span className="rounded-full bg-gray-100 px-3 py-1 text-xs text-gray-700">
                     {o.offer_type}
                   </span>
+            
                   <span className="rounded-full bg-gray-100 px-3 py-1 text-xs text-gray-700">
                     {o.is_active ? 'active' : 'hidden'}
                   </span>
+            
+                  {o.offer_key ? (
+                    <span className="rounded-full bg-gray-100 px-3 py-1 text-xs font-mono text-gray-700">
+                      {o.offer_key}
+                    </span>
+                  ) : null}
                 </div>
               </div>
+            
               <Link
                 href={`/admin/offers/${restaurantId}/${o.id}/edit`}
                 className="rounded-2xl border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-black"

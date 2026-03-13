@@ -140,11 +140,17 @@ export async function importCsvText(formData: FormData) {
 
     const restaurantId = restaurantUpsert.id
 
-    // 2) Insert offer (1 row = 1 offer). Можно сделать upsert позже, если понадобится.
+    // 2) Upsert offer (restaurant_id + offer_key)
     const offerType = (row.offer_type || '2for1') as '2for1' | 'compliment'
+    const offerKey = (row.offer_key || '').trim()
+
+    if (!offerKey) {
+      redirect(`/admin/import?error=missing_offer_key_for_slug:${encodeURIComponent(slug)}`)
+    }
 
     const offerPayload: any = {
       restaurant_id: restaurantId,
+      offer_key: offerKey,
       offer_type: offerType,
       offer_title: row.offer_title || '',
       offer_terms_short: row.offer_terms_short || '',
@@ -157,11 +163,13 @@ export async function importCsvText(formData: FormData) {
       is_active: parseBoolean(row.is_active, true),
     }
 
-    // Если оффер пустой — пропустим
     if (offerPayload.offer_title && offerPayload.offer_terms_short) {
-      const { error: offerError } = await supabase.from('offers').insert(offerPayload)
+      const { error: offerError } = await supabase
+        .from('offers')
+        .upsert(offerPayload, { onConflict: 'restaurant_id,offer_key' })
+
       if (offerError) {
-        redirect(`/admin/import?error=offer_insert_failed:${encodeURIComponent(offerError.message)}`)
+        redirect(`/admin/import?error=offer_upsert_failed:${encodeURIComponent(offerError.message)}`)
       }
       offersInserted++
     }

@@ -13,6 +13,7 @@ export async function createOffer(formData: FormData) {
   const payload = {
     restaurant_id: restaurantId,
     offer_type: String(formData.get('offer_type') || '2for1'),
+    offer_key: String(formData.get('offer_key') || ''),
     offer_title: String(formData.get('offer_title') || ''),
     offer_terms_short: String(formData.get('offer_terms_short') || ''),
     offer_terms_full: String(formData.get('offer_terms_full') || ''),
@@ -40,6 +41,7 @@ export async function updateOffer(formData: FormData) {
 
   const payload = {
     offer_type: String(formData.get('offer_type') || '2for1'),
+    offer_key: String(formData.get('offer_key') || ''),
     offer_title: String(formData.get('offer_title') || ''),
     offer_terms_short: String(formData.get('offer_terms_short') || ''),
     offer_terms_full: String(formData.get('offer_terms_full') || ''),

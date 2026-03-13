@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { requireAdmin } from '@/lib/admin'
 import { updateOffer } from '../../../actions'
+import { OfferKeyField } from '@/components/offer-key-field'
 
 type PageProps = { params: Promise<{ restaurantId: string; offerId: string }> }
 
@@ -38,6 +39,10 @@ export default async function AdminOfferEditPage({ params }: PageProps) {
           {restaurant?.restaurant_name}
         </p>
 
+        <p className="mt-1 text-xs text-gray-500">
+          offer_key: <span className="font-mono">{offer.offer_key ?? '—'}</span>
+        </p>
+
         <form action={updateOffer} className="mt-8 space-y-4">
           <input type="hidden" name="id" value={offer.id} />
           <input type="hidden" name="restaurant_id" value={restaurantId} />
@@ -47,7 +52,10 @@ export default async function AdminOfferEditPage({ params }: PageProps) {
             <option value="compliment">compliment (Комплимент)</option>
           </select>
 
-          <input name="offer_title" defaultValue={offer.offer_title} required className="w-full rounded-2xl border px-4 py-3 text-sm" />
+          <OfferKeyField
+            defaultKey={offer.offer_key ?? ''}
+            defaultTitle={offer.offer_title ?? ''}
+          />
           <input name="offer_terms_short" defaultValue={offer.offer_terms_short} required className="w-full rounded-2xl border px-4 py-3 text-sm" />
           <textarea name="offer_terms_full" defaultValue={offer.offer_terms_full} rows={5} required className="w-full rounded-2xl border px-4 py-3 text-sm" />
 

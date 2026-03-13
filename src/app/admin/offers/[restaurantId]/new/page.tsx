@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { requireAdmin } from '@/lib/admin'
 import { createOffer } from '../../actions'
+import { OfferKeyField } from '@/components/offer-key-field'
 
 type PageProps = { params: Promise<{ restaurantId: string }> }
 
@@ -36,7 +37,7 @@ export default async function AdminOfferNewPage({ params }: PageProps) {
             <option value="compliment">compliment (Комплимент)</option>
           </select>
 
-          <input name="offer_title" placeholder="Заголовок" required className="w-full rounded-2xl border px-4 py-3 text-sm" />
+          <OfferKeyField />
           <input name="offer_terms_short" placeholder="Краткие условия (1 строка)" required className="w-full rounded-2xl border px-4 py-3 text-sm" />
           <textarea name="offer_terms_full" placeholder="Полные условия" rows={5} required className="w-full rounded-2xl border px-4 py-3 text-sm" />
 

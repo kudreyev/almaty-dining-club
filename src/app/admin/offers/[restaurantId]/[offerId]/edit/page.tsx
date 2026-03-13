@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation'
 import { requireAdmin } from '@/lib/admin'
 import { updateOffer } from '../../../actions'
 import { OfferKeyField } from '@/components/offer-key-field'
+import { FormSubmitGuard } from '@/components/form-submit-guard'
 
 type PageProps = { params: Promise<{ restaurantId: string; offerId: string }> }
 
@@ -79,6 +80,8 @@ export default async function AdminOfferEditPage({ params }: PageProps) {
             <input type="checkbox" name="is_active" defaultChecked={!!offer.is_active} />
             Активен
           </label>
+
+          <FormSubmitGuard />
 
           <button className="w-full rounded-2xl bg-black px-4 py-3 text-sm font-medium text-white">
             Сохранить

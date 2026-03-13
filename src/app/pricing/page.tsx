@@ -7,6 +7,18 @@ export default async function PricingPage() {
     data: { user },
   } = await supabase.auth.getUser()
 
+  const { data: subs } = user
+    ? await supabase
+        .from('subscriptions')
+        .select('id, status, start_date, end_date')
+        .eq('user_id', user.id)
+        .eq('status', 'active')
+        .order('created_at', { ascending: false })
+        .limit(1)
+    : { data: null }
+
+  const hasActive = !!subs?.[0]
+
   return (
     <main className="mx-auto max-w-5xl px-6 py-16">
       <div className="rounded-3xl border border-gray-200 bg-white p-8 shadow-sm">
@@ -50,14 +62,34 @@ export default async function PricingPage() {
               <p className="mt-1">Получатель: Dining Club Almaty</p>
             </div>
 
+            <div className="mt-6 rounded-2xl bg-gray-50 p-4 text-sm text-gray-700">
+              <p className="font-medium text-gray-900">После оплаты</p>
+              <p className="mt-2">
+                Отправь заявку “Я оплатил” — мы подтвердим оплату и активируем подписку.
+              </p>
+              <p className="mt-2 text-gray-600">
+                Обычно подтверждаем в течение{' '}
+                <span className="font-medium text-gray-900">1–3 часов</span> (в рабочее время).
+              </p>
+            </div>
+
             <div className="mt-6">
               {user ? (
-                <Link
-                  href="/payment/submit"
-                  className="inline-flex w-full items-center justify-center rounded-2xl bg-black px-5 py-3 text-sm font-medium text-white"
-                >
-                  Я оплатил
-                </Link>
+                hasActive ? (
+                  <Link
+                    href="/almaty"
+                    className="inline-flex w-full items-center justify-center rounded-2xl bg-black px-5 py-3 text-sm font-medium text-white"
+                  >
+                    Подписка активна — смотреть офферы
+                  </Link>
+                ) : (
+                  <Link
+                    href="/payment/submit"
+                    className="inline-flex w-full items-center justify-center rounded-2xl bg-black px-5 py-3 text-sm font-medium text-white"
+                  >
+                    Я оплатил
+                  </Link>
+                )
               ) : (
                 <Link
                   href="/login"

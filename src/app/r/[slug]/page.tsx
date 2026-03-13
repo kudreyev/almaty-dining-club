@@ -230,7 +230,14 @@ export default async function RestaurantPage({ params }: PageProps) {
             <p className="mt-2 text-sm text-gray-600">
               Доступно по подписке в Алматы
             </p>
-
+            <div className="mt-6 rounded-2xl bg-gray-50 p-4 text-sm text-gray-700">
+              <p className="font-medium text-gray-900">Как использовать</p>
+              <ol className="mt-2 list-decimal space-y-1 pl-5">
+                <li>Оформи подписку</li>
+                <li>Нажми “Активировать оффер” и получи код на 10 минут</li>
+                <li>Покажи код сотруднику заведения</li>
+              </ol>
+            </div>
             <div className="mt-6 space-y-4">
               {!offers || offers.length === 0 ? (
                 <div className="rounded-2xl bg-gray-50 p-4 text-sm text-gray-500">

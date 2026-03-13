@@ -157,6 +157,12 @@ export default async function RedeemPage({ params, searchParams }: PageProps) {
               Код будет действовать 10 минут. Одновременно можно иметь только 1 активный код.
               В одном ресторане оффер можно использовать 1 раз в 7 дней.
             </p>
+           
+            <ul className="mt-3 list-disc space-y-1 pl-5 text-sm text-gray-600">
+              <li>Код действует 10 минут</li>
+              <li>Одновременно можно иметь только 1 активный код</li>
+              <li>В одном ресторане — не чаще 1 раза в 7 дней</li>
+            </ul>
 
             <form action={generateRedeemToken} className="mt-5">
               <input type="hidden" name="restaurantId" value={restaurant.id} />

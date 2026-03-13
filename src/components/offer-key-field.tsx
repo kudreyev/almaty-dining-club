@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 
 function slugify(input: string) {
   return input
@@ -10,6 +10,18 @@ function slugify(input: string) {
     .replace(/[^a-z0-9]+/g, '_')
     .replace(/^_+|_+$/g, '')
     .slice(0, 48)
+}
+
+function validateOfferKey(key: string) {
+  const trimmed = key.trim()
+
+  if (trimmed.length < 2) return 'Слишком короткий (минимум 2 символа).'
+  if (trimmed.length > 48) return 'Слишком длинный (максимум 48 символов).'
+  if (!/^[a-z0-9_]+$/.test(trimmed)) return 'Только латиница a-z, цифры 0-9 и _.'
+  if (/__+/.test(trimmed)) return 'Не используйте подряд несколько _.'
+  if (trimmed.startsWith('_') || trimmed.endsWith('_')) return 'Не начинайте и не заканчивайте на _.'
+
+  return null
 }
 
 export function OfferKeyField(props: {
@@ -27,12 +39,15 @@ export function OfferKeyField(props: {
 
   const [title, setTitle] = useState(defaultTitle)
   const [key, setKey] = useState(defaultKey)
+  const [touched, setTouched] = useState(false)
 
-  // если key пустой, подсказываем его из title (но не перезаписываем вручную заданный)
   useEffect(() => {
     if (!key && title) setKey(slugify(title))
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [title])
+
+  const error = useMemo(() => validateOfferKey(key), [key])
+  const showError = touched && !!error
 
   return (
     <div className="space-y-4">
@@ -60,24 +75,38 @@ export function OfferKeyField(props: {
             name={nameKey}
             value={key}
             onChange={(e) => setKey(e.target.value)}
+            onBlur={() => setTouched(true)}
             placeholder="Например: pasta_2for1"
             required
-            className="w-full rounded-2xl border border-gray-300 px-4 py-3 text-sm font-mono outline-none"
+            className={`w-full rounded-2xl border px-4 py-3 text-sm font-mono outline-none ${
+              showError ? 'border-red-300' : 'border-gray-300'
+            }`}
+            aria-invalid={showError}
           />
 
           <button
             type="button"
-            onClick={() => setKey(slugify(title))}
+            onClick={() => {
+              setKey(slugify(title))
+              setTouched(true)
+            }}
             className="shrink-0 rounded-2xl border border-gray-300 bg-white px-4 py-3 text-sm font-medium text-black"
           >
             Сгенерировать
           </button>
         </div>
 
-        <p className="mt-2 text-xs text-gray-500">
-          Совет: используй стабильный key (например <span className="font-mono">pasta_2for1</span> или{' '}
-          <span className="font-mono">dessert_compliment</span>), чтобы CSV upsert обновлял нужный оффер.
-        </p>
+        {showError ? (
+          <p className="mt-2 text-sm text-red-600">{error}</p>
+        ) : (
+          <p className="mt-2 text-xs text-gray-500">
+            Разрешено: <span className="font-mono">a-z</span>, <span className="font-mono">0-9</span>, <span className="font-mono">_</span>.
+            Пример: <span className="font-mono">dessert_compliment</span>
+          </p>
+        )}
+
+        {/* скрытое поле, чтобы подсказать форме "не отправляй", если key невалиден */}
+        <input type="hidden" name="offer_key_valid" value={error ? '0' : '1'} />
       </div>
     </div>
   )

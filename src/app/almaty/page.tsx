@@ -202,22 +202,29 @@ export default async function AlmatyPage({ searchParams }: PageProps) {
 
                   {primaryOffer ? (
                     <div className="mb-4 rounded-2xl bg-gray-50 p-4">
-                      <div className="flex items-center justify-between gap-3">
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-2">
                         <span className="rounded-full bg-black px-3 py-1 text-xs font-medium text-white">
                           {getOfferBadgeLabel(primaryOffer.offer_type)}
                         </span>
-                        <span className="text-xs text-gray-500">
-                          {activeOffers.length} оффер{activeOffers.length > 1 ? 'а' : ''}
+                  
+                        <span className="rounded-full bg-gray-100 px-3 py-1 text-xs font-medium text-gray-700">
+                          по подписке
                         </span>
                       </div>
-
-                      <p className="mt-3 text-sm font-medium text-gray-900">
-                        {primaryOffer.offer_title}
-                      </p>
-                      <p className="mt-1 text-sm text-gray-600">
-                        {primaryOffer.offer_terms_short}
-                      </p>
+                  
+                      <span className="text-xs text-gray-500">
+                        {activeOffers.length} оффер{activeOffers.length > 1 ? 'а' : ''}
+                      </span>
                     </div>
+                  
+                    <p className="mt-3 text-sm font-medium text-gray-900">
+                      {primaryOffer.offer_title}
+                    </p>
+                    <p className="mt-1 text-sm text-gray-600">
+                      {primaryOffer.offer_terms_short}
+                    </p>
+                  </div>
                   ) : null}
 
                   <p className="text-sm text-gray-700">

@@ -35,10 +35,10 @@ export async function Header() {
             Рестораны
           </Link>
           <Link href="/pricing" className="text-sm font-medium text-gray-600 hover:text-black">
-            Pricing
+            Подписаться
           </Link>
-          <Link href="/staff/login" className="text-sm font-medium text-gray-600 hover:text-black">
-            Staff
+          <Link href="/how-it-works" className="text-sm font-medium text-gray-600 hover:text-black">
+            Как это работает?
           </Link>
 
           {role === 'admin' ? (

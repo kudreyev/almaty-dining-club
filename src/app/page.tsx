@@ -232,7 +232,13 @@ export default async function HomePage({ searchParams }: PageProps) {
                           {offerTypeLabel(r.offers[0].offer_type)}
                         </span>
 
-                        {r.offers.length > 1 ? (
+                        {r.offers.length === 2 ? (
+                          <span className="rounded-full bg-gray-100 px-3 py-1 text-xs font-medium text-gray-700">
+                            {offerTypeLabel(r.offers[1].offer_type)}
+                          </span>
+                        ) : null}
+
+                        {r.offers.length >= 3 ? (
                           <span className="rounded-full bg-gray-100 px-3 py-1 text-xs font-medium text-gray-700">
                             {r.offers.length} предложения
                           </span>

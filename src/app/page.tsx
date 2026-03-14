@@ -123,15 +123,6 @@ export default async function HomePage({ searchParams }: PageProps) {
           </Link>
         </div>
 
-        <div className="mt-10 rounded-3xl border border-gray-200 bg-white p-6">
-          <p className="text-sm font-semibold text-gray-900">Правила (MVP)</p>
-          <ul className="mt-3 list-disc space-y-2 pl-5 text-sm text-gray-600">
-            <li>Код действует 10 минут</li>
-            <li>Одновременно можно иметь только 1 активный код</li>
-            <li>В одном ресторане — не чаще 1 раза в 30 дней</li>
-            <li>Офферы не суммируются с другими акциями (если не указано иначе)</li>
-          </ul>
-        </div>
       </section>
 
       {/* FILTERS */}
@@ -201,9 +192,10 @@ export default async function HomePage({ searchParams }: PageProps) {
         ) : (
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {filteredRestaurants.map((r) => (
-              <article
+              <Link
                 key={r.id}
-                className="overflow-hidden rounded-3xl border border-gray-200 bg-white shadow-sm"
+                href={`/r/${r.slug}`}
+                className="group block overflow-hidden rounded-3xl border border-gray-200 bg-white shadow-sm transition hover:shadow-md"
               >
                 <div className="aspect-[4/3] bg-gray-100">
                   {r.photo_1_url ? (
@@ -259,14 +251,11 @@ export default async function HomePage({ searchParams }: PageProps) {
 
                   <p className="text-sm text-gray-700">{r.short_description}</p>
 
-                  <Link
-                    href={`/r/${r.slug}`}
-                    className="mt-5 inline-flex rounded-2xl bg-black px-4 py-2 text-sm font-medium text-white"
-                  >
+                  <div className="mt-5 inline-flex rounded-2xl bg-black px-4 py-2 text-sm font-medium text-white group-hover:opacity-90">
                     Открыть ресторан
-                  </Link>
+                  </div>
                 </div>
-              </article>
+              </Link>
             ))}
           </div>
         )}

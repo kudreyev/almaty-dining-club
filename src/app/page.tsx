@@ -23,13 +23,21 @@ type Restaurant = {
   offers: Offer[]
 }
 
+type PageProps = {
+  searchParams: Promise<{
+    cuisine?: string
+    offer?: string
+  }>
+}
+
 function priceLabel(level: Restaurant['price_level']) {
   if (level === 'low') return '₸'
   if (level === 'mid') return '₸₸'
   return '₸₸₸'
 }
 
-export default async function HomePage() {
+export default async function HomePage({ searchParams }: PageProps) {
+  const { cuisine = 'all', offer = 'all' } = await searchParams
   const supabase = await createSupabaseServerClient()
 
   const { data: restaurants } = await supabase
@@ -57,23 +65,31 @@ export default async function HomePage() {
     .order('restaurant_name', { ascending: true })
     .returns<Restaurant[]>()
 
-  const safeRestaurants = (restaurants ?? []).map((r) => ({
+  const safeRestaurants: Restaurant[] = (restaurants ?? []).map((r) => ({
     ...r,
     offers: (r.offers ?? []).filter((o) => o.is_active),
   }))
 
-  // соберем "витрину офферов" (по 1 офферу на ресторан)
-  const topOffers = safeRestaurants
-    .filter((r) => r.offers.length > 0)
-    .slice(0, 9)
-    .map((r) => ({
-      restaurantId: r.id,
-      restaurantName: r.restaurant_name,
-      restaurantSlug: r.slug,
-      district: r.district,
-      cuisine: r.cuisine,
-      offer: r.offers[0],
-    }))
+  // Список кухонь для фильтра
+  const cuisines = Array.from(
+    new Set(
+      safeRestaurants
+        .map((r) => (r.cuisine || '').trim())
+        .filter(Boolean)
+    )
+  ).sort((a, b) => a.localeCompare(b, 'ru'))
+
+  // Фильтрация
+  const filteredRestaurants = safeRestaurants.filter((r) => {
+    const cuisineOk = cuisine === 'all' ? true : r.cuisine === cuisine
+
+    const offerOk =
+      offer === 'all'
+        ? true
+        : r.offers.some((o) => o.offer_type === offer)
+
+    return cuisineOk && offerOk
+  })
 
   return (
     <main className="mx-auto max-w-6xl px-6 py-14">
@@ -88,7 +104,7 @@ export default async function HomePage() {
         </h1>
 
         <p className="mt-6 max-w-2xl text-lg leading-8 text-gray-600">
-          Выбирай заведение, активируй оффер и покажи код персоналу. Без купонов и распечаток.
+          Выбирай заведение, активируй предложение и покажи код персоналу. Без купонов и распечаток.
         </p>
 
         <div className="mt-10 flex flex-wrap gap-4">
@@ -100,33 +116,11 @@ export default async function HomePage() {
           </Link>
 
           <Link
-            href="/almaty"
+            href="/how-it-works"
             className="inline-flex rounded-2xl border border-gray-300 bg-white px-6 py-3 text-sm font-medium text-black"
           >
-            Смотреть все рестораны
+            Как это работает
           </Link>
-        </div>
-
-        {/* MINI ONBOARDING */}
-        <div className="mt-10 grid gap-4 md:grid-cols-3">
-          <div className="rounded-3xl bg-gray-50 p-6">
-            <p className="text-sm font-semibold text-gray-900">1) Подписка</p>
-            <p className="mt-2 text-sm leading-6 text-gray-600">
-              Оплати и отправь “Я оплатил” — мы активируем доступ.
-            </p>
-          </div>
-          <div className="rounded-3xl bg-gray-50 p-6">
-            <p className="text-sm font-semibold text-gray-900">2) Активируй оффер</p>
-            <p className="mt-2 text-sm leading-6 text-gray-600">
-              Нажми “Активировать” — получишь код на 10 минут.
-            </p>
-          </div>
-          <div className="rounded-3xl bg-gray-50 p-6">
-            <p className="text-sm font-semibold text-gray-900">3) Покажи код</p>
-            <p className="mt-2 text-sm leading-6 text-gray-600">
-              Персонал проверит код в staff-панели — и применит оффер.
-            </p>
-          </div>
         </div>
 
         <div className="mt-10 rounded-3xl border border-gray-200 bg-white p-6">
@@ -140,83 +134,73 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* TOP OFFERS */}
-      <section className="mt-10">
-        <div className="mb-6 flex items-end justify-between gap-4">
+      {/* FILTERS */}
+      <section className="mt-10 rounded-3xl border border-gray-200 bg-white p-5 shadow-sm">
+        <form className="grid gap-4 md:grid-cols-[1fr_1fr_auto]">
           <div>
-            <h2 className="text-2xl font-semibold">Офферы прямо сейчас</h2>
-            <p className="mt-2 text-sm text-gray-600">
-              Быстрый выбор: популярные офферы от партнёров.
-            </p>
+            <label className="mb-2 block text-sm font-medium text-gray-700">
+              Кухня
+            </label>
+            <select
+              name="cuisine"
+              defaultValue={cuisine}
+              className="w-full rounded-2xl border border-gray-300 px-4 py-3 text-sm outline-none"
+            >
+              <option value="all">Все кухни</option>
+              {cuisines.map((c) => (
+                <option key={c} value={c}>
+                  {c}
+                </option>
+              ))}
+            </select>
           </div>
-          <Link href="/almaty" className="text-sm text-gray-600 underline">
-            Смотреть все
-          </Link>
+
+          <div>
+            <label className="mb-2 block text-sm font-medium text-gray-700">
+              Тип предложения
+            </label>
+            <select
+              name="offer"
+              defaultValue={offer}
+              className="w-full rounded-2xl border border-gray-300 px-4 py-3 text-sm outline-none"
+            >
+              <option value="all">Все предложения</option>
+              <option value="2for1">1+1</option>
+              <option value="compliment">Комплимент</option>
+            </select>
+          </div>
+
+          <div className="flex items-end">
+            <button
+              type="submit"
+              className="w-full rounded-2xl bg-black px-6 py-3 text-sm font-medium text-white"
+            >
+              Применить
+            </button>
+          </div>
+        </form>
+
+        <div className="mt-4 text-sm text-gray-500">
+          Найдено ресторанов: {filteredRestaurants.length}
         </div>
-
-        {topOffers.length === 0 ? (
-          <div className="rounded-3xl border border-gray-200 bg-white p-8 text-gray-600 shadow-sm">
-            Пока нет активных офферов.
-          </div>
-        ) : (
-          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {topOffers.map((item) => (
-              <article
-                key={item.offer.id}
-                className="rounded-3xl border border-gray-200 bg-white p-6 shadow-sm"
-              >
-                <div className="flex items-center justify-between gap-3">
-                  <span className="rounded-full bg-black px-3 py-1 text-xs font-medium text-white">
-                    {offerTypeLabel(item.offer.offer_type)}
-                  </span>
-                  <span className="rounded-full bg-gray-100 px-3 py-1 text-xs font-medium text-gray-700">
-                    по подписке
-                  </span>
-                </div>
-
-                <h3 className="mt-4 text-lg font-semibold">{item.offer.offer_title}</h3>
-                <p className="mt-2 text-sm text-gray-600">{item.offer.offer_terms_short}</p>
-
-                <p className="mt-4 text-sm text-gray-500">
-                  {item.restaurantName} · {item.cuisine} · {item.district}
-                </p>
-
-                <div className="mt-6 flex gap-3">
-                  <Link
-                    href={`/r/${item.restaurantSlug}`}
-                    className="inline-flex rounded-2xl border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-black"
-                  >
-                    Открыть
-                  </Link>
-                  <Link
-                    href="/pricing"
-                    className="inline-flex rounded-2xl bg-black px-4 py-2 text-sm font-medium text-white"
-                  >
-                    Подписка
-                  </Link>
-                </div>
-              </article>
-            ))}
-          </div>
-        )}
       </section>
 
-      {/* RESTAURANTS GRID */}
-      <section className="mt-12">
+      {/* RESTAURANTS GRID (FULL LIST) */}
+      <section className="mt-10">
         <div className="mb-6">
           <h2 className="text-2xl font-semibold">Рестораны</h2>
           <p className="mt-2 text-sm text-gray-600">
-            Все партнёры в Алматы. Офферы открываются по подписке.
+            Офферы открываются по подписке.
           </p>
         </div>
 
-        {safeRestaurants.length === 0 ? (
+        {filteredRestaurants.length === 0 ? (
           <div className="rounded-3xl border border-gray-200 bg-white p-8 text-gray-600 shadow-sm">
-            Пока нет активных ресторанов.
+            По выбранным фильтрам ничего не найдено.
           </div>
         ) : (
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {safeRestaurants.slice(0, 9).map((r) => (
+            {filteredRestaurants.map((r) => (
               <article
                 key={r.id}
                 className="overflow-hidden rounded-3xl border border-gray-200 bg-white shadow-sm"
@@ -261,7 +245,7 @@ export default async function HomePage() {
                           </span>
                         </div>
                         <span className="text-xs text-gray-500">
-                          {r.offers.length} оффер{r.offers.length > 1 ? 'а' : ''}
+                          {r.offers.length} предложени{r.offers.length > 1 ? 'я' : 'е'}
                         </span>
                       </div>
                       <p className="mt-3 text-sm font-medium text-gray-900">
@@ -286,15 +270,6 @@ export default async function HomePage() {
             ))}
           </div>
         )}
-
-        <div className="mt-8">
-          <Link
-            href="/almaty"
-            className="inline-flex rounded-2xl border border-gray-300 bg-white px-6 py-3 text-sm font-medium text-black"
-          >
-            Смотреть весь каталог
-          </Link>
-        </div>
       </section>
     </main>
   )

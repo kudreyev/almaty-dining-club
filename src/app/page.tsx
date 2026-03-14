@@ -227,18 +227,16 @@ export default async function HomePage({ searchParams }: PageProps) {
 
                   {r.offers[0] ? (
                     <div className="mb-4 rounded-2xl bg-gray-50 p-4">
-                      <div className="flex items-center justify-between gap-3">
-                        <div className="flex items-center gap-2">
-                          <span className="rounded-full bg-black px-3 py-1 text-xs font-medium text-white">
-                            {offerTypeLabel(r.offers[0].offer_type)}
-                          </span>
-                          <span className="rounded-full bg-gray-100 px-3 py-1 text-xs font-medium text-gray-700">
-                            по подписке
-                          </span>
-                        </div>
-                        <span className="text-xs text-gray-500">
-                          {r.offers.length} предложени{r.offers.length > 1 ? 'я' : 'е'}
+                      <div className="flex items-center gap-2">
+                        <span className="rounded-full bg-black px-3 py-1 text-xs font-medium text-white">
+                          {offerTypeLabel(r.offers[0].offer_type)}
                         </span>
+
+                        {r.offers.length > 1 ? (
+                          <span className="rounded-full bg-gray-100 px-3 py-1 text-xs font-medium text-gray-700">
+                            {r.offers.length} предложения
+                          </span>
+                        ) : null}
                       </div>
                       <p className="mt-3 text-sm font-medium text-gray-900">
                         {r.offers[0].offer_title}

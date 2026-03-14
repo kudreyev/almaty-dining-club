@@ -139,57 +139,60 @@ export default async function RestaurantPage({ params }: PageProps) {
     )
   }
 
+  const photoUrls = [restaurant.photo_1_url, restaurant.photo_2_url, restaurant.photo_3_url].filter(
+    (u): u is string => Boolean(u)
+  )
+
   return (
     <main className="mx-auto max-w-6xl p-6">
       <div className="grid gap-8 lg:grid-cols-[1.2fr_0.8fr]">
         <section>
           <div className="overflow-hidden rounded-3xl border border-gray-200 bg-white shadow-sm">
-            <div className="grid gap-2 bg-gray-100 sm:grid-cols-2">
-              <div className="aspect-[4/3] bg-gray-100 sm:col-span-2">
-                {restaurant.photo_1_url ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={restaurant.photo_1_url}
-                    alt={restaurant.restaurant_name}
-                    className="h-full w-full object-cover"
-                  />
-                ) : (
-                  <div className="flex h-full items-center justify-center text-sm text-gray-400">
-                    Нет фото
-                  </div>
-                )}
-              </div>
-
+            {photoUrls.length === 0 ? (
               <div className="aspect-[4/3] bg-gray-100">
-                {restaurant.photo_2_url ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={restaurant.photo_2_url}
-                    alt={`${restaurant.restaurant_name} photo 2`}
-                    className="h-full w-full object-cover"
-                  />
-                ) : (
-                  <div className="flex h-full items-center justify-center text-sm text-gray-400">
-                    Нет фото
-                  </div>
-                )}
+                <div className="flex h-full items-center justify-center text-sm text-gray-400">
+                  Нет фото
+                </div>
               </div>
-
+            ) : photoUrls.length === 1 ? (
               <div className="aspect-[4/3] bg-gray-100">
-                {restaurant.photo_3_url ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={restaurant.photo_3_url}
-                    alt={`${restaurant.restaurant_name} photo 3`}
-                    className="h-full w-full object-cover"
-                  />
-                ) : (
-                  <div className="flex h-full items-center justify-center text-sm text-gray-400">
-                    Нет фото
-                  </div>
-                )}
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={photoUrls[0]}
+                  alt={restaurant.restaurant_name}
+                  className="h-full w-full object-cover"
+                />
               </div>
-            </div>
+            ) : (
+              <div className="relative">
+                <div className="flex snap-x snap-mandatory overflow-x-auto scroll-smooth">
+                  {photoUrls.map((url, idx) => (
+                    <div key={url} className="aspect-[4/3] w-full shrink-0 snap-center bg-gray-100">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={url}
+                        alt={`${restaurant.restaurant_name} photo ${idx + 1}`}
+                        className="h-full w-full object-cover"
+                      />
+                    </div>
+                  ))}
+                </div>
+
+                <div className="pointer-events-none absolute bottom-3 left-0 right-0 flex justify-center gap-2">
+                  {photoUrls.map((_, idx) => (
+                    <span
+                      key={idx}
+                      className="h-2 w-2 rounded-full bg-white/80"
+                      aria-hidden="true"
+                    />
+                  ))}
+                </div>
+
+                <div className="pointer-events-none absolute top-3 right-3 rounded-full bg-black/60 px-3 py-1 text-xs text-white">
+                  Свайп
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="mt-6 rounded-3xl border border-gray-200 bg-white p-6 shadow-sm">

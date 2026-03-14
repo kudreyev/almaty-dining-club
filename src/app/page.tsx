@@ -250,6 +250,16 @@ export default async function HomePage({ searchParams }: PageProps) {
                       <p className="mt-1 text-sm text-gray-600">
                         {r.offers[0].offer_terms_short}
                       </p>
+                      {r.offers.length === 2 ? (
+                        <div className="mt-4">
+                          <p className="text-sm font-medium text-gray-900">
+                            {r.offers[1].offer_title}
+                          </p>
+                          <p className="mt-1 text-sm text-gray-600">
+                            {r.offers[1].offer_terms_short}
+                          </p>
+                        </div>
+                      ) : null}
                     </div>
                   ) : null}
 

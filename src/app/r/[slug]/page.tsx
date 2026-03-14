@@ -103,10 +103,11 @@ export default async function RestaurantPage({ params }: PageProps) {
     .returns<RestaurantLocation[]>()
 
   if (locationsError) {
-    // Keep page working even if locations fail
-    // eslint-disable-next-line no-console
-    console.error('Ошибка загрузки адресов:', locationsError.message)
+    // можно просто игнорировать и показать данные из restaurants
+    // не падаем
   }
+
+  const activeLocations = locations ?? []
 
   const { data: offers, error: offersError } = await supabase
     .from('offers')
@@ -214,41 +215,49 @@ export default async function RestaurantPage({ params }: PageProps) {
 
             <div className="mt-6 grid gap-4 sm:grid-cols-2">
               <div className="rounded-2xl bg-gray-50 p-4 sm:col-span-2">
-                <p className="text-sm font-medium text-gray-900">Адреса</p>
+                <p className="text-sm font-medium text-gray-900">Адрес</p>
 
-                {locations && locations.length > 0 ? (
-                  <div className="mt-2 space-y-3">
-                    {locations.map((loc) => (
-                      <div key={loc.id} className="text-sm text-gray-700">
-                        <p className="font-medium">
-                          {loc.district ? `${loc.district} · ` : ''}{loc.address}
-                        </p>
-                        {loc.working_hours ? (
-                          <p className="mt-0.5 text-gray-600">{loc.working_hours}</p>
-                        ) : null}
-                        {loc.phone ? (
-                          <p className="mt-0.5 text-gray-600">{loc.phone}</p>
-                        ) : null}
-                      </div>
+                {activeLocations.length > 1 ? (
+                  <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-gray-700">
+                    {activeLocations.map((loc) => (
+                      <li key={loc.id}>{loc.address}</li>
                     ))}
-                  </div>
+                  </ul>
                 ) : (
-                  <p className="mt-1 text-sm text-gray-600">{restaurant.address}</p>
+                  <p className="mt-1 text-sm text-gray-600">
+                    {activeLocations[0]?.address ?? restaurant.address}
+                  </p>
                 )}
               </div>
 
-              {!locations || locations.length === 0 ? (
+              {activeLocations.length === 0 ? (
                 <div className="rounded-2xl bg-gray-50 p-4">
                   <p className="text-sm font-medium text-gray-900">Часы работы</p>
                   <p className="mt-1 text-sm text-gray-600">{restaurant.working_hours}</p>
                 </div>
+              ) : activeLocations.length === 1 ? (
+                <div className="rounded-2xl bg-gray-50 p-4">
+                  <p className="text-sm font-medium text-gray-900">Часы работы</p>
+                  <p className="mt-1 text-sm text-gray-600">
+                    {activeLocations[0].working_hours ?? restaurant.working_hours}
+                  </p>
+                </div>
               ) : null}
 
-              {(!locations || locations.length === 0) && restaurant.phone ? (
+              {activeLocations.length === 0 && restaurant.phone ? (
                 <div className="rounded-2xl bg-gray-50 p-4">
                   <p className="text-sm font-medium text-gray-900">Телефон</p>
                   <p className="mt-1 text-sm text-gray-600">{restaurant.phone}</p>
                 </div>
+              ) : activeLocations.length === 1 ? (
+                (activeLocations[0].phone ?? restaurant.phone) ? (
+                  <div className="rounded-2xl bg-gray-50 p-4">
+                    <p className="text-sm font-medium text-gray-900">Телефон</p>
+                    <p className="mt-1 text-sm text-gray-600">
+                      {activeLocations[0].phone ?? restaurant.phone}
+                    </p>
+                  </div>
+                ) : null
               ) : null}
 
               {restaurant.instagram_url ? (

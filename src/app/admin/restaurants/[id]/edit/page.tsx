@@ -22,6 +22,12 @@ export default async function AdminRestaurantEditPage({ params }: PageProps) {
       <div className="rounded-3xl border border-gray-200 bg-white p-8 shadow-sm">
         <div className="flex items-center justify-between">
           <h1 className="text-3xl font-semibold">Редактировать</h1>
+          <Link
+            href={`/admin/restaurants/${r.id}/locations`}
+            className="text-sm text-gray-600 underline"
+          >
+            Адреса
+          </Link>
           <Link href="/admin/restaurants" className="text-sm text-gray-600 underline">Назад</Link>
         </div>
 

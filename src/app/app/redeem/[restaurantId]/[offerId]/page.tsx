@@ -49,8 +49,8 @@ function getRedeemErrorMessage(code?: string) {
   switch (code) {
     case 'active_token':
       return 'У вас уже есть активный код. Дождитесь его истечения или использования.'
-    case 'cooldown':
-      return 'Вы уже использовали оффер в этом ресторане в последние 7 дней.'
+    case 'cooldown_month':
+      return 'Вы уже использовали оффер в этом ресторане в последние 30 дней. Можно снова 30 дней.'
     case 'server_error':
       return 'Произошла ошибка. Попробуйте ещё раз.'
     default:
@@ -155,13 +155,13 @@ export default async function RedeemPage({ params, searchParams }: PageProps) {
             <p className="text-sm font-medium text-gray-900">Генерация кода</p>
             <p className="mt-2 text-sm leading-6 text-gray-600">
               Код будет действовать 10 минут. Одновременно можно иметь только 1 активный код.
-              В одном ресторане оффер можно использовать 1 раз в 7 дней.
+              В одном ресторане оффер можно использовать 1 раз в 30 дней.
             </p>
            
             <ul className="mt-3 list-disc space-y-1 pl-5 text-sm text-gray-600">
               <li>Код действует 10 минут</li>
               <li>Одновременно можно иметь только 1 активный код</li>
-              <li>В одном ресторане — не чаще 1 раза в 7 дней</li>
+              <li>В одном ресторане — не чаще 1 раза в 30 дней</li>
             </ul>
 
             <form action={generateRedeemToken} className="mt-5">

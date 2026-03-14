@@ -53,16 +53,16 @@ export async function generateRedeemToken(formData: FormData) {
     redirect(`${backUrl}?error=active_token`)
   }
 
-  // 2) Cooldown 7 дней
-  const sevenDaysAgo = new Date()
-  sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7)
+  // 2) Cooldown 30 дней (раз в месяц)
+  const thirtyDaysAgo = new Date()
+  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
 
   const { data: recentRedemptions, error: recentRedemptionsError } = await supabase
     .from('redemptions')
     .select('id')
     .eq('user_id', user.id)
     .eq('restaurant_id', restaurantId)
-    .gte('redeemed_at', sevenDaysAgo.toISOString())
+    .gte('redeemed_at', thirtyDaysAgo.toISOString())
     .order('redeemed_at', { ascending: false })
     .limit(1)
 
@@ -71,7 +71,7 @@ export async function generateRedeemToken(formData: FormData) {
   }
 
   if (recentRedemptions && recentRedemptions.length > 0) {
-    redirect(`${backUrl}?error=cooldown`)
+    redirect(`${backUrl}?error=cooldown_month`)
   }
 
   // 3) Создаём токен на 10 минут

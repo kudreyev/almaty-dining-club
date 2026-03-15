@@ -1,3 +1,4 @@
+import Image from 'next/image'
 import { notFound } from 'next/navigation'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 
@@ -36,15 +37,26 @@ type Offer = {
 }
 
 type PageProps = {
-  params: Promise<{
-    slug: string
-  }>
+  params: Promise<{ slug: string }>
 }
 
 function getOfferBadgeLabel(type: Offer['offer_type']) {
   if (type === '2for1') return '1+1'
   return 'Комплимент'
 }
+
+const OPTIMIZED_IMAGE_HOSTS = ['supabase.co', 'supabase.in']
+
+function isOptimizedImageUrl(url: string): boolean {
+  try {
+    const host = new URL(url).hostname.toLowerCase()
+    return OPTIMIZED_IMAGE_HOSTS.some((h) => host === h || host.endsWith('.' + h))
+  } catch {
+    return false
+  }
+}
+
+export const revalidate = 300
 
 export default async function RestaurantPage({ params }: PageProps) {
   const { slug } = await params
@@ -86,39 +98,41 @@ export default async function RestaurantPage({ params }: PageProps) {
     sort_order: number
   }
 
-  const { data: locations, error: locationsError } = await supabase
-    .from('restaurant_locations')
-    .select('id, address, phone, sort_order')
-    .eq('restaurant_id', restaurant.id)
-    .eq('is_active', true)
-    .order('sort_order', { ascending: true })
-    .returns<RestaurantLocation[]>()
+  const [locationsResult, offersResult] = await Promise.all([
+    supabase
+      .from('restaurant_locations')
+      .select('id, address, phone, sort_order')
+      .eq('restaurant_id', restaurant.id)
+      .eq('is_active', true)
+      .order('sort_order', { ascending: true })
+      .returns<RestaurantLocation[]>(),
+    supabase
+      .from('offers')
+      .select(`
+        id,
+        offer_type,
+        offer_title,
+        offer_terms_short,
+        offer_terms_full,
+        offer_days,
+        offer_time_from,
+        offer_time_to,
+        requires_main_course,
+        is_stackable_with_other_promos,
+        is_active
+      `)
+      .eq('restaurant_id', restaurant.id)
+      .eq('is_active', true)
+      .order('created_at', { ascending: true }),
+  ])
 
+  const { data: locations, error: locationsError } = locationsResult
   if (locationsError) {
     // можно просто игнорировать и показать данные из restaurants
-    // не падаем
   }
-
   const activeLocations = locations ?? []
 
-  const { data: offers, error: offersError } = await supabase
-    .from('offers')
-    .select(`
-      id,
-      offer_type,
-      offer_title,
-      offer_terms_short,
-      offer_terms_full,
-      offer_days,
-      offer_time_from,
-      offer_time_to,
-      requires_main_course,
-      is_stackable_with_other_promos,
-      is_active
-    `)
-    .eq('restaurant_id', restaurant.id)
-    .eq('is_active', true)
-    .order('created_at', { ascending: true })
+  const { data: offers, error: offersError } = offersResult
 
   if (offersError) {
     return (
@@ -147,25 +161,49 @@ export default async function RestaurantPage({ params }: PageProps) {
                 </div>
               </div>
             ) : photoUrls.length === 1 ? (
-              <div className="aspect-[4/3] bg-gray-100">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={photoUrls[0]}
-                  alt={restaurant.restaurant_name}
-                  className="h-full w-full object-cover"
-                />
+              <div className="relative aspect-[4/3] bg-gray-100">
+                {isOptimizedImageUrl(photoUrls[0]) ? (
+                  <Image
+                    src={photoUrls[0]}
+                    alt={restaurant.restaurant_name}
+                    fill
+                    className="object-cover"
+                    sizes="(min-width: 1024px) 720px, 100vw"
+                    priority
+                  />
+                ) : (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={photoUrls[0]}
+                    alt={restaurant.restaurant_name}
+                    className="h-full w-full object-cover"
+                    loading="lazy"
+                  />
+                )}
               </div>
             ) : (
               <div className="relative">
                 <div className="flex snap-x snap-mandatory overflow-x-auto scroll-smooth">
                   {photoUrls.map((url, idx) => (
-                    <div key={url} className="aspect-[4/3] w-full shrink-0 snap-center bg-gray-100">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        src={url}
-                        alt={`${restaurant.restaurant_name} photo ${idx + 1}`}
-                        className="h-full w-full object-cover"
-                      />
+                    <div key={url} className="relative aspect-[4/3] w-full shrink-0 snap-center bg-gray-100">
+                      {isOptimizedImageUrl(url) ? (
+                        <Image
+                          src={url}
+                          alt={`${restaurant.restaurant_name} photo ${idx + 1}`}
+                          fill
+                          className="object-cover"
+                          sizes="(min-width: 1024px) 720px, 100vw"
+                          priority={idx === 0}
+                        />
+                      ) : (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={url}
+                          alt={`${restaurant.restaurant_name} photo ${idx + 1}`}
+                          className="h-full w-full object-cover"
+                          loading={idx === 0 ? 'eager' : 'lazy'}
+                        />
+                      )}
                     </div>
                   ))}
                 </div>

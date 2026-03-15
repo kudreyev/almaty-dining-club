@@ -1,6 +1,8 @@
 import Link from 'next/link'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 
+export const runtime = 'edge'
+
 export default async function PricingPage() {
   const supabase = await createSupabaseServerClient()
   const {

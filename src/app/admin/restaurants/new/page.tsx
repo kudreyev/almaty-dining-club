@@ -16,17 +16,12 @@ export default async function AdminRestaurantNewPage() {
         <form action={createRestaurant} className="mt-8 space-y-4">
           <input name="restaurant_name" placeholder="Название" required className="w-full rounded-2xl border px-4 py-3 text-sm" />
           <input name="slug" placeholder="slug (латиницей)" required className="w-full rounded-2xl border px-4 py-3 text-sm" />
-          <input name="district" placeholder="Район" required className="w-full rounded-2xl border px-4 py-3 text-sm" />
           <input name="address" placeholder="Адрес" required className="w-full rounded-2xl border px-4 py-3 text-sm" />
           <input name="cuisine" placeholder="Кухня" required className="w-full rounded-2xl border px-4 py-3 text-sm" />
+          <input name="cuisine_2" placeholder="Кухня 2 (опционально)" className="w-full rounded-2xl border px-4 py-3 text-sm" />
+          <input name="cuisine_3" placeholder="Кухня 3 (опционально)" className="w-full rounded-2xl border px-4 py-3 text-sm" />
           <input name="short_description" placeholder="Короткое описание (до 120)" required className="w-full rounded-2xl border px-4 py-3 text-sm" />
           <input name="working_hours" placeholder="Часы (10:00-23:00)" required className="w-full rounded-2xl border px-4 py-3 text-sm" />
-
-          <select name="price_level" defaultValue="mid" className="w-full rounded-2xl border px-4 py-3 text-sm">
-            <option value="low">low</option>
-            <option value="mid">mid</option>
-            <option value="high">high</option>
-          </select>
 
           <input name="instagram_url" placeholder="Instagram URL" className="w-full rounded-2xl border px-4 py-3 text-sm" />
           <input name="phone" placeholder="Телефон" className="w-full rounded-2xl border px-4 py-3 text-sm" />

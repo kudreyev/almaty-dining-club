@@ -15,11 +15,19 @@ type Restaurant = {
   id: string
   restaurant_name: string
   slug: string
-  district: string
   cuisine: string
+  cuisine_2: string | null
+  cuisine_3: string | null
   short_description: string
-  price_level: 'low' | 'mid' | 'high'
   photo_1_url: string | null
+
+  restaurant_locations?: {
+    id: string
+    address: string
+    is_active: boolean
+    sort_order: number
+  }[]
+
   offers: Offer[]
 }
 
@@ -28,12 +36,6 @@ type PageProps = {
     cuisine?: string
     offer?: string
   }>
-}
-
-function priceLabel(level: Restaurant['price_level']) {
-  if (level === 'low') return '₸'
-  if (level === 'mid') return '₸₸'
-  return '₸₸₸'
 }
 
 export default async function HomePage({ searchParams }: PageProps) {
@@ -46,10 +48,10 @@ export default async function HomePage({ searchParams }: PageProps) {
       id,
       restaurant_name,
       slug,
-      district,
       cuisine,
+      cuisine_2,
+      cuisine_3,
       short_description,
-      price_level,
       photo_1_url,
       offers (
         id,
@@ -58,6 +60,12 @@ export default async function HomePage({ searchParams }: PageProps) {
         offer_title,
         offer_terms_short,
         is_active
+      ),
+      restaurant_locations (
+        id,
+        address,
+        is_active,
+        sort_order
       )
     `)
     .eq('city', 'almaty')
@@ -74,14 +82,20 @@ export default async function HomePage({ searchParams }: PageProps) {
   const cuisines = Array.from(
     new Set(
       safeRestaurants
-        .map((r) => (r.cuisine || '').trim())
+        .flatMap((r) => [r.cuisine, r.cuisine_2, r.cuisine_3])
+        .map((x) => (x || '').trim())
         .filter(Boolean)
     )
   ).sort((a, b) => a.localeCompare(b, 'ru'))
 
   // Фильтрация
   const filteredRestaurants = safeRestaurants.filter((r) => {
-    const cuisineOk = cuisine === 'all' ? true : r.cuisine === cuisine
+    const cuisineOk =
+      cuisine === 'all'
+        ? true
+        : [r.cuisine, r.cuisine_2, r.cuisine_3]
+            .filter(Boolean)
+            .includes(cuisine)
 
     const offerOk =
       offer === 'all'
@@ -216,13 +230,20 @@ export default async function HomePage({ searchParams }: PageProps) {
                   <div className="mb-2 flex items-start justify-between gap-3">
                     <div>
                       <h3 className="text-xl font-semibold">{r.restaurant_name}</h3>
-                      <p className="mt-1 text-sm text-gray-500">
-                        {r.cuisine} · {r.district}
-                      </p>
+                      <div className="mt-2 flex flex-wrap gap-2">
+                        {[r.cuisine, r.cuisine_2, r.cuisine_3]
+                          .filter(Boolean)
+                          .slice(0, 3)
+                          .map((c) => (
+                            <span
+                              key={c as string}
+                              className="rounded-full bg-gray-100 px-3 py-1 text-xs font-medium text-gray-700"
+                            >
+                              {c as string}
+                            </span>
+                          ))}
+                      </div>
                     </div>
-                    <span className="rounded-full bg-gray-100 px-2.5 py-1 text-xs font-medium text-gray-700">
-                      {priceLabel(r.price_level)}
-                    </span>
                   </div>
 
                   {r.offers[0] ? (
@@ -263,7 +284,44 @@ export default async function HomePage({ searchParams }: PageProps) {
                     </div>
                   ) : null}
 
-                  <p className="text-sm text-gray-700">{r.short_description}</p>
+                  {(() => {
+                    const addresses =
+                      (r.restaurant_locations ?? [])
+                        .filter((l) => l.is_active)
+                        .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0))
+                        .map((l) => l.address)
+                        .filter(Boolean)
+
+                    // fallback: если locations пустые — покажем старый адрес из restaurants.address, если он есть
+                    // (если у тебя нет address в select на главной — можно убрать этот fallback)
+                    const list = addresses
+
+                    if (list.length === 0) {
+                      return (
+                        <p className="text-sm text-gray-600">
+                          {r.short_description}
+                        </p>
+                      )
+                    }
+
+                    const firstThree = list.slice(0, 3)
+                    const hasMore = list.length > 3
+
+                    return (
+                      <div className="text-sm text-gray-700">
+                        <div className="space-y-1">
+                          {firstThree.map((a) => (
+                            <p key={a} className="text-gray-700">
+                              {a}
+                            </p>
+                          ))}
+                          {hasMore ? (
+                            <p className="text-gray-500">и другие</p>
+                          ) : null}
+                        </div>
+                      </div>
+                    )
+                  })()}
 
                   <div className="mt-5 inline-flex rounded-2xl bg-black px-4 py-2 text-sm font-medium text-white group-hover:opacity-90">
                     Открыть ресторан

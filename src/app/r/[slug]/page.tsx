@@ -12,6 +12,8 @@ type Restaurant = {
   instagram_url: string | null
   website_url: string | null
   cuisine: string
+  cuisine_2: string | null
+  cuisine_3: string | null
   short_description: string
   working_hours: string
   price_level: 'low' | 'mid' | 'high'
@@ -46,12 +48,6 @@ function getOfferBadgeLabel(type: Offer['offer_type']) {
   return 'Комплимент'
 }
 
-function getPriceLevelLabel(level: Restaurant['price_level']) {
-  if (level === 'low') return '₸'
-  if (level === 'mid') return '₸₸'
-  return '₸₸₸'
-}
-
 export default async function RestaurantPage({ params }: PageProps) {
   const { slug } = await params
   const supabase = await createSupabaseServerClient()
@@ -69,6 +65,8 @@ export default async function RestaurantPage({ params }: PageProps) {
       instagram_url,
       website_url,
       cuisine,
+      cuisine_2,
+      cuisine_3,
       short_description,
       working_hours,
       price_level,
@@ -188,24 +186,23 @@ export default async function RestaurantPage({ params }: PageProps) {
                   ))}
                 </div>
 
-                <div className="pointer-events-none absolute top-3 right-3 rounded-full bg-black/60 px-3 py-1 text-xs text-white">
-                  Свайп
-                </div>
               </div>
             )}
           </div>
 
           <div className="mt-6 rounded-3xl border border-gray-200 bg-white p-6 shadow-sm">
             <div className="flex flex-wrap items-center gap-3">
-              <span className="rounded-full bg-gray-100 px-3 py-1 text-sm font-medium text-gray-700">
-                {restaurant.cuisine}
-              </span>
-              <span className="rounded-full bg-gray-100 px-3 py-1 text-sm font-medium text-gray-700">
-                {restaurant.district}
-              </span>
-              <span className="rounded-full bg-gray-100 px-3 py-1 text-sm font-medium text-gray-700">
-                {getPriceLevelLabel(restaurant.price_level)}
-              </span>
+              {[restaurant.cuisine, restaurant.cuisine_2, restaurant.cuisine_3]
+                .filter(Boolean)
+                .slice(0, 3)
+                .map((c) => (
+                  <span
+                    key={c as string}
+                    className="rounded-full bg-gray-100 px-3 py-1 text-sm font-medium text-gray-700"
+                  >
+                    {c as string}
+                  </span>
+                ))}
             </div>
 
             <h1 className="mt-4 text-3xl font-semibold">

@@ -117,6 +117,8 @@ export async function importCsvText(formData: FormData) {
       instagram_url: row.instagram_url || null,
       website_url: row.website_url || null,
       cuisine: row.cuisine || '',
+      cuisine_2: row.cuisine_2 || null,
+      cuisine_3: row.cuisine_3 || null,
       short_description: row.short_description || '',
       working_hours: row.working_hours || '',
       price_level: (row.price_level || 'mid') as 'low' | 'mid' | 'high',

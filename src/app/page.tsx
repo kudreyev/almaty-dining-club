@@ -1,5 +1,8 @@
+export const dynamic = 'force-static'
+export const revalidate = 300
+
 import Link from 'next/link'
-import { createSupabaseServerClient } from '@/lib/supabase/server'
+import { createSupabaseServerClient } from '@/lib/supabase/public'
 import { offerTypeLabel } from '@/lib/labels'
 
 type Offer = {
@@ -40,7 +43,7 @@ type PageProps = {
 
 export default async function HomePage({ searchParams }: PageProps) {
   const { cuisine = 'all', offer = 'all' } = await searchParams
-  const supabase = await createSupabaseServerClient()
+  const supabase = createSupabasePublicClient()
 
   const { data: restaurants } = await supabase
     .from('restaurants')

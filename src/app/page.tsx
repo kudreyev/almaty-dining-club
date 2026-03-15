@@ -1,9 +1,9 @@
+import Link from 'next/link'
+import { createSupabasePublicClient } from '@/lib/supabase/public'
+import { offerTypeLabel } from '@/lib/labels'
+
 export const dynamic = 'force-static'
 export const revalidate = 300
-
-import Link from 'next/link'
-import { createSupabaseServerClient } from '@/lib/supabase/public'
-import { offerTypeLabel } from '@/lib/labels'
 
 type Offer = {
   id: string
@@ -51,7 +51,7 @@ export default async function HomePage({ searchParams }: PageProps) {
       id,
       restaurant_name,
       slug,
-      cuisine,
+      cuisine,  
       cuisine_2,
       cuisine_3,
       short_description,

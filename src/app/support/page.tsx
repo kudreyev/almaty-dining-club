@@ -1,3 +1,4 @@
+export const dynamic = 'force-static'
 export default function SupportPage() {
     return (
       <main className="mx-auto max-w-4xl px-6 py-16">

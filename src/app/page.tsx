@@ -6,8 +6,6 @@ export const dynamic = 'force-static'
 export const revalidate = 300
 
 type Offer = {
-  id: string
-  offer_key?: string | null
   offer_type: '2for1' | 'compliment'
   offer_title: string
   offer_terms_short: string
@@ -25,7 +23,6 @@ type Restaurant = {
   photo_1_url: string | null
 
   restaurant_locations?: {
-    id: string
     address: string
     is_active: boolean
     sort_order: number
@@ -57,15 +54,12 @@ export default async function HomePage({ searchParams }: PageProps) {
       short_description,
       photo_1_url,
       offers (
-        id,
-        offer_key,
         offer_type,
         offer_title,
         offer_terms_short,
         is_active
       ),
       restaurant_locations (
-        id,
         address,
         is_active,
         sort_order

@@ -21,9 +21,8 @@ export default async function AdminRestaurantNewPage() {
           <input name="cuisine_2" placeholder="Кухня 2 (опционально)" className="w-full rounded-2xl border px-4 py-3 text-sm" />
           <input name="cuisine_3" placeholder="Кухня 3 (опционально)" className="w-full rounded-2xl border px-4 py-3 text-sm" />
           <input name="short_description" placeholder="Короткое описание (до 120)" required className="w-full rounded-2xl border px-4 py-3 text-sm" />
-          <input name="working_hours" placeholder="Часы (10:00-23:00)" required className="w-full rounded-2xl border px-4 py-3 text-sm" />
-
           <input name="instagram_url" placeholder="Instagram URL" className="w-full rounded-2xl border px-4 py-3 text-sm" />
+          <input name="two_gis_url" placeholder="2GIS URL (полная ссылка)" className="w-full rounded-2xl border px-4 py-3 text-sm" />
           <input name="phone" placeholder="Телефон" className="w-full rounded-2xl border px-4 py-3 text-sm" />
           <input name="photo_1_url" placeholder="Фото 1 URL" className="w-full rounded-2xl border px-4 py-3 text-sm" />
 

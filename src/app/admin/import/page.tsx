@@ -51,7 +51,7 @@ export default async function AdminImportPage({ searchParams }: PageProps) {
             Первая строка — заголовки. Разделитель — запятая. Текст можно брать в кавычки.
           </p>
           <p className="mt-2">
-            Минимально обязательные поля: <code>restaurant_name</code>, <code>slug</code>, <code>district</code>, <code>address</code>, <code>cuisine</code>, <code>short_description</code>, <code>working_hours</code>,
+            Минимально обязательные поля: <code>restaurant_name</code>, <code>slug</code>, <code>district</code>, <code>address</code>, <code>cuisine</code>, <code>short_description</code>, <code>two_gis_url</code>,
             <code>price_level</code>, <code>offer_type</code>, <code>offer_title</code>, <code>offer_terms_short</code>, <code>offer_terms_full</code>, <code>offer_days</code>,
             <code>offer_time_from</code>, <code>offer_time_to</code>, <code>staff_pin</code>.
           </p>
@@ -74,8 +74,8 @@ export default async function AdminImportPage({ searchParams }: PageProps) {
         <div className="mt-10 text-sm text-gray-600">
           <p className="font-medium">Пример (можно скопировать и проверить):</p>
           <pre className="mt-3 overflow-auto rounded-2xl bg-gray-100 p-4 text-xs">
-{`restaurant_name,slug,city,district,address,phone,instagram_url,website_url,cuisine,short_description,working_hours,price_level,photo_1_url,photo_2_url,photo_3_url,offer_type,offer_title,offer_terms_short,offer_terms_full,offer_days,offer_time_from,offer_time_to,requires_main_course,is_stackable_with_other_promos,is_active,staff_pin,staff_name,notes_internal
-Aurora Pasta House,aurora-pasta-house,almaty,Bostandyk,пр. Абая 120,,https://instagram.com/aurora.pasta,,Italian,"Паста и уютные ужины",12:00-23:00,mid,,,,2for1,"1+1 на пасту","Купи 1 пасту — вторая бесплатно","Действует на пасты из списка. Второе такое же или дешевле. Только dine-in.",Mon,Tue,Wed,Thu,Sun,12:00,21:00,false,false,true,1111,Администратор,""`
+{`restaurant_name,slug,city,district,address,phone,instagram_url,website_url,two_gis_url,cuisine,short_description,price_level,photo_1_url,photo_2_url,photo_3_url,offer_type,offer_title,offer_terms_short,offer_terms_full,offer_days,offer_time_from,offer_time_to,requires_main_course,is_stackable_with_other_promos,is_active,staff_pin,staff_name,notes_internal
+Aurora Pasta House,aurora-pasta-house,almaty,Bostandyk,пр. Абая 120,,https://instagram.com/aurora.pasta,,,Italian,"Паста и уютные ужины",mid,,,,2for1,"1+1 на пасту","Купи 1 пасту — вторая бесплатно","Действует на пасты из списка. Второе такое же или дешевле. Только dine-in.",Mon,Tue,Wed,Thu,Sun,12:00,21:00,false,false,true,1111,Администратор,""`
           }</pre>
         </div>
       </div>

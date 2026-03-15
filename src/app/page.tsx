@@ -298,9 +298,9 @@ export default async function HomePage({ searchParams }: PageProps) {
 
                     if (list.length === 0) {
                       return (
-                        <p className="text-sm text-gray-600">
-                          {r.short_description}
-                        </p>
+                        <div className="rounded-2xl bg-gray-50 p-4 text-sm text-gray-700">
+                          <p className="text-gray-600">{r.short_description}</p>
+                        </div>
                       )
                     }
 
@@ -308,7 +308,7 @@ export default async function HomePage({ searchParams }: PageProps) {
                     const hasMore = list.length > 3
 
                     return (
-                      <div className="text-sm text-gray-700">
+                      <div className="rounded-2xl bg-gray-50 p-4 text-sm text-gray-700">
                         <div className="space-y-1">
                           {firstThree.map((a) => (
                             <p key={a} className="text-gray-700">

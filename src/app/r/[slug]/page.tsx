@@ -6,17 +6,15 @@ type Restaurant = {
   restaurant_name: string
   slug: string
   city: string
-  district: string
   address: string
   phone: string | null
   instagram_url: string | null
   website_url: string | null
+  two_gis_url: string | null
   cuisine: string
   cuisine_2: string | null
   cuisine_3: string | null
   short_description: string
-  working_hours: string
-  price_level: 'low' | 'mid' | 'high'
   photo_1_url: string | null
   photo_2_url: string | null
   photo_3_url: string | null
@@ -59,17 +57,15 @@ export default async function RestaurantPage({ params }: PageProps) {
       restaurant_name,
       slug,
       city,
-      district,
       address,
       phone,
       instagram_url,
       website_url,
+      two_gis_url,
       cuisine,
       cuisine_2,
       cuisine_3,
       short_description,
-      working_hours,
-      price_level,
       photo_1_url,
       photo_2_url,
       photo_3_url,
@@ -86,15 +82,13 @@ export default async function RestaurantPage({ params }: PageProps) {
   type RestaurantLocation = {
     id: string
     address: string
-    district: string | null
     phone: string | null
-    working_hours: string | null
     sort_order: number
   }
 
   const { data: locations, error: locationsError } = await supabase
     .from('restaurant_locations')
-    .select('id, address, district, phone, working_hours, sort_order')
+    .select('id, address, phone, sort_order')
     .eq('restaurant_id', restaurant.id)
     .eq('is_active', true)
     .order('sort_order', { ascending: true })
@@ -230,17 +224,17 @@ export default async function RestaurantPage({ params }: PageProps) {
                 )}
               </div>
 
-              {activeLocations.length === 0 ? (
+              {restaurant.two_gis_url ? (
                 <div className="rounded-2xl bg-gray-50 p-4">
-                  <p className="text-sm font-medium text-gray-900">Часы работы</p>
-                  <p className="mt-1 text-sm text-gray-600">{restaurant.working_hours}</p>
-                </div>
-              ) : activeLocations.length === 1 ? (
-                <div className="rounded-2xl bg-gray-50 p-4">
-                  <p className="text-sm font-medium text-gray-900">Часы работы</p>
-                  <p className="mt-1 text-sm text-gray-600">
-                    {activeLocations[0].working_hours ?? restaurant.working_hours}
-                  </p>
+                  <p className="text-sm font-medium text-gray-900">2GIS</p>
+                  <a
+                    href={restaurant.two_gis_url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="mt-1 inline-block text-sm text-black underline"
+                  >
+                    Открыть в 2GIS
+                  </a>
                 </div>
               ) : null}
 

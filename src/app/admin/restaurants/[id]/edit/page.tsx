@@ -40,9 +40,8 @@ export default async function AdminRestaurantEditPage({ params }: PageProps) {
           <input name="cuisine_2" defaultValue={r.cuisine_2 ?? ''} placeholder="Кухня 2 (опционально)" className="w-full rounded-2xl border px-4 py-3 text-sm" />
           <input name="cuisine_3" defaultValue={r.cuisine_3 ?? ''} placeholder="Кухня 3 (опционально)" className="w-full rounded-2xl border px-4 py-3 text-sm" />
           <input name="short_description" defaultValue={r.short_description} required className="w-full rounded-2xl border px-4 py-3 text-sm" />
-          <input name="working_hours" defaultValue={r.working_hours} required className="w-full rounded-2xl border px-4 py-3 text-sm" />
-
           <input name="instagram_url" defaultValue={r.instagram_url ?? ''} className="w-full rounded-2xl border px-4 py-3 text-sm" />
+          <input name="two_gis_url"  defaultValue={r.two_gis_url ?? ''} placeholder="2GIS URL (полная ссылка)" className="w-full rounded-2xl border px-4 py-3 text-sm" />
           <input name="phone" defaultValue={r.phone ?? ''} className="w-full rounded-2xl border px-4 py-3 text-sm" />
           <input name="photo_1_url" defaultValue={r.photo_1_url ?? ''} className="w-full rounded-2xl border px-4 py-3 text-sm" />
 

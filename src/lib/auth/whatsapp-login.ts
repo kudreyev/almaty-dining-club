@@ -1,4 +1,5 @@
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
+import type { EmailOtpType } from '@supabase/supabase-js'
 
 const PHONE_E164_REGEX = /^\+[1-9]\d{7,14}$/
 
@@ -61,6 +62,17 @@ function toSyntheticEmail(phoneE164: string) {
   return `wa_${digits}@wa.local`
 }
 
+function isEmailOtpType(value: string): value is EmailOtpType {
+  return [
+    'signup',
+    'invite',
+    'magiclink',
+    'recovery',
+    'email_change',
+    'email',
+  ].includes(value)
+}
+
 async function ensureAuthUserForPhone(phoneE164: string) {
   const supabaseAdmin = createSupabaseAdminClient()
   const email = toSyntheticEmail(phoneE164)
@@ -81,7 +93,7 @@ async function ensureAuthUserForPhone(phoneE164: string) {
   return email
 }
 
-async function generateLoginLink(email: string) {
+async function generateLoginOtp(email: string) {
   const supabaseAdmin = createSupabaseAdminClient()
   const siteUrl = getRequiredEnv('NEXT_PUBLIC_SITE_URL')
 
@@ -97,20 +109,29 @@ async function generateLoginLink(email: string) {
     throw new Error(`Failed to generate magic link: ${error.message}`)
   }
 
-  const actionLink = data?.properties?.action_link
-  if (!actionLink) {
-    throw new Error('Supabase did not return an action_link')
+  const otpCode = data?.properties?.email_otp
+  if (!otpCode) {
+    throw new Error('Supabase did not return an email_otp')
   }
 
-  return actionLink
+  const verificationTypeRaw = data?.properties?.verification_type
+  const verifyType: EmailOtpType =
+    verificationTypeRaw && isEmailOtpType(verificationTypeRaw)
+      ? verificationTypeRaw
+      : 'magiclink'
+
+  return {
+    otpCode,
+    verifyType,
+  }
 }
 
 async function sendTwilioTemplateMessage({
   to,
-  loginUrl,
+  otpCode,
 }: {
   to: string
-  loginUrl: string
+  otpCode: string
 }) {
   const { accountSid, authToken, from, contentSid } = getTwilioEnv()
 
@@ -121,7 +142,7 @@ async function sendTwilioTemplateMessage({
   body.set('From', from)
   body.set('To', `whatsapp:${to}`)
   body.set('ContentSid', contentSid)
-  body.set('ContentVariables', JSON.stringify({ '1': loginUrl }))
+  body.set('ContentVariables', JSON.stringify({ '1': otpCode }))
 
   const response = await fetch(endpoint, {
     method: 'POST',
@@ -145,9 +166,14 @@ export async function sendWhatsAppLoginMessage(rawPhone: string) {
   }
 
   const email = await ensureAuthUserForPhone(phoneE164)
-  const loginUrl = await generateLoginLink(email)
+  const { otpCode, verifyType } = await generateLoginOtp(email)
   await sendTwilioTemplateMessage({
     to: phoneE164,
-    loginUrl,
+    otpCode,
   })
+
+  return {
+    email,
+    verifyType,
+  }
 }

@@ -1,11 +1,14 @@
 'use server'
 
 import { sendWhatsAppLoginMessage } from '@/lib/auth/whatsapp-login'
+import type { EmailOtpType } from '@supabase/supabase-js'
 
 type SendWhatsAppLoginResult = {
   ok: boolean
   message?: string
   error?: string
+  pendingEmail?: string
+  verifyType?: EmailOtpType
 }
 
 export async function sendWhatsAppLogin(
@@ -21,11 +24,13 @@ export async function sendWhatsAppLogin(
   }
 
   try {
-    await sendWhatsAppLoginMessage(phone)
+    const { email, verifyType } = await sendWhatsAppLoginMessage(phone)
 
     return {
       ok: true,
-      message: 'Мы отправили ссылку для входа в WhatsApp.',
+      message: 'Мы отправили 6-значный код в WhatsApp.',
+      pendingEmail: email,
+      verifyType,
     }
   } catch (error) {
     const text = error instanceof Error ? error.message : 'Неизвестная ошибка'

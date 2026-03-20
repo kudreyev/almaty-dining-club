@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link'
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createSupabaseBrowserClient } from '@/lib/supabase/client'
@@ -99,7 +100,7 @@ export default function LoginPage() {
       <div className="rounded-3xl border border-gray-200 bg-white p-8 shadow-sm">
         <h1 className="text-3xl font-semibold">Вход</h1>
         <p className="mt-3 text-gray-600">
-          Войдите по email или WhatsApp, чтобы оформить подписку и активировать офферы.
+          Войдите по email, WhatsApp или телефону (SMS OTP), чтобы оформить подписку и активировать офферы.
         </p>
 
         <form onSubmit={handleLogin} className="mt-8 space-y-4">
@@ -126,6 +127,15 @@ export default function LoginPage() {
             {loading ? 'Отправка...' : 'Получить ссылку для входа'}
           </button>
         </form>
+
+        <div className="mt-4">
+          <Link
+            href="/login/phone"
+            className="inline-flex w-full items-center justify-center rounded-2xl border border-gray-300 bg-white px-4 py-3 text-sm font-medium text-black"
+          >
+            Войти по телефону (SMS OTP)
+          </Link>
+        </div>
 
         <div className="my-6 h-px bg-gray-200" />
 

@@ -109,15 +109,56 @@ async function generateLoginOtp(email: string) {
     throw new Error(`Failed to generate magic link: ${error.message}`)
   }
 
+  const actionLink: string | null =
+    (data as { properties?: { action_link?: string } } | null)?.properties
+      ?.action_link ?? null
+
+  const tokenHashFromActionLink = (() => {
+    if (!actionLink) return null
+    try {
+      const url = new URL(actionLink)
+      return (
+        url.searchParams.get('token_hash') ??
+        url.searchParams.get('hashed_token') ??
+        null
+      )
+    } catch {
+      return null
+    }
+  })()
+
   const tokenHash =
-    data?.properties?.hashed_token ??
-    data?.properties?.token_hash ??
+    (data as { properties?: { hashed_token?: string; token_hash?: string } } | null)
+      ?.properties?.hashed_token ??
+    (data as { properties?: { hashed_token?: string; token_hash?: string } } | null)
+      ?.properties?.token_hash ??
+    (data as { hashed_token?: string; token_hash?: string } | null)?.hashed_token ??
+    (data as { hashed_token?: string; token_hash?: string } | null)?.token_hash ??
+    tokenHashFromActionLink ??
     null
   if (!tokenHash) {
-    throw new Error('Supabase did not return a token hash')
+    const topLevelKeys =
+      data && typeof data === 'object' ? Object.keys(data as object).sort() : []
+    const propertiesKeys =
+      data &&
+      typeof data === 'object' &&
+      'properties' in (data as object) &&
+      (data as { properties?: unknown }).properties &&
+      typeof (data as { properties?: unknown }).properties === 'object'
+        ? Object.keys((data as { properties: object }).properties).sort()
+        : []
+
+    throw new Error(
+      `Supabase did not return a token hash (data keys: [${topLevelKeys.join(
+        ', '
+      )}], properties keys: [${propertiesKeys.join(', ')}])`
+    )
   }
 
-  const verificationTypeRaw = data?.properties?.verification_type
+  const verificationTypeRaw =
+    (data as { properties?: { verification_type?: string } } | null)?.properties
+      ?.verification_type ??
+    (data as { verification_type?: string } | null)?.verification_type
   const verifyType: EmailOtpType =
     verificationTypeRaw && isEmailOtpType(verificationTypeRaw)
       ? verificationTypeRaw

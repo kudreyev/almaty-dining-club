@@ -5,7 +5,7 @@ export function Footer() {
     <footer className="border-t border-gray-200 bg-white">
       <div className="mx-auto grid max-w-6xl gap-8 px-6 py-10 md:grid-cols-3">
         <div>
-          <p className="text-lg font-semibold">Dining Club Almaty</p>
+          <p className="text-lg font-semibold">KudaPass</p>
           <p className="mt-3 text-sm leading-6 text-gray-600">
             Подписка с офферами 1+1 и комплиментами в ресторанах Алматы.
           </p>

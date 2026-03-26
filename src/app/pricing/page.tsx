@@ -61,7 +61,7 @@ export default async function PricingPage() {
             <div className="mt-6 rounded-2xl bg-gray-50 p-4 text-sm text-gray-700">
               <p className="font-medium text-gray-900">Реквизиты для оплаты</p>
               <p className="mt-2">Kaspi: +7 777 000 00 00</p>
-              <p className="mt-1">Получатель: Dining Club Almaty</p>
+              <p className="mt-1">Получатель: KudaPass</p>
             </div>
 
             <div className="mt-6 rounded-2xl bg-gray-50 p-4 text-sm text-gray-700">

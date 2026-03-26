@@ -24,7 +24,7 @@ export async function Header() {
     <header className="sticky top-0 z-50 border-b border-gray-200 bg-white/90 backdrop-blur">
       <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
         <Link href="/" className="text-lg font-semibold tracking-tight">
-          Dining Club Almaty
+          KudaPass
         </Link>
 
         <nav className="hidden items-center gap-6 md:flex">

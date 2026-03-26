@@ -9,7 +9,7 @@ const inter = Inter({
 })
 
 export const metadata: Metadata = {
-  title: 'Dining Club Almaty',
+  title: 'KudaPass',
   description: 'Подписка с офферами 1+1 и комплиментами в ресторанах Алматы.',
 }
 

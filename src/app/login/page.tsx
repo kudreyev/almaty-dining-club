@@ -4,16 +4,14 @@ import Link from 'next/link'
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createSupabaseBrowserClient } from '@/lib/supabase/client'
-import { sendWhatsAppLogin } from './actions'
-import type { EmailOtpType } from '@supabase/supabase-js'
+import { sendWhatsAppLogin, verifyWhatsAppLoginCode } from './actions'
 
 export default function LoginPage() {
   const router = useRouter()
   const [email, setEmail] = useState('')
   const [phone, setPhone] = useState('')
   const [otpCode, setOtpCode] = useState('')
-  const [pendingEmail, setPendingEmail] = useState<string | null>(null)
-  const [pendingVerifyType, setPendingVerifyType] = useState<EmailOtpType>('magiclink')
+  const [codeRequested, setCodeRequested] = useState(false)
   const [loading, setLoading] = useState(false)
   const [whatsAppLoading, setWhatsAppLoading] = useState(false)
   const [otpLoading, setOtpLoading] = useState(false)
@@ -59,8 +57,7 @@ export default function LoginPage() {
       setError(result.error ?? 'Не удалось отправить сообщение в WhatsApp.')
     } else {
       setMessage(result.message ?? 'Мы отправили 6-значный код в WhatsApp.')
-      setPendingEmail(result.pendingEmail ?? null)
-      setPendingVerifyType(result.verifyType ?? 'magiclink')
+      setCodeRequested(true)
       setOtpCode('')
     }
 
@@ -69,7 +66,7 @@ export default function LoginPage() {
 
   const handleVerifyWhatsAppCode = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!pendingEmail) {
+    if (!codeRequested) {
       setError('Сначала запросите код в WhatsApp.')
       return
     }
@@ -78,15 +75,12 @@ export default function LoginPage() {
     setMessage(null)
     setError(null)
 
-    const supabase = createSupabaseBrowserClient()
-    const { error } = await supabase.auth.verifyOtp({
-      email: pendingEmail,
-      token: otpCode.trim(),
-      type: pendingVerifyType,
-    })
+    const formData = new FormData()
+    formData.set('code', otpCode)
+    const result = await verifyWhatsAppLoginCode(formData)
 
-    if (error) {
-      setError(error.message)
+    if (!result.ok) {
+      setError(result.error ?? 'Не удалось подтвердить код.')
       setOtpLoading(false)
       return
     }
@@ -169,7 +163,7 @@ export default function LoginPage() {
           </button>
         </form>
 
-        {pendingEmail ? (
+        {codeRequested ? (
           <form onSubmit={handleVerifyWhatsAppCode} className="mt-4 space-y-4">
             <div>
               <label htmlFor="otp" className="mb-2 block text-sm font-medium text-gray-700">

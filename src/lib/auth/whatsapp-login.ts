@@ -109,9 +109,12 @@ async function generateLoginOtp(email: string) {
     throw new Error(`Failed to generate magic link: ${error.message}`)
   }
 
-  const otpCode = data?.properties?.email_otp
-  if (!otpCode) {
-    throw new Error('Supabase did not return an email_otp')
+  const tokenHash =
+    data?.properties?.hashed_token ??
+    data?.properties?.token_hash ??
+    null
+  if (!tokenHash) {
+    throw new Error('Supabase did not return a token hash')
   }
 
   const verificationTypeRaw = data?.properties?.verification_type
@@ -121,17 +124,17 @@ async function generateLoginOtp(email: string) {
       : 'magiclink'
 
   return {
-    otpCode,
+    tokenHash,
     verifyType,
   }
 }
 
 async function sendTwilioTemplateMessage({
   to,
-  otpCode,
+  verificationCode,
 }: {
   to: string
-  otpCode: string
+  verificationCode: string
 }) {
   const { accountSid, authToken, from, contentSid } = getTwilioEnv()
 
@@ -142,7 +145,7 @@ async function sendTwilioTemplateMessage({
   body.set('From', from)
   body.set('To', `whatsapp:${to}`)
   body.set('ContentSid', contentSid)
-  body.set('ContentVariables', JSON.stringify({ '1': otpCode }))
+  body.set('ContentVariables', JSON.stringify({ '1': verificationCode }))
 
   const response = await fetch(endpoint, {
     method: 'POST',
@@ -159,21 +162,32 @@ async function sendTwilioTemplateMessage({
   }
 }
 
-export async function sendWhatsAppLoginMessage(rawPhone: string) {
+export async function createWhatsAppLoginChallenge(rawPhone: string) {
   const phoneE164 = normalizePhoneToE164(rawPhone)
   if (!phoneE164) {
     throw new Error('Некорректный номер телефона. Используйте формат +7XXXXXXXXXX.')
   }
 
   const email = await ensureAuthUserForPhone(phoneE164)
-  const { otpCode, verifyType } = await generateLoginOtp(email)
-  await sendTwilioTemplateMessage({
-    to: phoneE164,
-    otpCode,
-  })
+  const { tokenHash, verifyType } = await generateLoginOtp(email)
 
   return {
     email,
+    phoneE164,
+    tokenHash,
     verifyType,
   }
+}
+
+export async function sendWhatsAppVerificationCode({
+  phoneE164,
+  verificationCode,
+}: {
+  phoneE164: string
+  verificationCode: string
+}) {
+  await sendTwilioTemplateMessage({
+    to: phoneE164,
+    verificationCode,
+  })
 }

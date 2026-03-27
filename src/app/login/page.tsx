@@ -18,6 +18,8 @@ export default function LoginPage() {
   const [message, setMessage] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
 
+  const normalizeOtpCode = (value: string) => value.replace(/\D/g, '').slice(0, 6)
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
@@ -64,10 +66,15 @@ export default function LoginPage() {
     setWhatsAppLoading(false)
   }
 
-  const handleVerifyWhatsAppCode = async (e: React.FormEvent) => {
-    e.preventDefault()
+  const submitWhatsAppCode = async (rawCode: string) => {
     if (!codeRequested) {
       setError('Сначала запросите код в WhatsApp.')
+      return
+    }
+
+    const code = normalizeOtpCode(rawCode)
+    if (code.length !== 6) {
+      setError('Введите корректный 6-значный код.')
       return
     }
 
@@ -76,7 +83,7 @@ export default function LoginPage() {
     setError(null)
 
     const formData = new FormData()
-    formData.set('code', otpCode)
+    formData.set('code', code)
     const result = await verifyWhatsAppLoginCode(formData)
 
     if (!result.ok) {
@@ -87,6 +94,11 @@ export default function LoginPage() {
 
     router.push('/app/me')
     router.refresh()
+  }
+
+  const handleVerifyWhatsAppCode = async (e: React.FormEvent) => {
+    e.preventDefault()
+    await submitWhatsAppCode(otpCode)
   }
 
   return (
@@ -174,10 +186,37 @@ export default function LoginPage() {
                 type="text"
                 required
                 value={otpCode}
-                onChange={(e) => setOtpCode(e.target.value)}
+                inputMode="numeric"
+                autoComplete="one-time-code"
+                pattern="\d{6}"
+                maxLength={6}
+                onChange={async (e) => {
+                  const next = normalizeOtpCode(e.target.value)
+                  setOtpCode(next)
+
+                  if (!otpLoading && next.length === 6) {
+                    await submitWhatsAppCode(next)
+                  }
+                }}
+                onPaste={async (e) => {
+                  const pasted = e.clipboardData.getData('text')
+                  const next = normalizeOtpCode(pasted)
+                  if (!next) return
+
+                  e.preventDefault()
+                  setOtpCode(next)
+
+                  if (!otpLoading && next.length === 6) {
+                    await submitWhatsAppCode(next)
+                  }
+                }}
                 placeholder="123456"
                 className="w-full rounded-2xl border border-gray-300 px-4 py-3 text-sm tracking-[0.2em] outline-none"
               />
+              <p className="mt-2 text-xs text-gray-500">
+                Подсказка: автоподстановка зависит от ОС и может не работать для WhatsApp. Вставка кода
+                поддерживается.
+              </p>
             </div>
 
             <button

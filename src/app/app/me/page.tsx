@@ -89,6 +89,11 @@ export default async function MePage({ searchParams }: PageProps) {
     .returns<Redemption[]>()
 
   const currentSubscription = subscriptions?.[0] ?? null
+  const whatsappPhoneFromMetadata =
+    typeof user.user_metadata?.phone_e164 === 'string'
+      ? user.user_metadata.phone_e164
+      : null
+  const displayedPhone = profile?.phone || whatsappPhoneFromMetadata || 'Не указан'
 
   return (
     <main className="mx-auto max-w-5xl px-6 py-16">
@@ -113,22 +118,27 @@ export default async function MePage({ searchParams }: PageProps) {
         <div className="mt-8 grid gap-4 sm:grid-cols-2">
           <div className="rounded-2xl bg-gray-50 p-5">
             <p className="text-sm text-gray-500">Номер телефона</p>
-            <p className="mt-1 font-medium">{profile?.phone || 'Не указан'}</p>
+            <p className="mt-1 font-medium">{displayedPhone}</p>
           </div>
 
           <div className="rounded-2xl bg-gray-50 p-5">
-            <p className="text-sm text-gray-500">Подписка</p>
-            <p className="mt-1 font-medium">
-              {currentSubscription
-                ? subscriptionStatusLabel(currentSubscription.status)
-                : 'Не активна'}
-            </p>
-            <Link
-              href="/pricing"
-              className="mt-4 inline-flex rounded-2xl bg-black px-4 py-2 text-sm font-medium text-white"
-            >
-              Подписаться
-            </Link>
+            <div className="flex items-center justify-between gap-4">
+              <div>
+                <p className="text-sm text-gray-500">Подписка</p>
+                <p className="mt-1 font-medium">
+                  {currentSubscription
+                    ? subscriptionStatusLabel(currentSubscription.status)
+                    : 'Не активна'}
+                </p>
+              </div>
+
+              <Link
+                href="/pricing"
+                className="inline-flex shrink-0 rounded-2xl bg-black px-4 py-2 text-sm font-medium text-white"
+              >
+                Подписаться
+              </Link>
+            </div>
           </div>
         </div>
 

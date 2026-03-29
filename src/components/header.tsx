@@ -64,6 +64,12 @@ export async function Header() {
               >
                 Импорт
               </Link>
+              <Link
+                href="/admin/activation-links"
+                className="text-sm font-medium text-gray-600 hover:text-black"
+              >
+                Активации
+              </Link>
             </>
           ) : null}
         </nav>

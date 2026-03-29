@@ -1,29 +1,9 @@
-import Link from 'next/link'
-import { createSupabaseServerClient } from '@/lib/supabase/server'
-
 export const runtime = 'edge'
 
 const WHATSAPP_SUBSCRIBE_URL =
   'https://wa.me/77066059899?text=%D0%97%D0%B4%D1%80%D0%B0%D0%B2%D1%81%D1%82%D0%B2%D1%83%D0%B9%D1%82%D0%B5%21%20%D0%A5%D0%BE%D1%87%D1%83%20%D0%BF%D0%BE%D0%B4%D0%BF%D0%B8%D1%81%D0%BA%D1%83%20KudaPass%20%D0%BD%D0%B0%20%D0%BE%D0%B4%D0%B8%D0%BD%20%D0%BC%D0%B5%D1%81%D1%8F%D1%86'
 
-export default async function PricingPage() {
-  const supabase = await createSupabaseServerClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
-  const { data: subs } = user
-    ? await supabase
-        .from('subscriptions')
-        .select('id, status, start_date, end_date')
-        .eq('user_id', user.id)
-        .eq('status', 'active')
-        .order('created_at', { ascending: false })
-        .limit(1)
-    : { data: null }
-
-  const hasActive = !!subs?.[0]
-
+export default function PricingPage() {
   return (
     <main className="mx-auto max-w-5xl px-6 py-16">
       <div className="rounded-3xl border border-gray-200 bg-white p-8 shadow-sm">
@@ -78,74 +58,20 @@ export default async function PricingPage() {
             </p>
           </div>
 
-          <div className="rounded-3xl border border-gray-200 p-6">
-            <div className="rounded-2xl border border-gray-200 bg-white p-5">
-              <p className="text-sm font-medium text-gray-900">Оформить подписку</p>
-              <a
-                href={WHATSAPP_SUBSCRIBE_URL}
-                target="_blank"
-                rel="noreferrer"
-                className="mt-4 inline-flex w-full items-center justify-center rounded-2xl bg-black px-5 py-3 text-sm font-medium text-white"
-              >
-                Оформить в WhatsApp
-              </a>
-              <p className="mt-3 text-sm text-gray-500">
-                Откроется WhatsApp: пришлём инструкцию по оплате и активируем подписку вручную.
-              </p>
-            </div>
-
-            <h3 className="mt-8 text-xl font-semibold">Как оплатить через Kaspi</h3>
-
-            <ol className="mt-4 space-y-3 text-sm leading-6 text-gray-700">
-              <li>1. Оплатите подписку на сумму <strong>4 990 ₸</strong></li>
-              <li>2. В комментарии к оплате укажите ваш email</li>
-              <li>3. После оплаты отправьте заявку через форму ниже</li>
-              <li>4. Мы подтвердим оплату и активируем подписку</li>
-            </ol>
-
-            <div className="mt-6 rounded-2xl bg-gray-50 p-4 text-sm text-gray-700">
-              <p className="font-medium text-gray-900">Реквизиты для оплаты</p>
-              <p className="mt-2">Kaspi: +7 777 000 00 00</p>
-              <p className="mt-1">Получатель: KudaPass</p>
-            </div>
-
-            <div className="mt-6 rounded-2xl bg-gray-50 p-4 text-sm text-gray-700">
-              <p className="font-medium text-gray-900">После оплаты</p>
-              <p className="mt-2">
-                Отправь заявку «Я оплатил» — мы подтвердим оплату и активируем подписку.
-              </p>
-              <p className="mt-2 text-gray-600">
-                Обычно подтверждаем в течение{' '}
-                <span className="font-medium text-gray-900">1–3 часов</span> (в рабочее время).
-              </p>
-            </div>
-
-            <div className="mt-6">
-              {user ? (
-                hasActive ? (
-                  <Link
-                    href="/almaty"
-                    className="inline-flex w-full items-center justify-center rounded-2xl bg-black px-5 py-3 text-sm font-medium text-white"
-                  >
-                    Подписка активна — смотреть офферы
-                  </Link>
-                ) : (
-                  <Link
-                    href="/payment/submit"
-                    className="inline-flex w-full items-center justify-center rounded-2xl bg-black px-5 py-3 text-sm font-medium text-white"
-                  >
-                    Я оплатил
-                  </Link>
-                )
-              ) : (
-                <Link
-                  href="/login"
-                  className="inline-flex w-full items-center justify-center rounded-2xl bg-black px-5 py-3 text-sm font-medium text-white"
-                >
-                  Войти, чтобы отправить оплату
-                </Link>
-              )}
-            </div>
+          <div className="rounded-3xl border border-gray-200 bg-white p-6 shadow-sm">
+            <p className="text-sm font-medium text-gray-900">Оформить подписку</p>
+            <a
+              href={WHATSAPP_SUBSCRIBE_URL}
+              target="_blank"
+              rel="noreferrer"
+              className="mt-4 inline-flex w-full items-center justify-center rounded-2xl bg-black px-5 py-3 text-sm font-medium text-white"
+            >
+              Оформить в WhatsApp
+            </a>
+            <p className="mt-3 text-sm text-gray-500">
+              Откроется WhatsApp: ответим на все вопросы, выставим счёт и активируем подписку. Это займёт
+              не более 5 минут.
+            </p>
           </div>
         </div>
       </div>

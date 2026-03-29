@@ -35,10 +35,7 @@ export async function Header() {
             Рестораны
           </Link>
           <Link href="/pricing" className="text-sm font-medium text-gray-600 hover:text-black">
-            Подписаться
-          </Link>
-          <Link href="/how-it-works" className="text-sm font-medium text-gray-600 hover:text-black">
-            Как это работает?
+            Подписка
           </Link>
 
           {role === 'admin' ? (

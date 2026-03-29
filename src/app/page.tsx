@@ -127,7 +127,7 @@ export default async function HomePage({ searchParams }: PageProps) {
           </Link>
 
           <Link
-            href="/how-it-works"
+            href="/pricing"
             className="inline-flex rounded-2xl border border-gray-300 bg-white px-6 py-3 text-sm font-medium text-black"
           >
             Как это работает

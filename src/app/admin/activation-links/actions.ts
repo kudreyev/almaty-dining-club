@@ -18,7 +18,7 @@ export async function createActivationLink(formData: FormData) {
   }
 
   const token = generateHashedActivationToken()
-  const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
+  const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
 
   const { error } = await supabase.from('activation_links').insert({
     token,

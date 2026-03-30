@@ -82,13 +82,17 @@ export default async function ActivatePage({
   }
   if (pre.kind === 'expired') {
     // Idempotently mark as expired if it wasn't activated/revoked.
-    if (row.status === 'issued') {
-      const admin = createSupabaseAdminClient()
-      await admin
-        .from('activation_links')
-        .update({ status: 'expired' })
-        .eq('id', row.id)
-        .eq('status', 'issued')
+    if (row.status !== 'activated' && row.status !== 'revoked') {
+      try {
+        const admin = createSupabaseAdminClient()
+        await admin
+          .from('activation_links')
+          .update({ status: 'expired' })
+          .eq('id', row.id)
+          .not('status', 'in', '("activated","revoked")')
+      } catch {
+        // Best-effort: activation page UX should still work if DB update fails.
+      }
     }
     return (
       <main className="mx-auto max-w-lg px-6 py-16">

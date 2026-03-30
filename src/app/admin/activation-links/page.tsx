@@ -26,15 +26,38 @@ function buildManagerWhatsAppHref(phoneTarget: string, publicUrl: string) {
   return `https://wa.me/${digits}?text=${encodeURIComponent(text)}`
 }
 
-export default async function AdminActivationLinksPage() {
+function isValidFilter(value: string): value is 'active' | 'expired' | 'activated' | 'all' {
+  return ['active', 'expired', 'activated', 'all'].includes(value)
+}
+
+export default async function AdminActivationLinksPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ filter?: string }>
+}) {
   const { supabase } = await requireAdmin()
 
-  const { data: rows, error } = await supabase
+  const { filter: filterRaw } = await searchParams
+  const filter = filterRaw && isValidFilter(filterRaw) ? filterRaw : 'active'
+  const nowIso = new Date().toISOString()
+
+  let query = supabase
     .from('activation_links')
     .select('id, token, phone_target, amount, currency, status, created_at, expires_at, activated_at')
     .order('created_at', { ascending: false })
     .limit(50)
-    .returns<ActivationLinkListRow[]>()
+
+  if (filter === 'active') {
+    query = query.eq('status', 'issued').gt('expires_at', nowIso)
+  } else if (filter === 'expired') {
+    query = query.or(`status.eq.expired,and(status.eq.issued,expires_at.lt.${nowIso})`)
+  } else if (filter === 'activated') {
+    query = query.eq('status', 'activated')
+  } else {
+    // all
+  }
+
+  const { data: rows, error } = await query.returns<ActivationLinkListRow[]>()
 
   if (error) {
     throw new Error(error.message)
@@ -47,7 +70,7 @@ export default async function AdminActivationLinksPage() {
           <div>
             <h1 className="text-3xl font-semibold">Admin · Ссылки активации</h1>
             <p className="mt-2 text-sm text-gray-600">
-              Создайте одноразовую ссылку для клиента после оплаты.
+              Создайте одноразовую ссылку для клиента после оплаты. Срок действия — 24 часа.
             </p>
           </div>
           <div className="flex flex-wrap gap-3">
@@ -101,6 +124,32 @@ export default async function AdminActivationLinksPage() {
           </button>
         </form>
 
+        <div className="mt-6 flex flex-wrap gap-2">
+          {(
+            [
+              { id: 'active', label: 'Активные' },
+              { id: 'expired', label: 'Истекшие' },
+              { id: 'activated', label: 'Активированные' },
+              { id: 'all', label: 'Все' },
+            ] as const
+          ).map((t) => {
+            const isActive = filter === t.id
+            return (
+              <Link
+                key={t.id}
+                href={`/admin/activation-links?filter=${t.id}`}
+                className={
+                  isActive
+                    ? 'rounded-2xl bg-black px-4 py-2 text-sm font-medium text-white'
+                    : 'rounded-2xl border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-black'
+                }
+              >
+                {t.label}
+              </Link>
+            )
+          })}
+        </div>
+
         <div className="mt-10 overflow-x-auto">
           <table className="w-full min-w-[720px] border-collapse text-left text-sm">
             <thead>
@@ -119,13 +168,23 @@ export default async function AdminActivationLinksPage() {
                 rows.map((row) => {
                   const url = buildActivationUrl(row.token)
                   const waHref = buildManagerWhatsAppHref(row.phone_target, url)
+                  const isExpiredByTime = new Date(row.expires_at).getTime() < Date.now()
                   return (
                     <tr key={row.id} className="border-b border-gray-100">
                       <td className="py-3 pr-4 font-medium">{row.phone_target}</td>
                       <td className="py-3 pr-4">
                         {row.amount} {row.currency}
                       </td>
-                      <td className="py-3 pr-4">{row.status}</td>
+                      <td className="py-3 pr-4">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span>{row.status}</span>
+                          {isExpiredByTime ? (
+                            <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-700">
+                              expired
+                            </span>
+                          ) : null}
+                        </div>
+                      </td>
                       <td className="py-3 pr-4 text-gray-600">
                         {new Date(row.created_at).toLocaleString('ru-RU')}
                       </td>

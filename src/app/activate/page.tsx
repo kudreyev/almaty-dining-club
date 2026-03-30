@@ -8,6 +8,7 @@ import {
 } from '@/lib/activation-links'
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 import { LogoutButton } from '@/components/logout-button'
+import { logAnalyticsEvent } from '@/lib/analytics'
 
 const WHATSAPP_SUPPORT_URL =
   'https://wa.me/77066059899?text=%D0%97%D0%B4%D1%80%D0%B0%D0%B2%D1%81%D1%82%D0%B2%D1%83%D0%B9%D1%82%D0%B5%21%20%D0%9D%D1%83%D0%B6%D0%BD%D0%B0%20%D0%BF%D0%BE%D0%BC%D0%BE%D1%89%D1%8C%20%D1%81%20%D0%B0%D0%BA%D1%82%D0%B8%D0%B2%D0%B0%D1%86%D0%B8%D0%B5%D0%B9%20%D0%BF%D0%BE%D0%B4%D0%BF%D0%B8%D1%81%D0%BA%D0%B8%20KudaPass'
@@ -51,8 +52,17 @@ export default async function ActivatePage({
     redirect('/pricing')
   }
 
+  await logAnalyticsEvent({
+    event_name: 'activation_opened',
+    token: token.trim(),
+  })
+
   const row = await getActivationLinkByToken(token.trim())
   if (!row) {
+    await logAnalyticsEvent({
+      event_name: 'activation_not_found',
+      token: token.trim(),
+    })
     return (
       <main className="mx-auto max-w-lg px-6 py-16">
         <div className="rounded-3xl border border-gray-200 bg-white p-8 shadow-sm">
@@ -65,6 +75,14 @@ export default async function ActivatePage({
       </main>
     )
   }
+
+  // Re-log opened with resolved link info (helps funnel attribution).
+  await logAnalyticsEvent({
+    event_name: 'activation_opened',
+    activation_link_id: row.id,
+    token: row.token,
+    phone_target: row.phone_target,
+  })
 
   const pre = precheckActivationLink(row)
   if (pre.kind === 'revoked') {
@@ -94,6 +112,12 @@ export default async function ActivatePage({
         // Best-effort: activation page UX should still work if DB update fails.
       }
     }
+    await logAnalyticsEvent({
+      event_name: 'activation_expired',
+      activation_link_id: row.id,
+      token: row.token,
+      phone_target: row.phone_target,
+    })
     return (
       <main className="mx-auto max-w-lg px-6 py-16">
         <div className="rounded-3xl border border-gray-200 bg-white p-8 shadow-sm">
@@ -107,6 +131,12 @@ export default async function ActivatePage({
     )
   }
   if (pre.kind === 'already_used') {
+    await logAnalyticsEvent({
+      event_name: 'activation_already_activated',
+      activation_link_id: row.id,
+      token: row.token,
+      phone_target: row.phone_target,
+    })
     return (
       <main className="mx-auto max-w-lg px-6 py-16">
         <div className="rounded-3xl border border-gray-200 bg-white p-8 shadow-sm">
@@ -147,6 +177,12 @@ export default async function ActivatePage({
   } = await supabase.auth.getUser()
 
   if (!user) {
+    await logAnalyticsEvent({
+      event_name: 'activation_login_required',
+      activation_link_id: row.id,
+      token: row.token,
+      phone_target: row.phone_target,
+    })
     return (
       <main className="mx-auto max-w-lg px-6 py-16">
         <div className="rounded-3xl border border-gray-200 bg-white p-8 shadow-sm">
@@ -187,6 +223,13 @@ export default async function ActivatePage({
   })
 
   if (result.ok) {
+    await logAnalyticsEvent({
+      event_name: 'activation_activated',
+      activation_link_id: row.id,
+      token: row.token,
+      phone_target: row.phone_target,
+      user_id: user.id,
+    })
     return (
       <main className="mx-auto max-w-lg px-6 py-16">
         <div className="rounded-3xl border border-gray-200 bg-white p-8 shadow-sm">
@@ -214,6 +257,16 @@ export default async function ActivatePage({
   }
 
   if (result.reason === 'wrong_phone') {
+    const userPhone =
+      typeof user.user_metadata?.phone_e164 === 'string' ? user.user_metadata.phone_e164 : null
+    await logAnalyticsEvent({
+      event_name: 'activation_phone_mismatch',
+      activation_link_id: row.id,
+      token: row.token,
+      phone_target: row.phone_target,
+      user_id: user.id,
+      meta: { userPhone },
+    })
     return (
       <main className="mx-auto max-w-lg px-6 py-16">
         <div className="rounded-3xl border border-gray-200 bg-white p-8 shadow-sm">

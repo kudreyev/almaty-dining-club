@@ -30,12 +30,32 @@ function isValidFilter(value: string): value is 'active' | 'expired' | 'activate
   return ['active', 'expired', 'activated', 'all'].includes(value)
 }
 
+async function countEvent(eventName: string, supabase: any, sinceIso: string) {
+  const { count } = await supabase
+    .from('analytics_events')
+    .select('id', { count: 'exact', head: true })
+    .eq('event_name', eventName)
+    .gte('created_at', sinceIso)
+  return count ?? 0
+}
+
 export default async function AdminActivationLinksPage({
   searchParams,
 }: {
   searchParams: Promise<{ filter?: string }>
 }) {
   const { supabase } = await requireAdmin()
+
+  const sinceIso = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()
+  const [createdCount, openedCount, activatedCount, expiredCount] = await Promise.all([
+    countEvent('activation_link_created', supabase, sinceIso),
+    countEvent('activation_opened', supabase, sinceIso),
+    countEvent('activation_activated', supabase, sinceIso),
+    countEvent('activation_expired', supabase, sinceIso),
+  ])
+  const conversion = createdCount > 0 ? activatedCount / createdCount : 0
+  const openedPerCreated = createdCount > 0 ? openedCount / createdCount : 0
+  const activatedPerOpened = openedCount > 0 ? activatedCount / openedCount : 0
 
   const { filter: filterRaw } = await searchParams
   const filter = filterRaw && isValidFilter(filterRaw) ? filterRaw : 'active'
@@ -86,6 +106,33 @@ export default async function AdminActivationLinksPage({
             >
               Оплаты
             </Link>
+          </div>
+        </div>
+
+        <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+          <div className="rounded-2xl bg-gray-50 p-5">
+            <p className="text-sm text-gray-500">created (7d)</p>
+            <p className="mt-1 text-2xl font-semibold">{createdCount}</p>
+          </div>
+          <div className="rounded-2xl bg-gray-50 p-5">
+            <p className="text-sm text-gray-500">opened (7d)</p>
+            <p className="mt-1 text-2xl font-semibold">{openedCount}</p>
+          </div>
+          <div className="rounded-2xl bg-gray-50 p-5">
+            <p className="text-sm text-gray-500">activated (7d)</p>
+            <p className="mt-1 text-2xl font-semibold">{activatedCount}</p>
+          </div>
+          <div className="rounded-2xl bg-gray-50 p-5">
+            <p className="text-sm text-gray-500">expired (7d)</p>
+            <p className="mt-1 text-2xl font-semibold">{expiredCount}</p>
+          </div>
+          <div className="rounded-2xl bg-gray-50 p-5">
+            <p className="text-sm text-gray-500">conversion</p>
+            <p className="mt-1 text-2xl font-semibold">{(conversion * 100).toFixed(1)}%</p>
+            <p className="mt-2 text-xs text-gray-500">
+              opened/created: {(openedPerCreated * 100).toFixed(1)}% · activated/opened:{' '}
+              {(activatedPerOpened * 100).toFixed(1)}%
+            </p>
           </div>
         </div>
 

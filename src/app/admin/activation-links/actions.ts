@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache'
 import { requireAdmin } from '@/lib/admin'
 import { normalizePhoneToE164 } from '@/lib/auth/whatsapp-login'
 import { generateHashedActivationToken } from '@/lib/activation-links'
+import { logAnalyticsEvent } from '@/lib/analytics'
 
 export async function createActivationLink(formData: FormData) {
   const { supabase } = await requireAdmin()
@@ -20,18 +21,30 @@ export async function createActivationLink(formData: FormData) {
   const token = generateHashedActivationToken()
   const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
 
-  const { error } = await supabase.from('activation_links').insert({
-    token,
-    phone_target: phoneTarget,
-    amount,
-    currency: 'KZT',
-    status: 'issued',
-    expires_at: expiresAt,
-  })
+  const { data: inserted, error } = await supabase
+    .from('activation_links')
+    .insert({
+      token,
+      phone_target: phoneTarget,
+      amount,
+      currency: 'KZT',
+      status: 'issued',
+      expires_at: expiresAt,
+    })
+    .select('id, token, phone_target')
+    .single()
 
   if (error) {
     throw new Error(error.message)
   }
+
+  await logAnalyticsEvent({
+    event_name: 'activation_link_created',
+    activation_link_id: inserted?.id ?? null,
+    token: inserted?.token ?? token,
+    phone_target: inserted?.phone_target ?? phoneTarget,
+    meta: { amount, source: 'admin' },
+  })
 
   revalidatePath('/admin/activation-links')
 }

@@ -42,7 +42,7 @@ export function PhoneInput({
   readOnly,
   disabled,
   required,
-  placeholder = '+7 (7__) ___ ____',
+  placeholder = 'Например: +77001234567',
   onBlur,
   ...rest
 }: PhoneInputProps) {

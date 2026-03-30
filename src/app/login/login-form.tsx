@@ -2,12 +2,8 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import {
-  PhoneInput,
-  formatKZPhoneFromDigits,
-  isKZNumber,
-  normalizeToE164Like,
-} from '@/components/phone-input'
+import { PhoneInput, normalizeToE164Like } from '@/components/phone-input'
+import { formatPhoneForDisplay } from '@/lib/kz-phone'
 import { sendWhatsAppLogin, verifyWhatsAppLoginCode } from './actions'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
@@ -44,12 +40,7 @@ export function LoginForm({
 
     const phoneE164 = normalizeToE164Like(subscriber)
     if (!phoneE164) {
-      setError('Введите полный номер телефона.')
-      setWhatsAppLoading(false)
-      return
-    }
-    if (!isKZNumber(phoneE164)) {
-      setError('Пока поддерживаем только номера Казахстана (+7 ...).')
+      setError('Введите полный номер телефона (с кодом страны, например +7…).')
       setWhatsAppLoading(false)
       return
     }
@@ -121,19 +112,18 @@ export function LoginForm({
               subscriber={subscriber}
               onSubscriberChange={setSubscriber}
               readOnly={isPhoneLocked}
+              placeholder="Например: +77001234567"
               className="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm outline-none transition-colors focus:border-black"
             />
             {isPhoneLocked ? (
               <p className="mt-1 text-xs text-gray-400">
-                Войдите с номера{' '}
-                {(() => {
-                  const normalized = normalizeToE164Like(subscriber)
-                  if (!normalized) return subscriber
-                  if (!isKZNumber(normalized)) return normalized
-                  return formatKZPhoneFromDigits(normalized.slice(1))
-                })()}
+                Войдите с номера {formatPhoneForDisplay(subscriber)}
               </p>
-            ) : null}
+            ) : (
+              <p className="mt-1 text-xs text-gray-400">
+                Укажите номер в международном формате с «+» и кодом страны.
+              </p>
+            )}
           </div>
 
           <Button

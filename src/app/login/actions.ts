@@ -6,7 +6,7 @@ import {
   createWhatsAppLoginChallenge,
   sendWhatsAppVerificationCode,
 } from '@/lib/auth/whatsapp-login'
-import { isKZNumber, normalizeToE164Like } from '@/lib/kz-phone'
+import { normalizeToE164Like } from '@/lib/kz-phone'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import type { EmailOtpType } from '@supabase/supabase-js'
 
@@ -94,13 +94,7 @@ export async function sendWhatsAppLogin(
   if (!phone) {
     return {
       ok: false,
-      error: 'Введите корректный номер телефона.',
-    }
-  }
-  if (!isKZNumber(phone)) {
-    return {
-      ok: false,
-      error: 'Пока поддерживаем только номера Казахстана (+7 ...).',
+      error: 'Введите корректный номер телефона (с кодом страны, например +7…).',
     }
   }
 

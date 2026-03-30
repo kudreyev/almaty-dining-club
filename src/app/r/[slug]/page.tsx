@@ -1,6 +1,6 @@
-import Image from 'next/image'
 import { notFound } from 'next/navigation'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
+import { RestaurantPhotoGallery } from '@/components/restaurant-photo-gallery'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card } from '@/components/ui/card'
@@ -41,17 +41,6 @@ type Offer = {
 
 type PageProps = {
   params: Promise<{ slug: string }>
-}
-
-const OPTIMIZED_IMAGE_HOSTS = ['supabase.co', 'supabase.in']
-
-function isOptimizedImageUrl(url: string): boolean {
-  try {
-    const host = new URL(url).hostname.toLowerCase()
-    return OPTIMIZED_IMAGE_HOSTS.some((h) => host === h || host.endsWith('.' + h))
-  } catch {
-    return false
-  }
 }
 
 export const revalidate = 300
@@ -128,67 +117,7 @@ export default async function RestaurantPage({ params }: PageProps) {
         <div className="space-y-6">
           {/* GALLERY */}
           <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
-            {photoUrls.length === 0 ? (
-              <div className="flex aspect-[4/3] items-center justify-center bg-gray-50 text-sm text-gray-300">
-                Нет фото
-              </div>
-            ) : photoUrls.length === 1 ? (
-              <div className="relative aspect-[4/3] bg-gray-100">
-                {isOptimizedImageUrl(photoUrls[0]) ? (
-                  <Image
-                    src={photoUrls[0]}
-                    alt={restaurant.restaurant_name}
-                    fill
-                    className="object-cover"
-                    sizes="(min-width: 1024px) 720px, 100vw"
-                    priority
-                  />
-                ) : (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={photoUrls[0]}
-                    alt={restaurant.restaurant_name}
-                    className="h-full w-full object-cover"
-                  />
-                )}
-              </div>
-            ) : (
-              <div className="relative">
-                <div className="flex snap-x snap-mandatory overflow-x-auto scroll-smooth [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-                  {photoUrls.map((url, idx) => (
-                    <div key={url} className="relative aspect-[4/3] w-full shrink-0 snap-center bg-gray-100">
-                      {isOptimizedImageUrl(url) ? (
-                        <Image
-                          src={url}
-                          alt={`${restaurant.restaurant_name}, фото ${idx + 1}`}
-                          fill
-                          className="object-cover"
-                          sizes="(min-width: 1024px) 720px, 100vw"
-                          priority={idx === 0}
-                        />
-                      ) : (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img
-                          src={url}
-                          alt={`${restaurant.restaurant_name}, фото ${idx + 1}`}
-                          className="h-full w-full object-cover"
-                          loading={idx === 0 ? 'eager' : 'lazy'}
-                        />
-                      )}
-                    </div>
-                  ))}
-                </div>
-                <div className="pointer-events-none absolute bottom-4 left-0 right-0 flex justify-center gap-1.5">
-                  {photoUrls.map((_, idx) => (
-                    <span
-                      key={idx}
-                      className="h-1.5 w-1.5 rounded-full bg-white/90 shadow-sm"
-                      aria-hidden="true"
-                    />
-                  ))}
-                </div>
-              </div>
-            )}
+            <RestaurantPhotoGallery photoUrls={photoUrls} restaurantName={restaurant.restaurant_name} />
           </div>
 
           {/* INFO */}

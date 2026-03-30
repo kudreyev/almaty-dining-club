@@ -65,13 +65,12 @@ export default async function ActivatePage({
     redirect('/pricing')
   }
 
-  await logAnalyticsEvent({
-    event_name: 'activation_opened',
-    token: token.trim(),
-  })
-
   const row = await getActivationLinkByToken(token.trim())
   if (!row) {
+    await logAnalyticsEvent({
+      event_name: 'activation_opened',
+      token: token.trim(),
+    })
     await logAnalyticsEvent({
       event_name: 'activation_not_found',
       token: token.trim(),
@@ -89,7 +88,6 @@ export default async function ActivatePage({
     )
   }
 
-  // Re-log opened with resolved link info (helps funnel attribution).
   await logAnalyticsEvent({
     event_name: 'activation_opened',
     activation_link_id: row.id,

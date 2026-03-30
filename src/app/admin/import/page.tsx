@@ -48,7 +48,7 @@ export default async function AdminImportPage({ searchParams }: PageProps) {
             name="csv"
             rows={12}
             placeholder="Вставьте CSV с заголовками..."
-            className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm outline-none transition-colors placeholder:text-gray-400 focus:border-brand"
+            className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm outline-none transition-colors placeholder:text-gray-400 focus:border-black"
             required
           />
           <Button type="submit" className="w-full">

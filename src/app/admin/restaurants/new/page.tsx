@@ -30,7 +30,7 @@ export default async function AdminRestaurantNewPage() {
           <Input name="two_gis_url" label="2GIS" placeholder="Ссылка 2GIS" />
           <div>
             <label className="mb-1.5 block text-sm font-medium text-gray-700">Телефон</label>
-            <PhoneInput name="phone" className="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm outline-none transition-colors focus:border-brand" />
+            <PhoneInput name="phone" className="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm outline-none transition-colors focus:border-black" />
           </div>
           <Input name="photo_1_url" label="Фото (URL)" placeholder="Ссылка на фото" />
 

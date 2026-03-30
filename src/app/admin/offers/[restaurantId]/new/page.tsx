@@ -34,8 +34,8 @@ export default async function AdminOfferNewPage({ params }: PageProps) {
           <input type="hidden" name="restaurant_id" value={restaurantId} />
 
           <select name="offer_type" defaultValue="2for1" className="w-full rounded-2xl border px-4 py-3 text-sm">
-            <option value="2for1">2for1 (1+1)</option>
-            <option value="compliment">compliment (Комплимент)</option>
+            <option value="2for1">1+1 (два по цене одного)</option>
+            <option value="compliment">Комплимент</option>
           </select>
 
           <OfferKeyField />

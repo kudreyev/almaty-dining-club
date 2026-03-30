@@ -138,7 +138,7 @@ export default async function StaffHistoryPage() {
                   </div>
 
                   <div>
-                    <p className="text-sm text-gray-500">User ID</p>
+                    <p className="text-sm text-gray-500">ID пользователя</p>
                     <p className="break-all font-medium">{item.user_id}</p>
                   </div>
                 </div>

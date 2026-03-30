@@ -22,7 +22,7 @@ export function CopyLinkButton({
       await navigator.clipboard.writeText(textToCopy)
       setCopied(true)
     } catch {
-      // Clipboard might be blocked in some environments; no-op for MVP.
+      // Буфер обмена может быть недоступен в части окружений.
     }
   }
 

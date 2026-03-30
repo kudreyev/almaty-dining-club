@@ -53,7 +53,7 @@ export function OfferKeyField(props: {
     <div className="space-y-4">
       <div>
         <label className="mb-2 block text-sm font-medium text-gray-700">
-          offer_title
+          Название предложения
         </label>
         <input
           name={nameTitle}
@@ -67,7 +67,7 @@ export function OfferKeyField(props: {
 
       <div>
         <label className="mb-2 block text-sm font-medium text-gray-700">
-          offer_key (уникально в ресторане)
+          Ключ оффера (уникален в заведении)
         </label>
 
         <div className="flex gap-3">

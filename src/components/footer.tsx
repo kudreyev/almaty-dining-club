@@ -16,13 +16,13 @@ export function Footer() {
           <div className="mt-3 flex flex-col gap-2 text-sm text-gray-600">
             <Link href="/">Главная</Link>
             <Link href="/almaty">Рестораны</Link>
-            <Link href="/pricing">Pricing</Link>
-            <Link href="/staff/login">Staff Login</Link>
+            <Link href="/pricing">Подписка</Link>
+            <Link href="/staff/login">Вход для персонала</Link>
           </div>
         </div>
 
         <div>
-          <p className="text-sm font-semibold text-gray-900">MVP</p>
+          <p className="text-sm font-semibold text-gray-900">Правовая информация</p>
           <div className="mt-3 space-y-2 text-sm text-gray-600">
             <Link href="/terms">Условия использования</Link>
             <Link href="/privacy">Политика конфиденциальности</Link>

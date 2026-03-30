@@ -34,7 +34,7 @@ export default function PricingPage() {
             <div className="rounded-3xl bg-gray-50 p-6">
               <p className="text-sm font-semibold text-gray-900">3) Покажи код</p>
               <p className="mt-2 text-sm leading-6 text-gray-600">
-                Персонал проверит код в staff-панели — и оффер применят к твоему заказу.
+                Персонал проверит код в панели персонала — и предложение применят к твоему заказу.
               </p>
             </div>
           </div>
@@ -43,14 +43,14 @@ export default function PricingPage() {
         <div className="mt-10 grid gap-6 lg:grid-cols-[1fr_0.8fr]">
           <div className="rounded-3xl bg-gray-50 p-6">
             <p className="text-sm text-gray-500">План</p>
-            <h2 className="mt-2 text-3xl font-semibold">Monthly Almaty</h2>
+            <h2 className="mt-2 text-3xl font-semibold">Ежемесячный тариф «Алматы»</h2>
             <p className="mt-2 text-lg text-gray-700">4 990 ₸ / 30 дней</p>
 
             <ul className="mt-6 space-y-3 text-sm text-gray-700">
               <li>— Доступ ко всем активным офферам в Алматы</li>
               <li>— Форматы: 1+1 и комплименты</li>
               <li>— Использование через одноразовый код</li>
-              <li>— Проверка оффера через staff panel</li>
+              <li>— Проверка предложения через панель персонала</li>
             </ul>
             <p className="mt-4 text-sm text-gray-500">
               После активации подписки вы сможете открывать офферы и получать одноразовый код для

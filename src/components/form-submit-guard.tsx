@@ -19,7 +19,7 @@ export function FormSubmitGuard() {
       if (valid === '0') {
         e.preventDefault()
         e.stopPropagation()
-        alert('offer_key некорректный. Исправьте его перед сохранением.')
+        alert('Исправьте ключ оффера перед сохранением.')
       }
     }
 

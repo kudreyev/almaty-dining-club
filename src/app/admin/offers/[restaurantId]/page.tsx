@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { requireAdmin } from '@/lib/admin'
+import { listingVisibilityLabel, offerTypeLabel } from '@/lib/labels'
 
 type PageProps = { params: Promise<{ restaurantId: string }> }
 
@@ -47,7 +48,7 @@ export default async function AdminOffersForRestaurantPage({ params }: PageProps
                   </span>
             
                   <span className="rounded-full bg-gray-100 px-3 py-1 text-xs text-gray-700">
-                    {o.is_active ? 'active' : 'hidden'}
+                    {listingVisibilityLabel(!!o.is_active)}
                   </span>
             
                   {o.offer_key ? (

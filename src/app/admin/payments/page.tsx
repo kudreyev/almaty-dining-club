@@ -51,7 +51,7 @@ export default async function AdminPaymentsPage() {
   if (error) {
     return (
       <main className="mx-auto max-w-5xl px-6 py-16">
-        <h1 className="text-3xl font-semibold">Admin Payments</h1>
+        <h1 className="text-3xl font-semibold">Админка · Заявки на оплату</h1>
         <p className="mt-4 text-red-600">Ошибка: {error.message}</p>
       </main>
     )
@@ -60,7 +60,7 @@ export default async function AdminPaymentsPage() {
   return (
     <main className="mx-auto max-w-6xl px-6 py-16">
       <div className="rounded-3xl border border-gray-200 bg-white p-8 shadow-sm">
-        <h1 className="text-3xl font-semibold">Admin Payments</h1>
+        <h1 className="text-3xl font-semibold">Админка · Заявки на оплату</h1>
         <p className="mt-3 text-gray-600">
           Просмотр и подтверждение заявок на оплату.
         </p>
@@ -79,22 +79,22 @@ export default async function AdminPaymentsPage() {
                 <div className="flex flex-wrap items-start justify-between gap-4">
                   <div className="space-y-2">
                     <div>
-                      <p className="text-sm text-gray-500">Payment code</p>
+                      <p className="text-sm text-gray-500">Код платежа</p>
                       <p className="font-medium">{item.payment_code}</p>
                     </div>
 
                     <div>
-                      <p className="text-sm text-gray-500">User ID</p>
+                      <p className="text-sm text-gray-500">ID пользователя</p>
                       <p className="break-all text-sm font-medium">{item.user_id}</p>
                     </div>
 
                     <div>
-                      <p className="text-sm text-gray-500">Amount</p>
+                      <p className="text-sm text-gray-500">Сумма</p>
                       <p className="font-medium">{item.amount} ₸</p>
                     </div>
 
                     <div>
-                      <p className="text-sm text-gray-500">Submitted</p>
+                      <p className="text-sm text-gray-500">Отправлено</p>
                       <p className="font-medium">
                         {new Date(item.submitted_at).toLocaleString('ru-RU')}
                       </p>
@@ -109,7 +109,7 @@ export default async function AdminPaymentsPage() {
 
                     {item.admin_comment ? (
                       <div className="rounded-xl bg-gray-50 p-3">
-                        <p className="text-sm text-gray-500">Admin comment</p>
+                        <p className="text-sm text-gray-500">Комментарий администратора</p>
                         <p className="mt-1 text-sm text-gray-700">{item.admin_comment}</p>
                       </div>
                     ) : null}
@@ -132,7 +132,7 @@ export default async function AdminPaymentsPage() {
                             type="submit"
                             className="w-full rounded-2xl bg-black px-4 py-3 text-sm font-medium text-white"
                           >
-                            Approve
+                            Подтвердить
                           </button>
                         </form>
 
@@ -142,7 +142,7 @@ export default async function AdminPaymentsPage() {
                             type="submit"
                             className="w-full rounded-2xl border border-gray-300 bg-white px-4 py-3 text-sm font-medium text-black"
                           >
-                            Reject
+                            Отклонить
                           </button>
                         </form>
                       </div>

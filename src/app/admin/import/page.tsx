@@ -15,20 +15,20 @@ export default async function AdminImportPage({ searchParams }: PageProps) {
       <div className="rounded-3xl border border-gray-200 bg-white p-8 shadow-sm">
         <div className="flex items-center justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-semibold">Admin · CSV Import</h1>
+            <h1 className="text-3xl font-semibold">Админка · Импорт CSV</h1>
             <p className="mt-2 text-sm text-gray-600">
-              Вставь CSV (с заголовками) → создадим/обновим рестораны, офферы и staff PIN.
+              Вставьте CSV с заголовками — создадим или обновим заведения, офферы и PIN персонала.
             </p>
           </div>
           <div className="flex gap-3">
             <Link href="/admin/restaurants" className="rounded-2xl border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-black">
-              Restaurants
+              Заведения
             </Link>
             <Link href="/admin/offers" className="rounded-2xl border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-black">
-              Offers
+              Офферы
             </Link>
             <Link href="/admin/staff" className="rounded-2xl border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-black">
-              Staff PIN
+              PIN персонала
             </Link>
           </div>
         </div>
@@ -67,7 +67,7 @@ export default async function AdminImportPage({ searchParams }: PageProps) {
           />
 
           <button className="w-full rounded-2xl bg-black px-4 py-3 text-sm font-medium text-white">
-            Import CSV
+            Импортировать CSV
           </button>
         </form>
 

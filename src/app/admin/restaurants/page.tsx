@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { requireAdmin } from '@/lib/admin'
+import { listingVisibilityLabel } from '@/lib/labels'
 
 export default async function AdminRestaurantsPage() {
   const { supabase } = await requireAdmin()
@@ -14,7 +15,7 @@ export default async function AdminRestaurantsPage() {
       <div className="rounded-3xl border border-gray-200 bg-white p-8 shadow-sm">
         <div className="flex items-center justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-semibold">Admin · Restaurants</h1>
+            <h1 className="text-3xl font-semibold">Админка · Заведения</h1>
             <p className="mt-2 text-sm text-gray-600">Управление заведениями</p>
           </div>
           <Link href="/admin/restaurants/new" className="rounded-2xl bg-black px-4 py-2 text-sm font-medium text-white">
@@ -29,7 +30,7 @@ export default async function AdminRestaurantsPage() {
                 <div className="flex items-center gap-3">
                   <p className="font-medium">{r.restaurant_name}</p>
                   <span className="rounded-full bg-gray-100 px-3 py-1 text-xs text-gray-700">
-                    {r.is_active ? 'active' : 'hidden'}
+                    {listingVisibilityLabel(!!r.is_active)}
                   </span>
                 </div>
                 <p className="mt-1 text-sm text-gray-500">{r.district} · {r.slug}</p>

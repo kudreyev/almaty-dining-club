@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { requireAdmin } from '@/lib/admin'
+import { staffPinStatusLabel } from '@/lib/labels'
 import { upsertRestaurantStaff } from './actions'
 
 type Restaurant = {
@@ -37,9 +38,9 @@ export default async function AdminStaffPage() {
       <div className="rounded-3xl border border-gray-200 bg-white p-8 shadow-sm">
         <div className="flex items-center justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-semibold">Admin · Staff PIN</h1>
+            <h1 className="text-3xl font-semibold">Админка · PIN персонала</h1>
             <p className="mt-2 text-sm text-gray-600">
-              Один PIN на ресторан (для staff login).
+              Один PIN на ресторан (для входа персонала).
             </p>
           </div>
 
@@ -67,7 +68,7 @@ export default async function AdminStaffPage() {
                     </p>
                   </div>
                   <span className="rounded-full bg-gray-100 px-3 py-1 text-xs text-gray-700">
-                    {staff?.is_active ? 'active' : 'inactive'}
+                    {staff ? staffPinStatusLabel(!!staff.is_active) : 'Не задан'}
                   </span>
                 </div>
 
@@ -78,7 +79,7 @@ export default async function AdminStaffPage() {
                     name="staff_name"
                     defaultValue={staff?.staff_name ?? 'Администратор'}
                     className="w-full rounded-2xl border px-4 py-3 text-sm"
-                    placeholder="Название staff (например Администратор)"
+                    placeholder="Подпись в системе (например, Администратор)"
                   />
 
                   <input

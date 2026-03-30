@@ -211,7 +211,7 @@ export default async function MePage({ searchParams }: PageProps) {
               href="/admin/payments"
               className="inline-flex rounded-2xl border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-black"
             >
-              Перейти в admin payments
+              Заявки на оплату (админка)
             </Link>
           </div>
         ) : null}

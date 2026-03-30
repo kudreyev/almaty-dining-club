@@ -5,6 +5,7 @@ import { createActivationLink } from './actions'
 import { CopyLinkButton } from '@/components/copy-link-button'
 import { PhoneInput } from '@/components/phone-input'
 import { formatKZPhone } from '@/lib/kz-phone'
+import { statusLabel } from '@/lib/labels'
 
 type ActivationLinkListRow = {
   id: string
@@ -90,7 +91,7 @@ export default async function AdminActivationLinksPage({
       <div className="rounded-3xl border border-gray-200 bg-white p-8 shadow-sm">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-semibold">Admin · Ссылки активации</h1>
+            <h1 className="text-3xl font-semibold">Админка · Ссылки активации</h1>
             <p className="mt-2 text-sm text-gray-600">
               Создайте одноразовую ссылку для клиента после оплаты. Срок действия — 24 часа.
             </p>
@@ -113,26 +114,26 @@ export default async function AdminActivationLinksPage({
 
         <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
           <div className="rounded-2xl bg-gray-50 p-5">
-            <p className="text-sm text-gray-500">created (7d)</p>
+            <p className="text-sm text-gray-500">Создано за 7 дней</p>
             <p className="mt-1 text-2xl font-semibold">{createdCount}</p>
           </div>
           <div className="rounded-2xl bg-gray-50 p-5">
-            <p className="text-sm text-gray-500">opened (7d)</p>
+            <p className="text-sm text-gray-500">Открыто за 7 дней</p>
             <p className="mt-1 text-2xl font-semibold">{openedCount}</p>
           </div>
           <div className="rounded-2xl bg-gray-50 p-5">
-            <p className="text-sm text-gray-500">activated (7d)</p>
+            <p className="text-sm text-gray-500">Активировано за 7 дней</p>
             <p className="mt-1 text-2xl font-semibold">{activatedCount}</p>
           </div>
           <div className="rounded-2xl bg-gray-50 p-5">
-            <p className="text-sm text-gray-500">expired (7d)</p>
+            <p className="text-sm text-gray-500">Истекло за 7 дней</p>
             <p className="mt-1 text-2xl font-semibold">{expiredCount}</p>
           </div>
           <div className="rounded-2xl bg-gray-50 p-5">
-            <p className="text-sm text-gray-500">conversion</p>
+            <p className="text-sm text-gray-500">Конверсия</p>
             <p className="mt-1 text-2xl font-semibold">{(conversion * 100).toFixed(1)}%</p>
             <p className="mt-2 text-xs text-gray-500">
-              opened/created: {(openedPerCreated * 100).toFixed(1)}% · activated/opened:{' '}
+              открыто/создано: {(openedPerCreated * 100).toFixed(1)}% · активаций/открыто:{' '}
               {(activatedPerOpened * 100).toFixed(1)}%
             </p>
           </div>
@@ -225,10 +226,10 @@ export default async function AdminActivationLinksPage({
                       </td>
                       <td className="py-3 pr-4">
                         <div className="flex flex-wrap items-center gap-2">
-                          <span>{row.status}</span>
+                          <span>{statusLabel(row.status)}</span>
                           {isExpiredByTime ? (
                             <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-700">
-                              expired
+                              Истёк
                             </span>
                           ) : null}
                         </div>

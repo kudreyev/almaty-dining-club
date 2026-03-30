@@ -10,14 +10,9 @@ export default function SupportPage() {
   
             <div className="rounded-2xl bg-gray-50 p-5">
               <p className="font-medium text-gray-900">Контакты</p>
-              <p className="mt-2">WhatsApp: +7 XXX XXX XX XX</p>
-              <p>Telegram: @your_username</p>
-              <p>Email: support@yourdomain.com</p>
+              <p className="mt-2">WhatsApp: +7 706 605 9899</p>
+              <p>Telegram: @kudafest_support/p>
             </div>
-  
-            <p className="text-gray-500">
-              Замените контакты на реальные перед запуском.
-            </p>
           </div>
         </div>
       </main>

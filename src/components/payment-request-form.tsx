@@ -45,10 +45,10 @@ export function PaymentRequestForm({ userId }: { userId: string }) {
   return (
     <form onSubmit={handleSubmit} className="space-y-5">
       <div className="rounded-2xl bg-gray-50 p-4">
-        <p className="text-sm text-gray-500">Ваш payment code</p>
+        <p className="text-sm text-gray-500">Ваш код платежа</p>
         <p className="mt-1 text-lg font-semibold">{paymentCode}</p>
         <p className="mt-2 text-xs text-gray-500">
-          Укажите этот код или ваш email в комментарии к оплате, если это возможно.
+          Укажите этот код или свою почту в комментарии к оплате, если это возможно.
         </p>
       </div>
 

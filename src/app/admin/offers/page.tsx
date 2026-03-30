@@ -12,7 +12,7 @@ export default async function AdminOffersPage() {
   return (
     <main className="mx-auto max-w-6xl px-6 py-16">
       <div className="rounded-3xl border border-gray-200 bg-white p-8 shadow-sm">
-        <h1 className="text-3xl font-semibold">Admin · Offers</h1>
+        <h1 className="text-3xl font-semibold">Админка · Офферы</h1>
         <p className="mt-2 text-sm text-gray-600">Выберите ресторан, чтобы управлять офферами</p>
 
         <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">

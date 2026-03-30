@@ -55,7 +55,7 @@ export default function TransferSubscriptionPage() {
       <div className="rounded-3xl border border-gray-200 bg-white p-8 shadow-sm">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-semibold">Admin · Перенос подписки</h1>
+            <h1 className="text-3xl font-semibold">Админка · Перенос подписки</h1>
             <p className="mt-2 text-sm text-gray-600">
               Перенесите активную подписку с одного номера на другой.
             </p>

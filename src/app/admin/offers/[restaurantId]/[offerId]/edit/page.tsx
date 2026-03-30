@@ -41,7 +41,7 @@ export default async function AdminOfferEditPage({ params }: PageProps) {
         </p>
 
         <p className="mt-1 text-xs text-gray-500">
-          offer_key: <span className="font-mono">{offer.offer_key ?? '—'}</span>
+          Ключ оффера: <span className="font-mono">{offer.offer_key ?? '—'}</span>
         </p>
 
         <form action={updateOffer} className="mt-8 space-y-4">
@@ -49,8 +49,8 @@ export default async function AdminOfferEditPage({ params }: PageProps) {
           <input type="hidden" name="restaurant_id" value={restaurantId} />
 
           <select name="offer_type" defaultValue={offer.offer_type} className="w-full rounded-2xl border px-4 py-3 text-sm">
-            <option value="2for1">2for1 (1+1)</option>
-            <option value="compliment">compliment (Комплимент)</option>
+            <option value="2for1">1+1 (два по цене одного)</option>
+            <option value="compliment">Комплимент</option>
           </select>
 
           <OfferKeyField

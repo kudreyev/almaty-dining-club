@@ -21,7 +21,7 @@ function getErrorMessage(error?: string, message?: string) {
     return 'Заполните все поля.'
   }
   if (error === 'no_staff_for_restaurant') {
-    return 'Для выбранного ресторана не найден staff-аккаунт.'
+    return 'Для выбранного ресторана не найдена учётная запись персонала.'
   }
   if (error === 'db_error') {
     return `Ошибка базы данных: ${message || 'неизвестно'}`
@@ -44,7 +44,7 @@ export default async function StaffLoginPage({ searchParams }: PageProps) {
   return (
     <main className="mx-auto max-w-md px-6 py-16">
       <div className="rounded-3xl border border-gray-200 bg-white p-8 shadow-sm">
-        <h1 className="text-3xl font-semibold">Staff Login</h1>
+        <h1 className="text-3xl font-semibold">Вход для персонала</h1>
         <p className="mt-3 text-gray-600">
           Войдите по PIN, чтобы проверять и погашать коды гостей.
         </p>

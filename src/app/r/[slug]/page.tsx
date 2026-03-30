@@ -189,7 +189,7 @@ export default async function RestaurantPage({ params }: PageProps) {
                       {isOptimizedImageUrl(url) ? (
                         <Image
                           src={url}
-                          alt={`${restaurant.restaurant_name} photo ${idx + 1}`}
+                          alt={`${restaurant.restaurant_name}, фото ${idx + 1}`}
                           fill
                           className="object-cover"
                           sizes="(min-width: 1024px) 720px, 100vw"
@@ -199,7 +199,7 @@ export default async function RestaurantPage({ params }: PageProps) {
                         // eslint-disable-next-line @next/next/no-img-element
                         <img
                           src={url}
-                          alt={`${restaurant.restaurant_name} photo ${idx + 1}`}
+                          alt={`${restaurant.restaurant_name}, фото ${idx + 1}`}
                           className="h-full w-full object-cover"
                           loading={idx === 0 ? 'eager' : 'lazy'}
                         />
@@ -294,7 +294,7 @@ export default async function RestaurantPage({ params }: PageProps) {
 
               {restaurant.instagram_url ? (
                 <div className="rounded-2xl bg-gray-50 p-4">
-                  <p className="text-sm font-medium text-gray-900">Instagram</p>
+                  <p className="text-sm font-medium text-gray-900">Инстаграм</p>
                   <a
                     href={restaurant.instagram_url}
                     target="_blank"

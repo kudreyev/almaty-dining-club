@@ -5,6 +5,8 @@ import { useRouter } from 'next/navigation'
 import { PhoneInput, formatKZPhone, normalizeKZPhone } from '@/components/phone-input'
 import { sendWhatsAppLogin, verifyWhatsAppLoginCode } from './actions'
 import { subscriberDigitsFromRaw } from '@/lib/kz-phone'
+import { Button } from '@/components/ui/button'
+import { Card } from '@/components/ui/card'
 
 export function LoginForm({
   safeNext,
@@ -47,13 +49,12 @@ export function LoginForm({
 
     const formData = new FormData()
     formData.set('phone', phoneE164)
-
     const result = await sendWhatsAppLogin(formData)
 
     if (!result.ok) {
-      setError(result.error ?? 'Не удалось отправить сообщение в WhatsApp.')
+      setError(result.error ?? 'Не удалось отправить сообщение.')
     } else {
-      setMessage(result.message ?? 'Мы отправили 6-значный код в WhatsApp.')
+      setMessage(result.message ?? 'Код отправлен в WhatsApp.')
       setCodeRequested(true)
       setOtpCode('')
     }
@@ -63,13 +64,13 @@ export function LoginForm({
 
   const submitWhatsAppCode = async (rawCode: string) => {
     if (!codeRequested) {
-      setError('Сначала запросите код в WhatsApp.')
+      setError('Сначала запросите код.')
       return
     }
 
     const code = normalizeOtpCode(rawCode)
     if (code.length !== 6) {
-      setError('Введите корректный 6-значный код.')
+      setError('Введите 6-значный код.')
       return
     }
 
@@ -96,49 +97,45 @@ export function LoginForm({
   }
 
   return (
-    <main className="mx-auto max-w-md px-6 py-16">
-      <div className="rounded-3xl border border-gray-200 bg-white p-8 shadow-sm">
-        <h1 className="text-3xl font-semibold">Вход через WhatsApp</h1>
-        <p className="mt-3 text-gray-600">
-          Введите номер телефона и подтвердите 6-значный код из WhatsApp.
+    <div className="flex min-h-[60vh] items-center justify-center px-5 py-12">
+      <Card className="w-full max-w-sm" padding="lg">
+        <h1 className="text-xl font-bold">Вход через WhatsApp</h1>
+        <p className="mt-2 text-sm text-gray-500">
+          Введите номер и подтвердите код из WhatsApp.
         </p>
 
-        <form onSubmit={handleWhatsAppLogin} className="mt-8 space-y-4">
+        <form onSubmit={handleWhatsAppLogin} className="mt-6 space-y-4">
           <div>
-            <label htmlFor="phone" className="mb-2 block text-sm font-medium text-gray-700">
-              WhatsApp номер
+            <label htmlFor="phone" className="mb-1.5 block text-sm font-medium text-gray-700">
+              Номер телефона
             </label>
             <PhoneInput
               id="phone"
               subscriber={subscriber}
               onSubscriberChange={setSubscriber}
               readOnly={isPhoneLocked}
-              aria-required
+              className="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm outline-none transition-colors focus:border-black"
             />
             {isPhoneLocked ? (
-              <p className="mt-2 text-xs text-gray-500">
+              <p className="mt-1 text-xs text-gray-400">
                 Войдите с номера {formatKZPhone(subscriber)}
               </p>
-            ) : (
-              <p className="mt-2 text-xs text-gray-500">
-                Формат: +7 (7xx) xxx xxxx. Допускается ввод с 8 или без кода страны.
-              </p>
-            )}
+            ) : null}
           </div>
 
-          <button
+          <Button
             type="submit"
             disabled={whatsAppLoading}
-            className="w-full rounded-2xl bg-black px-4 py-3 text-sm font-medium text-white disabled:opacity-50"
+            className="w-full"
           >
-            {whatsAppLoading ? 'Отправка...' : 'Получить код в WhatsApp'}
-          </button>
+            {whatsAppLoading ? 'Отправка...' : 'Получить код'}
+          </Button>
         </form>
 
         {codeRequested ? (
           <form onSubmit={handleVerifyWhatsAppCode} className="mt-4 space-y-4">
             <div>
-              <label htmlFor="otp" className="mb-2 block text-sm font-medium text-gray-700">
+              <label htmlFor="otp" className="mb-1.5 block text-sm font-medium text-gray-700">
                 Код из WhatsApp
               </label>
               <input
@@ -153,45 +150,43 @@ export function LoginForm({
                 onChange={async (e) => {
                   const next = normalizeOtpCode(e.target.value)
                   setOtpCode(next)
-
-                  if (!otpLoading && next.length === 6) {
-                    await submitWhatsAppCode(next)
-                  }
+                  if (!otpLoading && next.length === 6) await submitWhatsAppCode(next)
                 }}
                 onPaste={async (e) => {
                   const pasted = e.clipboardData.getData('text')
                   const next = normalizeOtpCode(pasted)
                   if (!next) return
-
                   e.preventDefault()
                   setOtpCode(next)
-
-                  if (!otpLoading && next.length === 6) {
-                    await submitWhatsAppCode(next)
-                  }
+                  if (!otpLoading && next.length === 6) await submitWhatsAppCode(next)
                 }}
                 placeholder="123456"
-                className="w-full rounded-2xl border border-gray-300 px-4 py-3 text-sm tracking-[0.2em] outline-none"
+                className="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-center text-sm tracking-[0.3em] outline-none transition-colors focus:border-black"
               />
-              <p className="mt-2 text-xs text-gray-500">
-                Подсказка: автоподстановка зависит от ОС и может не работать для WhatsApp. Вставка кода
-                поддерживается.
-              </p>
             </div>
 
-            <button
+            <Button
               type="submit"
+              variant="secondary"
               disabled={otpLoading}
-              className="w-full rounded-2xl border border-gray-300 bg-white px-4 py-3 text-sm font-medium text-black disabled:opacity-50"
+              className="w-full"
             >
-              {otpLoading ? 'Проверка...' : 'Подтвердить код'}
-            </button>
+              {otpLoading ? 'Проверка...' : 'Подтвердить'}
+            </Button>
           </form>
         ) : null}
 
-        {message ? <p className="mt-4 text-sm text-green-600">{message}</p> : null}
-        {error ? <p className="mt-4 text-sm text-red-600">{error}</p> : null}
-      </div>
-    </main>
+        {message ? (
+          <div className="mt-4 rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-700">
+            {message}
+          </div>
+        ) : null}
+        {error ? (
+          <div className="mt-4 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">
+            {error}
+          </div>
+        ) : null}
+      </Card>
+    </div>
   )
 }

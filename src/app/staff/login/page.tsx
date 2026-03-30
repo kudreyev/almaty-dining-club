@@ -1,5 +1,8 @@
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { loginStaff } from './actions'
+import { Card } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { Select, Input } from '@/components/ui/input'
 
 type Restaurant = {
   id: string
@@ -14,18 +17,10 @@ type PageProps = {
 }
 
 function getErrorMessage(error?: string, message?: string) {
-  if (error === 'invalid_pin') {
-    return 'Неверный PIN для выбранного ресторана.'
-  }
-  if (error === 'missing_fields') {
-    return 'Заполните все поля.'
-  }
-  if (error === 'no_staff_for_restaurant') {
-    return 'Для выбранного ресторана не найдена учётная запись персонала.'
-  }
-  if (error === 'db_error') {
-    return `Ошибка базы данных: ${message || 'неизвестно'}`
-  }
+  if (error === 'invalid_pin') return 'Неверный PIN для выбранного ресторана.'
+  if (error === 'missing_fields') return 'Заполните все поля.'
+  if (error === 'no_staff_for_restaurant') return 'Для этого ресторана не найдена учётная запись персонала.'
+  if (error === 'db_error') return `Ошибка базы данных: ${message || 'неизвестно'}`
   return null
 }
 
@@ -42,59 +37,43 @@ export default async function StaffLoginPage({ searchParams }: PageProps) {
     .returns<Restaurant[]>()
 
   return (
-    <main className="mx-auto max-w-md px-6 py-16">
-      <div className="rounded-3xl border border-gray-200 bg-white p-8 shadow-sm">
-        <h1 className="text-3xl font-semibold">Вход для персонала</h1>
-        <p className="mt-3 text-gray-600">
-          Войдите по PIN, чтобы проверять и погашать коды гостей.
+    <div className="flex min-h-[60vh] items-center justify-center px-5 py-12">
+      <Card className="w-full max-w-sm" padding="lg">
+        <h1 className="text-xl font-bold">Вход для персонала</h1>
+        <p className="mt-2 text-sm text-gray-500">
+          Войдите по PIN для проверки кодов гостей.
         </p>
 
-        <form action={loginStaff} className="mt-8 space-y-4">
-          <div>
-            <label htmlFor="restaurantId" className="mb-2 block text-sm font-medium text-gray-700">
-              Ресторан
-            </label>
-            <select
-              id="restaurantId"
-              name="restaurantId"
-              required
-              className="w-full rounded-2xl border border-gray-300 px-4 py-3 text-sm outline-none"
-            >
-              <option value="">Выберите ресторан</option>
-              {restaurants?.map((restaurant) => (
-                <option key={restaurant.id} value={restaurant.id}>
-                  {restaurant.restaurant_name}
-                </option>
-              ))}
-            </select>
-          </div>
+        <form action={loginStaff} className="mt-6 space-y-4">
+          <Select id="restaurantId" name="restaurantId" label="Ресторан" required>
+            <option value="">Выберите ресторан</option>
+            {restaurants?.map((restaurant) => (
+              <option key={restaurant.id} value={restaurant.id}>
+                {restaurant.restaurant_name}
+              </option>
+            ))}
+          </Select>
 
-          <div>
-            <label htmlFor="pinCode" className="mb-2 block text-sm font-medium text-gray-700">
-              PIN
-            </label>
-            <input
-              id="pinCode"
-              name="pinCode"
-              type="password"
-              required
-              placeholder="Введите PIN"
-              className="w-full rounded-2xl border border-gray-300 px-4 py-3 text-sm outline-none"
-            />
-          </div>
+          <Input
+            id="pinCode"
+            name="pinCode"
+            type="password"
+            label="PIN"
+            required
+            placeholder="Введите PIN"
+          />
 
-          <button
-            type="submit"
-            className="w-full rounded-2xl bg-black px-4 py-3 text-sm font-medium text-white"
-          >
+          <Button type="submit" className="w-full">
             Войти
-          </button>
+          </Button>
         </form>
 
         {errorMessage ? (
-          <p className="mt-4 text-sm text-red-600">{errorMessage}</p>
+          <div className="mt-4 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">
+            {errorMessage}
+          </div>
         ) : null}
-      </div>
-    </main>
+      </Card>
+    </div>
   )
 }

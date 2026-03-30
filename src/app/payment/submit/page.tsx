@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { PaymentRequestForm } from '@/components/payment-request-form'
+import { Card } from '@/components/ui/card'
 
 export default async function PaymentSubmitPage() {
   const supabase = await createSupabaseServerClient()
@@ -8,22 +9,19 @@ export default async function PaymentSubmitPage() {
     data: { user },
   } = await supabase.auth.getUser()
 
-  if (!user) {
-    redirect('/login')
-  }
+  if (!user) redirect('/login')
 
   return (
-    <main className="mx-auto max-w-3xl px-6 py-16">
-      <div className="rounded-3xl border border-gray-200 bg-white p-8 shadow-sm">
-        <h1 className="text-3xl font-semibold">Подтверждение оплаты</h1>
-        <p className="mt-3 text-gray-600">
-          После оплаты через Kaspi отправьте заявку ниже. Мы проверим её и активируем подписку.
+    <div className="mx-auto max-w-lg px-5 py-10">
+      <Card padding="lg">
+        <h1 className="text-xl font-bold">Подтверждение оплаты</h1>
+        <p className="mt-2 text-sm text-gray-500">
+          После оплаты через Kaspi отправьте заявку. Мы проверим и активируем подписку.
         </p>
-
-        <div className="mt-8">
+        <div className="mt-6">
           <PaymentRequestForm userId={user.id} />
         </div>
-      </div>
-    </main>
+      </Card>
+    </div>
   )
 }

@@ -1,42 +1,49 @@
-import Link from 'next/link'
 import { requireAdmin } from '@/lib/admin'
 import { PhoneInput } from '@/components/phone-input'
 import { createRestaurant } from '../actions'
+import { Card } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 
 export default async function AdminRestaurantNewPage() {
   await requireAdmin()
 
   return (
-    <main className="mx-auto max-w-3xl px-6 py-16">
-      <div className="rounded-3xl border border-gray-200 bg-white p-8 shadow-sm">
-        <div className="flex items-center justify-between">
-          <h1 className="text-3xl font-semibold">Добавить ресторан</h1>
-          <Link href="/admin/restaurants" className="text-sm text-gray-600 underline">Назад</Link>
-        </div>
+    <div className="mx-auto max-w-2xl px-5 py-8">
+      <div className="mb-6 flex items-center justify-between">
+        <h1 className="text-xl font-bold">Добавить ресторан</h1>
+        <Button href="/admin/restaurants" variant="ghost" size="sm">← Назад</Button>
+      </div>
 
-        <form action={createRestaurant} className="mt-8 space-y-4">
-          <input name="restaurant_name" placeholder="Название" required className="w-full rounded-2xl border px-4 py-3 text-sm" />
-          <input name="slug" placeholder="slug (латиницей)" required className="w-full rounded-2xl border px-4 py-3 text-sm" />
-          <input name="address" placeholder="Адрес" required className="w-full rounded-2xl border px-4 py-3 text-sm" />
-          <input name="cuisine" placeholder="Кухня" required className="w-full rounded-2xl border px-4 py-3 text-sm" />
-          <input name="cuisine_2" placeholder="Кухня 2 (опционально)" className="w-full rounded-2xl border px-4 py-3 text-sm" />
-          <input name="cuisine_3" placeholder="Кухня 3 (опционально)" className="w-full rounded-2xl border px-4 py-3 text-sm" />
-          <input name="short_description" placeholder="Короткое описание (до 120)" required className="w-full rounded-2xl border px-4 py-3 text-sm" />
-          <input name="instagram_url" placeholder="Ссылка на Инстаграм" className="w-full rounded-2xl border px-4 py-3 text-sm" />
-          <input name="two_gis_url" placeholder="Ссылка на 2GIS (полная)" className="w-full rounded-2xl border px-4 py-3 text-sm" />
-          <PhoneInput name="phone" placeholder="Телефон" className="w-full rounded-2xl border px-4 py-3 text-sm" />
-          <input name="photo_1_url" placeholder="Ссылка на фото 1" className="w-full rounded-2xl border px-4 py-3 text-sm" />
+      <Card>
+        <form action={createRestaurant} className="space-y-4">
+          <Input name="restaurant_name" label="Название" placeholder="Название" required />
+          <Input name="slug" label="Slug" placeholder="slug (латиницей)" required />
+          <Input name="address" label="Адрес" placeholder="Адрес" required />
+          <div className="grid gap-4 sm:grid-cols-3">
+            <Input name="cuisine" label="Кухня" placeholder="Кухня" required />
+            <Input name="cuisine_2" label="Кухня 2" placeholder="Опционально" />
+            <Input name="cuisine_3" label="Кухня 3" placeholder="Опционально" />
+          </div>
+          <Input name="short_description" label="Описание" placeholder="До 120 символов" required />
+          <Input name="instagram_url" label="Instagram" placeholder="https://instagram.com/..." />
+          <Input name="two_gis_url" label="2GIS" placeholder="Ссылка 2GIS" />
+          <div>
+            <label className="mb-1.5 block text-sm font-medium text-gray-700">Телефон</label>
+            <PhoneInput name="phone" className="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm outline-none transition-colors focus:border-black" />
+          </div>
+          <Input name="photo_1_url" label="Фото (URL)" placeholder="Ссылка на фото" />
 
-          <label className="flex items-center gap-3 text-sm">
-            <input type="checkbox" name="is_active" defaultChecked />
+          <label className="flex items-center gap-2 text-sm text-gray-600">
+            <input type="checkbox" name="is_active" defaultChecked className="rounded" />
             Активен
           </label>
 
-          <button className="w-full rounded-2xl bg-black px-4 py-3 text-sm font-medium text-white">
+          <Button type="submit" className="w-full">
             Сохранить
-          </button>
+          </Button>
         </form>
-      </div>
-    </main>
+      </Card>
+    </div>
   )
 }

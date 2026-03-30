@@ -1,6 +1,10 @@
 import Link from 'next/link'
 import { createSupabasePublicClient } from '@/lib/supabase/public'
 import { offerTypeLabel } from '@/lib/labels'
+import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
+import { Card } from '@/components/ui/card'
+import { EmptyState } from '@/components/ui/empty-state'
 
 export const dynamic = 'force-static'
 export const revalidate = 300
@@ -75,7 +79,6 @@ export default async function HomePage({ searchParams }: PageProps) {
     offers: (r.offers ?? []).filter((o) => o.is_active),
   }))
 
-  // Список кухонь для фильтра
   const cuisines = Array.from(
     new Set(
       safeRestaurants
@@ -85,7 +88,6 @@ export default async function HomePage({ searchParams }: PageProps) {
     )
   ).sort((a, b) => a.localeCompare(b, 'ru'))
 
-  // Фильтрация
   const filteredRestaurants = safeRestaurants.filter((r) => {
     const cuisineOk =
       cuisine === 'all'
@@ -103,232 +105,158 @@ export default async function HomePage({ searchParams }: PageProps) {
   })
 
   return (
-    <main className="mx-auto max-w-6xl px-6 py-14">
+    <div className="mx-auto max-w-6xl px-5 py-8 md:py-12">
       {/* HERO */}
-      <section className="rounded-[2rem] border border-gray-200 bg-white px-8 py-14 shadow-sm md:px-14">
-        <p className="text-sm font-medium uppercase tracking-[0.2em] text-gray-500">
-          Алматы · Подписка
+      <section className="mb-10">
+        <p className="text-xs font-medium uppercase tracking-widest text-gray-400">
+          Алматы
         </p>
-
-        <h1 className="mt-4 max-w-4xl text-4xl font-semibold tracking-tight md:text-6xl">
-          1+1 и комплименты в ресторанах Алматы — по одной подписке
+        <h1 className="mt-3 max-w-3xl text-3xl font-bold tracking-tight md:text-5xl md:leading-[1.15]">
+          1+1 и комплименты в ресторанах по&nbsp;подписке
         </h1>
-
-        <p className="mt-6 max-w-2xl text-lg leading-8 text-gray-600">
-          Выбирай заведение, активируй предложение и покажи код персоналу. Без купонов и распечаток.
+        <p className="mt-4 max-w-xl text-base leading-relaxed text-gray-500">
+          Выбирай заведение, показывай код персоналу. Без купонов и распечаток.
         </p>
-
-        <div className="mt-10 flex flex-wrap gap-4">
-          <Link
-            href="/pricing"
-            className="inline-flex rounded-2xl bg-black px-6 py-3 text-sm font-medium text-white"
-          >
+        <div className="mt-6 flex flex-wrap gap-3">
+          <Button href="/pricing" size="lg">
             Оформить подписку
-          </Link>
-
-          <Link
-            href="/pricing"
-            className="inline-flex rounded-2xl border border-gray-300 bg-white px-6 py-3 text-sm font-medium text-black"
-          >
+          </Button>
+          <Button href="/pricing" variant="secondary" size="lg">
             Как это работает
-          </Link>
+          </Button>
         </div>
-
       </section>
 
-      {/* FILTERS */}
-      <section className="mt-10 rounded-3xl border border-gray-200 bg-white p-5 shadow-sm">
-        <form className="grid gap-4 md:grid-cols-[1fr_1fr_auto]">
-          <div>
-            <label className="mb-2 block text-sm font-medium text-gray-700">
-              Кухня
-            </label>
+      {/* FILTER BAR */}
+      <Card padding="sm" className="mb-8">
+        <form className="flex flex-col gap-3 sm:flex-row sm:items-end">
+          <div className="flex-1">
+            <label className="mb-1.5 block text-xs font-medium text-gray-500">Кухня</label>
             <select
               name="cuisine"
               defaultValue={cuisine}
-              className="w-full rounded-2xl border border-gray-300 px-4 py-3 text-sm outline-none"
+              className="w-full rounded-xl border border-gray-200 bg-white px-3.5 py-2.5 text-sm outline-none transition-colors focus:border-black"
             >
               <option value="all">Все кухни</option>
               {cuisines.map((c) => (
-                <option key={c} value={c}>
-                  {c}
-                </option>
+                <option key={c} value={c}>{c}</option>
               ))}
             </select>
           </div>
 
-          <div>
-            <label className="mb-2 block text-sm font-medium text-gray-700">
-              Тип предложения
-            </label>
+          <div className="flex-1">
+            <label className="mb-1.5 block text-xs font-medium text-gray-500">Тип</label>
             <select
               name="offer"
               defaultValue={offer}
-              className="w-full rounded-2xl border border-gray-300 px-4 py-3 text-sm outline-none"
+              className="w-full rounded-xl border border-gray-200 bg-white px-3.5 py-2.5 text-sm outline-none transition-colors focus:border-black"
             >
-              <option value="all">Все предложения</option>
+              <option value="all">Все</option>
               <option value="2for1">1+1</option>
               <option value="compliment">Комплимент</option>
             </select>
           </div>
 
-          <div className="flex items-end">
-            <button
-              type="submit"
-              className="w-full rounded-2xl bg-black px-6 py-3 text-sm font-medium text-white"
-            >
-              Применить
-            </button>
-          </div>
+          <Button type="submit" size="lg" className="sm:w-auto">
+            Применить
+          </Button>
         </form>
+      </Card>
 
-        <div className="mt-4 text-sm text-gray-500">
-          Найдено ресторанов: {filteredRestaurants.length}
-        </div>
-      </section>
+      {/* RESULTS */}
+      <div className="mb-6 flex items-baseline justify-between">
+        <h2 className="text-lg font-semibold">Рестораны</h2>
+        <p className="text-sm text-gray-400">{filteredRestaurants.length} шт.</p>
+      </div>
 
-      {/* RESTAURANTS GRID (FULL LIST) */}
-      <section className="mt-10">
-        <div className="mb-6">
-          <h2 className="text-2xl font-semibold">Рестораны</h2>
-          <p className="mt-2 text-sm text-gray-600">
-            Офферы открываются по подписке.
-          </p>
-        </div>
+      {filteredRestaurants.length === 0 ? (
+        <EmptyState
+          title="Ничего не найдено"
+          description="Попробуйте изменить фильтры"
+        />
+      ) : (
+        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+          {filteredRestaurants.map((r) => (
+            <Link
+              key={r.id}
+              href={`/r/${r.slug}`}
+              className="group block overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm transition-all duration-200 hover:shadow-md hover:-translate-y-0.5"
+            >
+              {/* PHOTO */}
+              <div className="aspect-[4/3] overflow-hidden bg-gray-100">
+                {r.photo_1_url ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={r.photo_1_url}
+                    alt={r.restaurant_name}
+                    className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                  />
+                ) : (
+                  <div className="flex h-full items-center justify-center text-sm text-gray-300">
+                    Нет фото
+                  </div>
+                )}
+              </div>
 
-        {filteredRestaurants.length === 0 ? (
-          <div className="rounded-3xl border border-gray-200 bg-white p-8 text-gray-600 shadow-sm">
-            По выбранным фильтрам ничего не найдено.
-          </div>
-        ) : (
-          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {filteredRestaurants.map((r) => (
-              <Link
-                key={r.id}
-                href={`/r/${r.slug}`}
-                className="group block overflow-hidden rounded-3xl border border-gray-200 bg-white shadow-sm transition hover:shadow-md"
-              >
-                <div className="aspect-[4/3] bg-gray-100">
-                  {r.photo_1_url ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={r.photo_1_url}
-                      alt={r.restaurant_name}
-                      className="h-full w-full object-cover"
-                    />
-                  ) : (
-                    <div className="flex h-full items-center justify-center text-sm text-gray-400">
-                      Нет фото
-                    </div>
-                  )}
+              <div className="p-4">
+                {/* NAME + CUISINES */}
+                <h3 className="text-base font-semibold leading-snug">{r.restaurant_name}</h3>
+                <div className="mt-1.5 flex flex-wrap gap-1.5">
+                  {[r.cuisine, r.cuisine_2, r.cuisine_3]
+                    .filter(Boolean)
+                    .slice(0, 3)
+                    .map((c) => (
+                      <Badge key={c as string}>{c as string}</Badge>
+                    ))}
                 </div>
 
-                <div className="p-5">
-                  <div className="mb-2 flex items-start justify-between gap-3">
-                    <div>
-                      <h3 className="text-xl font-semibold">{r.restaurant_name}</h3>
-                      <div className="mt-2 flex flex-wrap gap-2">
-                        {[r.cuisine, r.cuisine_2, r.cuisine_3]
-                          .filter(Boolean)
-                          .slice(0, 3)
-                          .map((c) => (
-                            <span
-                              key={c as string}
-                              className="rounded-full bg-gray-100 px-3 py-1 text-xs font-medium text-gray-700"
-                            >
-                              {c as string}
-                            </span>
-                          ))}
-                      </div>
-                    </div>
+                {/* OFFERS */}
+                {r.offers.length > 0 ? (
+                  <div className="mt-3 flex flex-wrap gap-1.5">
+                    {r.offers.slice(0, 2).map((o, i) => (
+                      <Badge key={i} color="dark">
+                        {offerTypeLabel(o.offer_type)}
+                      </Badge>
+                    ))}
+                    {r.offers.length > 2 ? (
+                      <Badge>+{r.offers.length - 2}</Badge>
+                    ) : null}
                   </div>
+                ) : null}
 
-                  {r.offers[0] ? (
-                    <div className="mb-4 rounded-2xl bg-gray-50 p-4">
-                      <div className="flex items-center gap-2">
-                        <span className="rounded-full bg-black px-3 py-1 text-xs font-medium text-white">
-                          {offerTypeLabel(r.offers[0].offer_type)}
-                        </span>
+                {/* ADDRESSES */}
+                {(() => {
+                  const addresses =
+                    (r.restaurant_locations ?? [])
+                      .filter((l) => l.is_active)
+                      .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0))
+                      .map((l) => l.address)
+                      .filter(Boolean)
 
-                        {r.offers.length === 2 ? (
-                          <span className="rounded-full bg-black px-3 py-1 text-xs font-medium text-white">
-                            {offerTypeLabel(r.offers[1].offer_type)}
-                          </span>
-                        ) : null}
-
-                        {r.offers.length >= 3 ? (
-                          <span className="rounded-full bg-gray-100 px-3 py-1 text-xs font-medium text-gray-700">
-                            {r.offers.length} предложения
-                          </span>
-                        ) : null}
-                      </div>
-                      <p className="mt-3 text-sm font-medium text-gray-900">
-                        {r.offers[0].offer_title}
+                  if (addresses.length === 0 && r.short_description) {
+                    return (
+                      <p className="mt-3 text-sm leading-relaxed text-gray-500 line-clamp-2">
+                        {r.short_description}
                       </p>
-                      <p className="mt-1 text-sm text-gray-600">
-                        {r.offers[0].offer_terms_short}
-                      </p>
-                      {r.offers.length === 2 ? (
-                        <div className="mt-4">
-                          <p className="text-sm font-medium text-gray-900">
-                            {r.offers[1].offer_title}
-                          </p>
-                          <p className="mt-1 text-sm text-gray-600">
-                            {r.offers[1].offer_terms_short}
-                          </p>
-                        </div>
+                    )
+                  }
+
+                  return addresses.length > 0 ? (
+                    <div className="mt-3 space-y-0.5 text-sm text-gray-500">
+                      {addresses.slice(0, 2).map((a) => (
+                        <p key={a} className="truncate">{a}</p>
+                      ))}
+                      {addresses.length > 2 ? (
+                        <p className="text-gray-400">и ещё {addresses.length - 2}</p>
                       ) : null}
                     </div>
-                  ) : null}
-
-                  {(() => {
-                    const addresses =
-                      (r.restaurant_locations ?? [])
-                        .filter((l) => l.is_active)
-                        .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0))
-                        .map((l) => l.address)
-                        .filter(Boolean)
-
-                    // fallback: если locations пустые — покажем старый адрес из restaurants.address, если он есть
-                    // (если у тебя нет address в select на главной — можно убрать этот fallback)
-                    const list = addresses
-
-                    if (list.length === 0) {
-                      return (
-                        <div className="rounded-2xl bg-gray-50 p-4 text-sm text-gray-700">
-                          <p className="text-gray-600">{r.short_description}</p>
-                        </div>
-                      )
-                    }
-
-                    const firstThree = list.slice(0, 3)
-                    const hasMore = list.length > 3
-
-                    return (
-                      <div className="rounded-2xl bg-gray-50 p-4 text-sm text-gray-700">
-                        <div className="space-y-1">
-                          {firstThree.map((a) => (
-                            <p key={a} className="text-gray-700">
-                              {a}
-                            </p>
-                          ))}
-                          {hasMore ? (
-                            <p className="text-gray-500">и другие</p>
-                          ) : null}
-                        </div>
-                      </div>
-                    )
-                  })()}
-
-                  <div className="mt-5 inline-flex rounded-2xl bg-black px-4 py-2 text-sm font-medium text-white group-hover:opacity-90">
-                    Открыть ресторан
-                  </div>
-                </div>
-              </Link>
-            ))}
-          </div>
-        )}
-      </section>
-    </main>
+                  ) : null
+                })()}
+              </div>
+            </Link>
+          ))}
+        </div>
+      )}
+    </div>
   )
 }

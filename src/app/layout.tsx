@@ -9,7 +9,7 @@ const inter = Inter({
 })
 
 export const metadata: Metadata = {
-  title: 'KudaPass',
+  title: 'KudaPass — подписка на рестораны Алматы',
   description: 'Подписка с офферами 1+1 и комплиментами в ресторанах Алматы.',
 }
 
@@ -21,9 +21,9 @@ export default function RootLayout({
   return (
     <html lang="ru">
       <body className={inter.className}>
-        <div className="min-h-screen bg-[#fafaf8] text-black">
+        <div className="flex min-h-screen flex-col bg-[#fafaf9] text-gray-900">
           <Header />
-          <div>{children}</div>
+          <main className="flex-1">{children}</main>
           <Footer />
         </div>
       </body>

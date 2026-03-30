@@ -1,80 +1,135 @@
+import { Button } from '@/components/ui/button'
+import { Card } from '@/components/ui/card'
+import { FaqAccordion } from '@/components/faq-accordion'
+
 export const runtime = 'edge'
 
 const WHATSAPP_SUBSCRIBE_URL =
   'https://wa.me/77066059899?text=%D0%97%D0%B4%D1%80%D0%B0%D0%B2%D1%81%D1%82%D0%B2%D1%83%D0%B9%D1%82%D0%B5%21%20%D0%A5%D0%BE%D1%87%D1%83%20%D0%BF%D0%BE%D0%B4%D0%BF%D0%B8%D1%81%D0%BA%D1%83%20KudaPass%20%D0%BD%D0%B0%20%D0%BE%D0%B4%D0%B8%D0%BD%20%D0%BC%D0%B5%D1%81%D1%8F%D1%86'
 
+const FAQ_ITEMS = [
+  {
+    q: 'Сколько раз можно использовать подписку?',
+    a: 'Вы можете использовать любой оффер неограниченное количество раз в течение действия подписки. Каждый раз — новый одноразовый код.',
+  },
+  {
+    q: 'Как именно работает 1+1?',
+    a: 'Закажите два одинаковых блюда — второе будет бесплатно. Конкретные условия зависят от ресторана и указаны в описании оффера.',
+  },
+  {
+    q: 'А если я не воспользуюсь подпиской?',
+    a: 'Подписка действует 30 дней с момента активации. Мы не возвращаем оплату за неиспользованный период, но всегда можно написать нам — найдём решение.',
+  },
+  {
+    q: 'Нужно ли бронировать стол заранее?',
+    a: 'Бронирование не обязательно, но рекомендуется для популярных заведений. Вы можете прийти без брони и активировать оффер на месте.',
+  },
+  {
+    q: 'Можно ли перенести подписку на другой номер?',
+    a: 'Да, напишите нам в WhatsApp — мы перенесём подписку на другой номер.',
+  },
+]
+
 export default function PricingPage() {
   return (
-    <main className="mx-auto max-w-5xl px-6 py-16">
-      <div className="rounded-3xl border border-gray-200 bg-white p-8 shadow-sm">
-        <div className="max-w-3xl">
-          <h1 className="text-3xl font-semibold">Подписка для Алматы</h1>
-          <p className="mt-3 text-gray-600">
-            Открой доступ ко всем офферам партнёров: 1+1 и комплиментам в ресторанах города.
+    <>
+      <div className="mx-auto max-w-3xl px-5 py-10 md:py-16">
+        {/* HERO */}
+        <section className="text-center">
+          <p className="text-xs font-medium uppercase tracking-widest text-gray-400">
+            Подписка
           </p>
-        </div>
+          <h1 className="mt-3 text-3xl font-bold tracking-tight md:text-4xl">
+            Все рестораны — одна подписка
+          </h1>
+          <p className="mx-auto mt-4 max-w-lg text-base leading-relaxed text-gray-500">
+            Получите доступ ко всем офферам 1+1 и комплиментам в ресторанах Алматы. Без ограничений, без купонов.
+          </p>
+        </section>
 
-        <section className="mt-10">
-          <h2 className="text-2xl font-semibold">Как это работает</h2>
-          <div className="mt-6 grid gap-4 md:grid-cols-3">
-            <div className="rounded-3xl bg-gray-50 p-6">
-              <p className="text-sm font-semibold text-gray-900">1) Подписка</p>
-              <p className="mt-2 text-sm leading-6 text-gray-600">
-                Оформи доступ к партнёрам в Алматы. После подтверждения оплаты подписка активируется.
-              </p>
+        {/* PRICE CARD */}
+        <Card className="mt-10" padding="none">
+          <div className="p-6 md:p-8">
+            <div className="flex items-baseline gap-2">
+              <span className="text-4xl font-bold tracking-tight">4 990 ₸</span>
+              <span className="text-sm text-gray-400">/ 30 дней</span>
             </div>
 
-            <div className="rounded-3xl bg-gray-50 p-6">
-              <p className="text-sm font-semibold text-gray-900">2) Активируй оффер</p>
-              <p className="mt-2 text-sm leading-6 text-gray-600">
-                Нажми «Активировать оффер» — получишь одноразовый код на 10 минут.
-              </p>
-            </div>
+            <ul className="mt-6 space-y-3">
+              {[
+                'Все рестораны и кафе Алматы',
+                'Офферы 1+1 и комплименты',
+                'Неограниченное использование',
+                'Одноразовый код на каждый визит',
+                'Подписка через WhatsApp за 2 минуты',
+              ].map((item) => (
+                <li key={item} className="flex items-start gap-3 text-sm text-gray-700">
+                  <svg className="mt-0.5 h-4 w-4 shrink-0 text-emerald-500" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                  </svg>
+                  {item}
+                </li>
+              ))}
+            </ul>
 
-            <div className="rounded-3xl bg-gray-50 p-6">
-              <p className="text-sm font-semibold text-gray-900">3) Покажи код</p>
-              <p className="mt-2 text-sm leading-6 text-gray-600">
-                Персонал проверит код в панели персонала — и предложение применят к твоему заказу.
-              </p>
-            </div>
+            <Button
+              href={WHATSAPP_SUBSCRIBE_URL}
+              size="lg"
+              className="mt-8 w-full"
+              target="_blank"
+              rel="noreferrer"
+            >
+              Оформить в WhatsApp
+            </Button>
+
+            <p className="mt-3 text-center text-xs text-gray-400">
+              Ответим за 5 минут, выставим счёт и активируем подписку.
+            </p>
+          </div>
+        </Card>
+
+        {/* HOW IT WORKS */}
+        <section className="mt-14">
+          <h2 className="text-center text-xl font-bold">Как это работает</h2>
+
+          <div className="mt-8 grid gap-4 sm:grid-cols-3">
+            {[
+              { step: '1', title: 'Оформи подписку', desc: 'Напиши нам в WhatsApp — активируем за 5 минут.' },
+              { step: '2', title: 'Выбери ресторан', desc: 'Открой оффер и нажми «Активировать» — получишь код.' },
+              { step: '3', title: 'Покажи код', desc: 'Персонал проверит код — предложение применят к заказу.' },
+            ].map((s) => (
+              <Card key={s.step} padding="md">
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-black text-sm font-bold text-white">
+                  {s.step}
+                </div>
+                <p className="mt-3 text-sm font-semibold">{s.title}</p>
+                <p className="mt-1 text-sm leading-relaxed text-gray-500">{s.desc}</p>
+              </Card>
+            ))}
           </div>
         </section>
 
-        <div className="mt-10 grid gap-6 lg:grid-cols-[1fr_0.8fr]">
-          <div className="rounded-3xl bg-gray-50 p-6">
-            <p className="text-sm text-gray-500">План</p>
-            <h2 className="mt-2 text-3xl font-semibold">Ежемесячный тариф «Алматы»</h2>
-            <p className="mt-2 text-lg text-gray-700">4 990 ₸ / 30 дней</p>
-
-            <ul className="mt-6 space-y-3 text-sm text-gray-700">
-              <li>— Доступ ко всем активным офферам в Алматы</li>
-              <li>— Форматы: 1+1 и комплименты</li>
-              <li>— Использование через одноразовый код</li>
-              <li>— Проверка предложения через панель персонала</li>
-            </ul>
-            <p className="mt-4 text-sm text-gray-500">
-              После активации подписки вы сможете открывать офферы и получать одноразовый код для
-              использования в ресторане.
-            </p>
+        {/* FAQ */}
+        <section className="mt-14">
+          <h2 className="text-center text-xl font-bold">Частые вопросы</h2>
+          <div className="mt-8">
+            <FaqAccordion items={FAQ_ITEMS} />
           </div>
-
-          <div className="rounded-3xl border border-gray-200 bg-white p-6 shadow-sm">
-            <p className="text-sm font-medium text-gray-900">Оформить подписку</p>
-            <a
-              href={WHATSAPP_SUBSCRIBE_URL}
-              target="_blank"
-              rel="noreferrer"
-              className="mt-4 inline-flex w-full items-center justify-center rounded-2xl bg-black px-5 py-3 text-sm font-medium text-white"
-            >
-              Оформить в WhatsApp
-            </a>
-            <p className="mt-3 text-sm text-gray-500">
-              Откроется WhatsApp: ответим на все вопросы, выставим счёт и активируем подписку. Это займёт
-              не более 5 минут.
-            </p>
-          </div>
-        </div>
+        </section>
       </div>
-    </main>
+
+      {/* STICKY CTA — mobile only */}
+      <div className="fixed bottom-0 left-0 right-0 z-40 border-t border-gray-200 bg-white/95 p-4 backdrop-blur-sm sm:hidden">
+        <Button
+          href={WHATSAPP_SUBSCRIBE_URL}
+          size="lg"
+          className="w-full"
+          target="_blank"
+          rel="noreferrer"
+        >
+          Оформить подписку — 4 990 ₸
+        </Button>
+      </div>
+    </>
   )
 }

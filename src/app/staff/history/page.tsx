@@ -3,6 +3,10 @@ import Link from 'next/link'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { getStaffSessionRestaurantId } from '@/lib/staff-session'
 import { logoutStaff } from '../login/actions'
+import { Card } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { EmptyState } from '@/components/ui/empty-state'
 
 type Restaurant = {
   id: string
@@ -22,20 +26,11 @@ type StaffRedemption = {
   } | null
 }
 
-function getOfferTypeLabel(type: '2for1' | 'compliment') {
-  if (type === '2for1') return '1+1'
-  return 'Комплимент'
-}
-
 export default async function StaffHistoryPage() {
   const restaurantId = await getStaffSessionRestaurantId()
-
-  if (!restaurantId) {
-    redirect('/staff/login')
-  }
+  if (!restaurantId) redirect('/staff/login')
 
   const supabase = await createSupabaseServerClient()
-
   const { data: restaurant } = await supabase
     .from('restaurants')
     .select('id, restaurant_name')
@@ -43,23 +38,14 @@ export default async function StaffHistoryPage() {
     .eq('is_active', true)
     .maybeSingle<Restaurant>()
 
-  if (!restaurant) {
-    redirect('/staff/login')
-  }
+  if (!restaurant) redirect('/staff/login')
 
   const { data: redemptions, error } = await supabase
     .from('redemptions')
     .select(`
-      id,
-      redeemed_at,
-      user_id,
-      restaurants (
-        restaurant_name
-      ),
-      offers (
-        offer_title,
-        offer_type
-      )
+      id, redeemed_at, user_id,
+      restaurants ( restaurant_name ),
+      offers ( offer_title, offer_type )
     `)
     .eq('restaurant_id', restaurantId)
     .order('redeemed_at', { ascending: false })
@@ -68,85 +54,60 @@ export default async function StaffHistoryPage() {
 
   if (error) {
     return (
-      <main className="mx-auto max-w-4xl px-6 py-16">
-        <h1 className="text-3xl font-semibold">История погашений</h1>
-        <p className="mt-4 text-red-600">Ошибка: {error.message}</p>
-      </main>
+      <div className="mx-auto max-w-3xl px-5 py-10">
+        <h1 className="text-xl font-bold">История погашений</h1>
+        <p className="mt-4 text-sm text-red-600">Ошибка: {error.message}</p>
+      </div>
     )
   }
 
   return (
-    <main className="mx-auto max-w-4xl px-6 py-16">
-      <div className="rounded-3xl border border-gray-200 bg-white p-8 shadow-sm">
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <h1 className="text-3xl font-semibold">История погашений</h1>
-            <p className="mt-3 text-gray-600">{restaurant.restaurant_name}</p>
-          </div>
-
-          <div className="flex gap-3">
-            <Link
-              href="/staff/redeem"
-              className="rounded-2xl border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-black"
-            >
-              Проверка кода
-            </Link>
-
-            <form action={logoutStaff}>
-              <button
-                type="submit"
-                className="rounded-2xl border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-black"
-              >
-                Выйти
-              </button>
-            </form>
-          </div>
+    <div className="mx-auto max-w-3xl px-5 py-8">
+      <div className="mb-6 flex items-center justify-between gap-3">
+        <div>
+          <h1 className="text-xl font-bold">История погашений</h1>
+          <p className="text-sm text-gray-500">{restaurant.restaurant_name}</p>
         </div>
-
-        <div className="mt-8 space-y-4">
-          {!redemptions || redemptions.length === 0 ? (
-            <div className="rounded-2xl bg-gray-50 p-5 text-sm text-gray-600">
-              Пока нет ни одного погашения.
-            </div>
-          ) : (
-            redemptions.map((item) => (
-              <div
-                key={item.id}
-                className="rounded-2xl border border-gray-200 p-5"
-              >
-                <div className="flex flex-wrap items-center justify-between gap-3">
-                  <div>
-                    <p className="text-sm text-gray-500">Оффер</p>
-                    <p className="font-medium">
-                      {item.offers?.offer_title ?? '—'}
-                    </p>
-                  </div>
-
-                  <span className="rounded-full bg-gray-100 px-3 py-1 text-xs font-medium text-gray-700">
-                    {item.offers?.offer_type
-                      ? getOfferTypeLabel(item.offers.offer_type)
-                      : 'Оффер'}
-                  </span>
-                </div>
-
-                <div className="mt-4 grid gap-4 sm:grid-cols-2">
-                  <div>
-                    <p className="text-sm text-gray-500">Дата</p>
-                    <p className="font-medium">
-                      {new Date(item.redeemed_at).toLocaleString('ru-RU')}
-                    </p>
-                  </div>
-
-                  <div>
-                    <p className="text-sm text-gray-500">ID пользователя</p>
-                    <p className="break-all font-medium">{item.user_id}</p>
-                  </div>
-                </div>
-              </div>
-            ))
-          )}
+        <div className="flex gap-2">
+          <Button href="/staff/redeem" variant="secondary" size="sm">
+            Проверка кода
+          </Button>
+          <form action={logoutStaff}>
+            <Button type="submit" variant="ghost" size="sm">
+              Выйти
+            </Button>
+          </form>
         </div>
       </div>
-    </main>
+
+      {!redemptions || redemptions.length === 0 ? (
+        <EmptyState title="Нет погашений" description="Первое погашение появится здесь" />
+      ) : (
+        <div className="space-y-3">
+          {redemptions.map((item) => (
+            <Card key={item.id} padding="sm">
+              <div className="flex items-center justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-semibold">
+                    {item.offers?.offer_title ?? '—'}
+                  </p>
+                  <p className="mt-0.5 truncate text-xs text-gray-400">
+                    ID: {item.user_id.slice(0, 8)}...
+                  </p>
+                </div>
+                <div className="shrink-0 text-right">
+                  <Badge color={item.offers?.offer_type === '2for1' ? 'dark' : 'blue'}>
+                    {item.offers?.offer_type === '2for1' ? '1+1' : 'Комплимент'}
+                  </Badge>
+                  <p className="mt-1 text-xs text-gray-400">
+                    {new Date(item.redeemed_at).toLocaleString('ru-RU')}
+                  </p>
+                </div>
+              </div>
+            </Card>
+          ))}
+        </div>
+      )}
+    </div>
   )
 }

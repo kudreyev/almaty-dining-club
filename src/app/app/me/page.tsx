@@ -3,6 +3,10 @@ import Link from 'next/link'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { LogoutButton } from '@/components/logout-button'
 import { subscriptionStatusLabel } from '@/lib/labels'
+import { Card } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { EmptyState } from '@/components/ui/empty-state'
 
 type Profile = {
   id: string
@@ -36,11 +40,6 @@ type Redemption = {
   } | null
 }
 
-function getOfferTypeLabel(type: '2for1' | 'compliment') {
-  if (type === '2for1') return '1+1'
-  return 'Комплимент'
-}
-
 export default async function MePage({ searchParams }: PageProps) {
   const { payment } = await searchParams
   const supabase = await createSupabaseServerClient()
@@ -49,9 +48,7 @@ export default async function MePage({ searchParams }: PageProps) {
     data: { user },
   } = await supabase.auth.getUser()
 
-  if (!user) {
-    redirect('/login')
-  }
+  if (!user) redirect('/login')
 
   const { data: profile } = await supabase
     .from('profiles')
@@ -70,18 +67,9 @@ export default async function MePage({ searchParams }: PageProps) {
   const { data: redemptions } = await supabase
     .from('redemptions')
     .select(`
-      id,
-      redeemed_at,
-      restaurant_id,
-      offer_id,
-      restaurants (
-        restaurant_name,
-        slug
-      ),
-      offers (
-        offer_title,
-        offer_type
-      )
+      id, redeemed_at, restaurant_id, offer_id,
+      restaurants ( restaurant_name, slug ),
+      offers ( offer_title, offer_type )
     `)
     .eq('user_id', user.id)
     .order('redeemed_at', { ascending: false })
@@ -95,127 +83,82 @@ export default async function MePage({ searchParams }: PageProps) {
       : null
   const displayedPhone = profile?.phone || whatsappPhoneFromMetadata || 'Не указан'
 
+  const subColor: 'green' | 'yellow' | 'default' =
+    currentSubscription?.status === 'active' ? 'green' : currentSubscription ? 'yellow' : 'default'
+
   return (
-    <main className="mx-auto max-w-5xl px-6 py-16">
-      <div className="rounded-3xl border border-gray-200 bg-white p-8 shadow-sm">
-        <div className="flex items-center justify-between gap-4">
-          <div>
-            <h1 className="text-3xl font-semibold">Личный кабинет</h1>
-            <p className="mt-3 text-gray-600">
-              Ваш аккаунт и статус подписки.
-            </p>
-          </div>
-
-          <LogoutButton />
-        </div>
-
-        {payment === 'submitted' ? (
-          <div className="mt-6 rounded-2xl border border-green-200 bg-green-50 p-4 text-sm text-green-700">
-            Заявка на оплату отправлена. После проверки мы активируем подписку.
-          </div>
-        ) : null}
-
-        <div className="mt-8 grid gap-4 sm:grid-cols-2">
-          <div className="rounded-2xl bg-gray-50 p-5">
-            <p className="text-sm text-gray-500">Номер телефона</p>
-            <p className="mt-1 font-medium">{displayedPhone}</p>
-          </div>
-
-          <div className="rounded-2xl bg-gray-50 p-5">
-            <div className="flex items-center justify-between gap-4">
-              <div>
-                <p className="text-sm text-gray-500">Подписка</p>
-                <p className="mt-1 font-medium">
-                  {currentSubscription
-                    ? subscriptionStatusLabel(currentSubscription.status)
-                    : 'Не активна'}
-                </p>
-              </div>
-
-              <Link
-                href="/pricing"
-                className="inline-flex shrink-0 rounded-2xl bg-black px-4 py-2 text-sm font-medium text-white"
-              >
-                Подписаться
-              </Link>
-            </div>
-          </div>
-        </div>
-
-        <div className="mt-10">
-          <div className="mb-4 flex items-center justify-between gap-4">
-            <h2 className="text-2xl font-semibold">История использований</h2>
-          </div>
-
-          {!redemptions || redemptions.length === 0 ? (
-            <div className="rounded-2xl bg-gray-50 p-5 text-sm text-gray-600">
-              Вы ещё не использовали ни одного оффера.
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {redemptions.map((item) => (
-                <div
-                  key={item.id}
-                  className="rounded-2xl border border-gray-200 p-5"
-                >
-                  <div className="flex flex-wrap items-center justify-between gap-3">
-                    <div>
-                      <p className="text-sm text-gray-500">Ресторан</p>
-                      <p className="font-medium">
-                        {item.restaurants?.restaurant_name ?? '—'}
-                      </p>
-                    </div>
-
-                    <span className="rounded-full bg-gray-100 px-3 py-1 text-xs font-medium text-gray-700">
-                      {item.offers?.offer_type
-                        ? getOfferTypeLabel(item.offers.offer_type)
-                        : 'Оффер'}
-                    </span>
-                  </div>
-
-                  <div className="mt-4 grid gap-4 sm:grid-cols-2">
-                    <div>
-                      <p className="text-sm text-gray-500">Оффер</p>
-                      <p className="font-medium">
-                        {item.offers?.offer_title ?? '—'}
-                      </p>
-                    </div>
-
-                    <div>
-                      <p className="text-sm text-gray-500">Дата использования</p>
-                      <p className="font-medium">
-                        {new Date(item.redeemed_at).toLocaleString('ru-RU')}
-                      </p>
-                    </div>
-                  </div>
-
-                  {item.restaurants?.slug ? (
-                    <div className="mt-4">
-                      <Link
-                        href={`/r/${item.restaurants.slug}`}
-                        className="inline-flex rounded-2xl border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-black"
-                      >
-                        Открыть ресторан
-                      </Link>
-                    </div>
-                  ) : null}
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {profile?.role === 'admin' ? (
-          <div className="mt-10">
-            <Link
-              href="/admin/payments"
-              className="inline-flex rounded-2xl border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-black"
-            >
-              Заявки на оплату (админка)
-            </Link>
-          </div>
-        ) : null}
+    <div className="mx-auto max-w-2xl px-5 py-8">
+      <div className="mb-6 flex items-center justify-between">
+        <h1 className="text-xl font-bold">Личный кабинет</h1>
+        <LogoutButton />
       </div>
-    </main>
+
+      {payment === 'submitted' ? (
+        <div className="mb-6 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+          Заявка отправлена. После проверки подписка будет активирована.
+        </div>
+      ) : null}
+
+      <div className="mb-6 grid gap-4 sm:grid-cols-2">
+        <Card>
+          <p className="text-xs text-gray-400">Телефон</p>
+          <p className="mt-1 text-sm font-semibold">{displayedPhone}</p>
+        </Card>
+        <Card>
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <p className="text-xs text-gray-400">Подписка</p>
+              <Badge color={subColor} className="mt-1">
+                {currentSubscription
+                  ? subscriptionStatusLabel(currentSubscription.status)
+                  : 'Не активна'}
+              </Badge>
+            </div>
+            <Button href="/pricing" size="sm">
+              Подписаться
+            </Button>
+          </div>
+        </Card>
+      </div>
+
+      <h2 className="mb-4 text-lg font-bold">История использований</h2>
+
+      {!redemptions || redemptions.length === 0 ? (
+        <EmptyState title="Пока нет использований" description="Активируйте оффер в ресторане" />
+      ) : (
+        <div className="space-y-3">
+          {redemptions.map((item) => (
+            <Card key={item.id} padding="sm" hover>
+              <div className="flex items-center justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="truncate font-semibold text-sm">
+                    {item.restaurants?.restaurant_name ?? '—'}
+                  </p>
+                  <p className="mt-0.5 truncate text-xs text-gray-500">
+                    {item.offers?.offer_title ?? '—'}
+                  </p>
+                </div>
+                <div className="shrink-0 text-right">
+                  <Badge color={item.offers?.offer_type === '2for1' ? 'dark' : 'blue'}>
+                    {item.offers?.offer_type === '2for1' ? '1+1' : 'Комплимент'}
+                  </Badge>
+                  <p className="mt-1 text-xs text-gray-400">
+                    {new Date(item.redeemed_at).toLocaleDateString('ru-RU')}
+                  </p>
+                </div>
+              </div>
+            </Card>
+          ))}
+        </div>
+      )}
+
+      {profile?.role === 'admin' ? (
+        <div className="mt-8">
+          <Button href="/admin/payments" variant="secondary" size="sm">
+            Заявки на оплату (админ)
+          </Button>
+        </div>
+      ) : null}
+    </div>
   )
 }

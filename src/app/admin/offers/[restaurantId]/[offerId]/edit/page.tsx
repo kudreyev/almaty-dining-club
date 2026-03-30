@@ -1,9 +1,11 @@
-import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { requireAdmin } from '@/lib/admin'
 import { updateOffer } from '../../../actions'
 import { OfferKeyField } from '@/components/offer-key-field'
 import { FormSubmitGuard } from '@/components/form-submit-guard'
+import { Card } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { Input, Select, Textarea } from '@/components/ui/input'
 
 type PageProps = { params: Promise<{ restaurantId: string; offerId: string }> }
 
@@ -27,67 +29,63 @@ export default async function AdminOfferEditPage({ params }: PageProps) {
   if (!offer) notFound()
 
   return (
-    <main className="mx-auto max-w-3xl px-6 py-16">
-      <div className="rounded-3xl border border-gray-200 bg-white p-8 shadow-sm">
-        <div className="flex items-center justify-between">
-          <h1 className="text-3xl font-semibold">Редактировать оффер</h1>
-          <Link href={`/admin/offers/${restaurantId}`} className="text-sm text-gray-600 underline">
-            Назад
-          </Link>
+    <div className="mx-auto max-w-2xl px-5 py-8">
+      <div className="mb-6 flex items-center justify-between">
+        <div>
+          <h1 className="text-xl font-bold">Редактировать оффер</h1>
+          <p className="text-sm text-gray-500">{restaurant?.restaurant_name}</p>
+          {offer.offer_key ? (
+            <p className="font-mono text-xs text-gray-400">{offer.offer_key}</p>
+          ) : null}
         </div>
+        <Button href={`/admin/offers/${restaurantId}`} variant="ghost" size="sm">← Назад</Button>
+      </div>
 
-        <p className="mt-3 text-sm text-gray-600">
-          {restaurant?.restaurant_name}
-        </p>
-
-        <p className="mt-1 text-xs text-gray-500">
-          Ключ оффера: <span className="font-mono">{offer.offer_key ?? '—'}</span>
-        </p>
-
-        <form action={updateOffer} className="mt-8 space-y-4">
+      <Card>
+        <form action={updateOffer} className="space-y-4">
           <input type="hidden" name="id" value={offer.id} />
           <input type="hidden" name="restaurant_id" value={restaurantId} />
 
-          <select name="offer_type" defaultValue={offer.offer_type} className="w-full rounded-2xl border px-4 py-3 text-sm">
+          <Select name="offer_type" label="Тип оффера" defaultValue={offer.offer_type}>
             <option value="2for1">1+1 (два по цене одного)</option>
             <option value="compliment">Комплимент</option>
-          </select>
+          </Select>
 
           <OfferKeyField
             defaultKey={offer.offer_key ?? ''}
             defaultTitle={offer.offer_title ?? ''}
           />
-          <input name="offer_terms_short" defaultValue={offer.offer_terms_short} required className="w-full rounded-2xl border px-4 py-3 text-sm" />
-          <textarea name="offer_terms_full" defaultValue={offer.offer_terms_full} rows={5} required className="w-full rounded-2xl border px-4 py-3 text-sm" />
+          <Input name="offer_terms_short" label="Краткие условия" defaultValue={offer.offer_terms_short} required />
+          <Textarea name="offer_terms_full" label="Полные условия" defaultValue={offer.offer_terms_full} rows={5} required />
 
-          <input name="offer_days" defaultValue={offer.offer_days} className="w-full rounded-2xl border px-4 py-3 text-sm" />
+          <Input name="offer_days" label="Дни" defaultValue={offer.offer_days} />
           <div className="grid gap-4 sm:grid-cols-2">
-            <input name="offer_time_from" defaultValue={String(offer.offer_time_from).slice(0,5)} className="w-full rounded-2xl border px-4 py-3 text-sm" />
-            <input name="offer_time_to" defaultValue={String(offer.offer_time_to).slice(0,5)} className="w-full rounded-2xl border px-4 py-3 text-sm" />
+            <Input name="offer_time_from" label="Время с" defaultValue={String(offer.offer_time_from).slice(0, 5)} />
+            <Input name="offer_time_to" label="Время до" defaultValue={String(offer.offer_time_to).slice(0, 5)} />
           </div>
 
-          <label className="flex items-center gap-3 text-sm">
-            <input type="checkbox" name="requires_main_course" defaultChecked={!!offer.requires_main_course} />
+          <label className="flex items-center gap-2 text-sm text-gray-600">
+            <input type="checkbox" name="requires_main_course" defaultChecked={!!offer.requires_main_course} className="rounded" />
             Требует основное блюдо
           </label>
 
-          <label className="flex items-center gap-3 text-sm">
-            <input type="checkbox" name="is_stackable_with_other_promos" defaultChecked={!!offer.is_stackable_with_other_promos} />
-            Суммируется с другими акциями
+          <label className="flex items-center gap-2 text-sm text-gray-600">
+            <input type="checkbox" name="is_stackable_with_other_promos" defaultChecked={!!offer.is_stackable_with_other_promos} className="rounded" />
+            Суммируется с акциями
           </label>
 
-          <label className="flex items-center gap-3 text-sm">
-            <input type="checkbox" name="is_active" defaultChecked={!!offer.is_active} />
+          <label className="flex items-center gap-2 text-sm text-gray-600">
+            <input type="checkbox" name="is_active" defaultChecked={!!offer.is_active} className="rounded" />
             Активен
           </label>
 
           <FormSubmitGuard />
 
-          <button className="w-full rounded-2xl bg-black px-4 py-3 text-sm font-medium text-white">
+          <Button type="submit" className="w-full">
             Сохранить
-          </button>
+          </Button>
         </form>
-      </div>
-    </main>
+      </Card>
+    </div>
   )
 }

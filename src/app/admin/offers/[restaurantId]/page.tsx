@@ -1,6 +1,9 @@
 import Link from 'next/link'
 import { requireAdmin } from '@/lib/admin'
-import { listingVisibilityLabel, offerTypeLabel } from '@/lib/labels'
+import { listingVisibilityLabel } from '@/lib/labels'
+import { Card } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 
 type PageProps = { params: Promise<{ restaurantId: string }> }
 
@@ -21,58 +24,45 @@ export default async function AdminOffersForRestaurantPage({ params }: PageProps
     .order('created_at', { ascending: true })
 
   return (
-    <main className="mx-auto max-w-5xl px-6 py-16">
-      <div className="rounded-3xl border border-gray-200 bg-white p-8 shadow-sm">
-        <div className="flex items-center justify-between gap-4">
-          <div>
-            <h1 className="text-3xl font-semibold">{restaurant?.restaurant_name}</h1>
-            <p className="mt-2 text-sm text-gray-600">Офферы</p>
-          </div>
-          <Link
-            href={`/admin/offers/${restaurantId}/new`}
-            className="rounded-2xl bg-black px-4 py-2 text-sm font-medium text-white"
-          >
-            + Добавить оффер
+    <div className="mx-auto max-w-4xl px-5 py-8">
+      <div className="mb-6 flex items-center justify-between gap-4">
+        <div>
+          <Link href="/admin/offers" className="text-xs text-gray-400 transition-colors hover:text-black">
+            ← Все рестораны
           </Link>
+          <h1 className="mt-1 text-xl font-bold">{restaurant?.restaurant_name}</h1>
+          <p className="text-sm text-gray-500">Офферы</p>
         </div>
-
-        <div className="mt-8 space-y-3">
-          {offers?.map((o) => (
-            <div key={o.id} className="flex items-center justify-between rounded-2xl border border-gray-200 p-4">
-              <div>
-                <div className="flex flex-wrap items-center gap-3">
-                  <p className="font-medium">{o.offer_title}</p>
-            
-                  <span className="rounded-full bg-gray-100 px-3 py-1 text-xs text-gray-700">
-                    {o.offer_type}
-                  </span>
-            
-                  <span className="rounded-full bg-gray-100 px-3 py-1 text-xs text-gray-700">
-                    {listingVisibilityLabel(!!o.is_active)}
-                  </span>
-            
-                  {o.offer_key ? (
-                    <span className="rounded-full bg-gray-100 px-3 py-1 text-xs font-mono text-gray-700">
-                      {o.offer_key}
-                    </span>
-                  ) : null}
-                </div>
-              </div>
-            
-              <Link
-                href={`/admin/offers/${restaurantId}/${o.id}/edit`}
-                className="rounded-2xl border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-black"
-              >
-                Редактировать
-              </Link>
-            </div>
-          ))}
-        </div>
-
-        <div className="mt-8">
-          <Link href="/admin/offers" className="text-sm text-gray-600 underline">← Все рестораны</Link>
-        </div>
+        <Button href={`/admin/offers/${restaurantId}/new`} size="sm">
+          + Добавить
+        </Button>
       </div>
-    </main>
+
+      <div className="space-y-3">
+        {offers?.map((o) => (
+          <Card key={o.id} padding="sm" hover>
+            <div className="flex items-center justify-between gap-3">
+              <div className="min-w-0">
+                <div className="flex flex-wrap items-center gap-2">
+                  <p className="truncate font-semibold">{o.offer_title}</p>
+                  <Badge color={o.offer_type === '2for1' ? 'dark' : 'blue'}>
+                    {o.offer_type === '2for1' ? '1+1' : 'Комплимент'}
+                  </Badge>
+                  <Badge color={o.is_active ? 'green' : 'default'}>
+                    {listingVisibilityLabel(!!o.is_active)}
+                  </Badge>
+                </div>
+                {o.offer_key ? (
+                  <p className="mt-0.5 font-mono text-xs text-gray-400">{o.offer_key}</p>
+                ) : null}
+              </div>
+              <Button href={`/admin/offers/${restaurantId}/${o.id}/edit`} variant="secondary" size="sm">
+                Изменить
+              </Button>
+            </div>
+          </Card>
+        ))}
+      </div>
+    </div>
   )
 }

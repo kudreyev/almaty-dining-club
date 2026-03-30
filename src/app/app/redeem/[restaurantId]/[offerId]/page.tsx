@@ -7,6 +7,9 @@ import {
 } from '@/lib/subscription'
 import { generateRedeemToken } from './actions'
 import { RedeemTokenCard } from '@/components/redeem-token-card'
+import { Card } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 
 type PageProps = {
   params: Promise<{
@@ -19,42 +22,16 @@ type PageProps = {
   }>
 }
 
-type Restaurant = {
-  id: string
-  restaurant_name: string
-  slug: string
-}
-
-type Offer = {
-  id: string
-  offer_title: string
-  offer_terms_short: string
-  offer_type: '2for1' | 'compliment'
-}
-
-type RedeemToken = {
-  id: string
-  token_code: string
-  status: 'active' | 'redeemed' | 'expired' | 'cancelled'
-  expires_at: string
-  created_at: string
-}
-
-function getOfferBadgeLabel(type: Offer['offer_type']) {
-  if (type === '2for1') return '1+1'
-  return 'Комплимент'
-}
+type Restaurant = { id: string; restaurant_name: string; slug: string }
+type Offer = { id: string; offer_title: string; offer_terms_short: string; offer_type: '2for1' | 'compliment' }
+type RedeemToken = { id: string; token_code: string; status: string; expires_at: string; created_at: string }
 
 function getRedeemErrorMessage(code?: string) {
   switch (code) {
-    case 'active_token':
-      return 'У вас уже есть активный код. Дождитесь его истечения или использования.'
-    case 'cooldown_month':
-      return 'Вы уже использовали оффер в этом ресторане в последние 30 дней. Можно снова 30 дней.'
-    case 'server_error':
-      return 'Произошла ошибка. Попробуйте ещё раз.'
-    default:
-      return null
+    case 'active_token': return 'У вас уже есть активный код.'
+    case 'cooldown_month': return 'Этот оффер доступен раз в 30 дней.'
+    case 'server_error': return 'Ошибка. Попробуйте снова.'
+    default: return null
   }
 }
 
@@ -64,14 +41,8 @@ export default async function RedeemPage({ params, searchParams }: PageProps) {
   const errorMessage = getRedeemErrorMessage(error)
 
   const { user, subscription } = await getCurrentUserSubscription()
-
-  if (!user) {
-    redirect('/login')
-  }
-
-  if (!isSubscriptionCurrentlyActive(subscription)) {
-    redirect('/pricing')
-  }
+  if (!user) redirect('/login')
+  if (!isSubscriptionCurrentlyActive(subscription)) redirect('/pricing')
 
   const supabase = await createSupabaseServerClient()
 
@@ -90,13 +61,10 @@ export default async function RedeemPage({ params, searchParams }: PageProps) {
     .eq('is_active', true)
     .maybeSingle<Offer>()
 
-  if (!restaurant || !offer) {
-    notFound()
-  }
+  if (!restaurant || !offer) notFound()
 
   const nowIso = new Date().toISOString()
-
-  const { data: activeTokens, error: tokenError } = await supabase
+  const { data: activeTokens } = await supabase
     .from('redeem_tokens')
     .select('id, token_code, status, expires_at, created_at')
     .eq('user_id', user.id)
@@ -108,39 +76,30 @@ export default async function RedeemPage({ params, searchParams }: PageProps) {
     .limit(1)
     .returns<RedeemToken[]>()
 
-  if (tokenError) {
-    throw new Error(tokenError.message)
-  }
-
   const activeToken = activeTokens?.[0] ?? null
 
   return (
-    <main className="mx-auto max-w-4xl px-6 py-16">
-      <div className="rounded-3xl border border-gray-200 bg-white p-8 shadow-sm">
-        <div className="flex flex-wrap items-center gap-3">
-          <span className="rounded-full bg-black px-3 py-1 text-xs font-medium text-white">
-            {getOfferBadgeLabel(offer.offer_type)}
-          </span>
-          <span className="rounded-full bg-gray-100 px-3 py-1 text-xs font-medium text-gray-700">
-            Подписка активна
-          </span>
+    <div className="mx-auto max-w-lg px-5 py-8">
+      <Card padding="lg">
+        <div className="flex flex-wrap items-center gap-2">
+          <Badge color="dark">
+            {offer.offer_type === '2for1' ? '1+1' : 'Комплимент'}
+          </Badge>
+          <Badge color="green">Подписка активна</Badge>
         </div>
 
-        <h1 className="mt-4 text-3xl font-semibold">
-          {restaurant.restaurant_name}
-        </h1>
-
-        <p className="mt-2 text-lg text-gray-900">{offer.offer_title}</p>
-        <p className="mt-3 text-gray-600">{offer.offer_terms_short}</p>
+        <h1 className="mt-4 text-xl font-bold">{restaurant.restaurant_name}</h1>
+        <p className="mt-1 text-sm font-medium">{offer.offer_title}</p>
+        <p className="mt-2 text-sm text-gray-500">{offer.offer_terms_short}</p>
 
         {success === 'code_generated' ? (
-          <div className="mt-6 rounded-2xl border border-green-200 bg-green-50 p-4 text-sm text-green-700">
-            Код успешно создан. Покажите его сотруднику ресторана.
+          <div className="mt-4 rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-700">
+            Код создан. Покажите персоналу.
           </div>
         ) : null}
 
         {errorMessage ? (
-          <div className="mt-6 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+          <div className="mt-4 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">
             {errorMessage}
           </div>
         ) : null}
@@ -151,41 +110,30 @@ export default async function RedeemPage({ params, searchParams }: PageProps) {
             expiresAt={activeToken.expires_at}
           />
         ) : (
-          <div className="mt-8 rounded-2xl bg-gray-50 p-5">
-            <p className="text-sm font-medium text-gray-900">Генерация кода</p>
-            <p className="mt-2 text-sm leading-6 text-gray-600">
-              Код будет действовать 10 минут. Одновременно можно иметь только 1 активный код.
-              В одном ресторане оффер можно использовать 1 раз в 30 дней.
-            </p>
-           
-            <ul className="mt-3 list-disc space-y-1 pl-5 text-sm text-gray-600">
+          <div className="mt-6 rounded-xl bg-gray-50 p-4">
+            <p className="text-sm font-medium">Генерация кода</p>
+            <ul className="mt-2 space-y-1 text-xs text-gray-500">
               <li>Код действует 10 минут</li>
-              <li>Одновременно можно иметь только 1 активный код</li>
-              <li>В одном ресторане — не чаще 1 раза в 30 дней</li>
+              <li>Одновременно — 1 активный код</li>
+              <li>1 раз в 30 дней на ресторан</li>
             </ul>
 
-            <form action={generateRedeemToken} className="mt-5">
+            <form action={generateRedeemToken} className="mt-4">
               <input type="hidden" name="restaurantId" value={restaurant.id} />
               <input type="hidden" name="offerId" value={offer.id} />
-              <button
-                type="submit"
-                className="inline-flex rounded-2xl bg-black px-5 py-3 text-sm font-medium text-white"
-              >
+              <Button type="submit" className="w-full">
                 Сгенерировать код
-              </button>
+              </Button>
             </form>
           </div>
         )}
 
-        <div className="mt-8 flex flex-wrap gap-3">
-          <Link
-            href={`/r/${restaurant.slug}`}
-            className="inline-flex rounded-2xl border border-gray-300 bg-white px-5 py-3 text-sm font-medium text-black"
-          >
-            Назад к ресторану
-          </Link>
+        <div className="mt-6">
+          <Button href={`/r/${restaurant.slug}`} variant="secondary" size="sm">
+            ← Назад к ресторану
+          </Button>
         </div>
-      </div>
-    </main>
+      </Card>
+    </div>
   )
 }

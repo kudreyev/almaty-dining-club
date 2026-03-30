@@ -1,6 +1,8 @@
 import Link from 'next/link'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { LogoutButton } from '@/components/logout-button'
+import { MobileMenu } from '@/components/mobile-menu'
+import { Button } from '@/components/ui/button'
 
 export async function Header() {
   const supabase = await createSupabaseServerClient()
@@ -20,85 +22,73 @@ export async function Header() {
     role = profile?.role ?? 'user'
   }
 
+  const navLinks = [
+    { href: '/', label: 'Рестораны' },
+    { href: '/pricing', label: 'Подписка' },
+  ]
+
+  const adminLinks = role === 'admin'
+    ? [
+        { href: '/admin/restaurants', label: 'Заведения' },
+        { href: '/admin/offers', label: 'Офферы' },
+        { href: '/admin/staff', label: 'Сотрудники' },
+        { href: '/admin/activation-links', label: 'Активации' },
+        { href: '/admin/transfer-subscription', label: 'Перенос' },
+        { href: '/admin/payments', label: 'Оплаты' },
+      ]
+    : []
+
   return (
-    <header className="sticky top-0 z-50 border-b border-gray-200 bg-white/90 backdrop-blur">
-      <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
-        <Link href="/" className="text-lg font-semibold tracking-tight">
+    <header className="sticky top-0 z-50 border-b border-gray-200/80 bg-white/80 backdrop-blur-lg">
+      <div className="mx-auto flex h-14 max-w-6xl items-center justify-between gap-4 px-5">
+        <Link href="/" className="text-lg font-bold tracking-tight">
           KudaPass
         </Link>
 
-        <nav className="hidden items-center gap-6 md:flex">
-          <Link href="/" className="text-sm font-medium text-gray-600 hover:text-black">
-            Главная
-          </Link>
-          <Link href="/almaty" className="text-sm font-medium text-gray-600 hover:text-black">
-            Рестораны
-          </Link>
-          <Link href="/pricing" className="text-sm font-medium text-gray-600 hover:text-black">
-            Подписка
-          </Link>
-
-          {role === 'admin' ? (
+        <nav className="hidden items-center gap-1 md:flex">
+          {navLinks.map((l) => (
+            <Link
+              key={l.href}
+              href={l.href}
+              className="rounded-lg px-3 py-2 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-100 hover:text-black"
+            >
+              {l.label}
+            </Link>
+          ))}
+          {adminLinks.length > 0 ? (
             <>
-              <Link
-                href="/admin/restaurants"
-                className="text-sm font-medium text-gray-600 hover:text-black"
-              >
-                Заведения
-              </Link>
-              <Link
-                href="/admin/offers"
-                className="text-sm font-medium text-gray-600 hover:text-black"
-              >
-                Офферы
-              </Link>
-              <Link
-                href="/admin/staff"
-                className="text-sm font-medium text-gray-600 hover:text-black"
-              >
-                Сотрудники
-              </Link>
-              <Link
-                href="/admin/import"
-                className="text-sm font-medium text-gray-600 hover:text-black"
-              >
-                Импорт
-              </Link>
-              <Link
-                href="/admin/activation-links"
-                className="text-sm font-medium text-gray-600 hover:text-black"
-              >
-                Активации
-              </Link>
-              <Link
-                href="/admin/transfer-subscription"
-                className="text-sm font-medium text-gray-600 hover:text-black"
-              >
-                Перенос
-              </Link>
+              <span className="mx-2 h-4 w-px bg-gray-200" />
+              {adminLinks.map((l) => (
+                <Link
+                  key={l.href}
+                  href={l.href}
+                  className="rounded-lg px-3 py-2 text-xs font-medium text-gray-500 transition-colors hover:bg-gray-100 hover:text-black"
+                >
+                  {l.label}
+                </Link>
+              ))}
             </>
           ) : null}
         </nav>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
           {!user ? (
-            <Link
-              href="/login"
-              className="inline-flex rounded-2xl bg-black px-4 py-2 text-sm font-medium text-white"
-            >
-              Вход
-            </Link>
+            <Button href="/login" size="sm">
+              Войти
+            </Button>
           ) : (
             <>
-              <Link
-                href="/app/me"
-                className="inline-flex rounded-2xl bg-black px-4 py-2 text-sm font-medium text-white"
-              >
+              <Button href="/app/me" size="sm">
                 Кабинет
-              </Link>
+              </Button>
               <LogoutButton />
             </>
           )}
+          <MobileMenu
+            navLinks={navLinks}
+            adminLinks={adminLinks}
+            isLoggedIn={!!user}
+          />
         </div>
       </div>
     </header>

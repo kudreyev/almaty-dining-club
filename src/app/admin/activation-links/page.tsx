@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { requireAdmin } from '@/lib/admin'
 import { buildActivationUrl } from '@/lib/activation-links'
 import { createActivationLink } from './actions'
+import { CopyLinkButton } from '@/components/copy-link-button'
 
 type ActivationLinkListRow = {
   id: string
@@ -139,14 +140,20 @@ export default async function AdminActivationLinksPage() {
                           <code className="max-w-[240px] truncate rounded-lg bg-gray-50 px-2 py-1 text-xs text-gray-700">
                             {url}
                           </code>
-                          <a
-                            href={waHref}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="inline-flex w-fit rounded-xl border border-gray-300 bg-white px-3 py-1.5 text-xs font-medium text-black"
-                          >
-                            Отправить в WhatsApp
-                          </a>
+                          <div className="flex flex-wrap gap-2">
+                            <a
+                              href={waHref}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="inline-flex w-fit rounded-2xl border border-gray-300 bg-white px-3 py-1.5 text-xs font-medium text-black"
+                            >
+                              Отправить в WhatsApp
+                            </a>
+                            <CopyLinkButton
+                              textToCopy={url}
+                              className="inline-flex w-fit rounded-2xl border border-gray-300 bg-white px-3 py-1.5 text-xs font-medium text-black disabled:opacity-70"
+                            />
+                          </div>
                         </div>
                       </td>
                     </tr>

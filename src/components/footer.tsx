@@ -26,7 +26,14 @@ export function Footer() {
             <div className="mt-3 flex flex-col gap-2">
               <Link href="/terms" className="text-sm text-gray-600 transition-colors hover:text-black">Условия использования</Link>
               <Link href="/privacy" className="text-sm text-gray-600 transition-colors hover:text-black">Конфиденциальность</Link>
-              <Link href="/support" className="text-sm text-gray-600 transition-colors hover:text-black">Поддержка</Link>
+              <a
+                href="https://wa.me/77066059899"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-sm text-gray-600 transition-colors hover:text-black"
+              >
+                Поддержка
+              </a>
             </div>
           </div>
         </div>

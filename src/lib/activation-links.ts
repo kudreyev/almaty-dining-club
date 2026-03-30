@@ -18,8 +18,23 @@ export type ActivationLinkRow = {
 }
 
 export function getPublicSiteBaseUrl() {
-  const raw = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, '')
-  return raw || 'https://kudapass.kz'
+  // Canonical public domain for shareable links (WhatsApp, SMS, etc).
+  // Avoid leaking preview / vercel.app domains into customer-facing messages.
+  const canonical = 'https://kudapass.kz'
+
+  const raw = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, '') ?? ''
+  if (!raw) return canonical
+
+  const lower = raw.toLowerCase()
+  if (
+    lower.includes('vercel.app') ||
+    lower.includes('localhost') ||
+    lower.includes('127.0.0.1')
+  ) {
+    return canonical
+  }
+
+  return raw
 }
 
 export function buildActivationUrl(token: string) {

@@ -4,7 +4,16 @@
 
 /** Внутренняя часть без кода страны (макс. 10 цифр). */
 export function subscriberDigitsFromRaw(input: string): string {
-  let d = input.replace(/\D/g, '').slice(0, 11)
+  let d = input.replace(/\D/g, '').slice(0, 12)
+
+  // Маска показывает "+7 (...)" — при разборе строки в поле первая 7 уже в "+7", не в номере.
+  // Иначе каждый ввод даёт лишнюю семёрку («вводятся сразу две цифры»).
+  if (/^\s*\+7/.test(input) && d.length > 0 && d[0] === '7') {
+    d = d.slice(1)
+  }
+
+  d = d.slice(0, 11)
+
   if (d.startsWith('8')) {
     d = ('7' + d.slice(1)).slice(0, 11)
   }

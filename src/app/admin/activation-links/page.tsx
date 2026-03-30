@@ -4,7 +4,6 @@ import { buildActivationUrl } from '@/lib/activation-links'
 import { createActivationLink } from './actions'
 import { CopyLinkButton } from '@/components/copy-link-button'
 import { PhoneInput } from '@/components/phone-input'
-import { formatKZPhone } from '@/lib/kz-phone'
 import { statusLabel } from '@/lib/labels'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -134,7 +133,7 @@ export default async function AdminActivationLinksPage({
       {/* ERROR */}
       {errorParam === 'invalid_phone' ? (
         <div className="mb-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-          Укажите полный номер KZ: 10 цифр после +7.
+          Укажите корректный номер телефона.
         </div>
       ) : null}
 
@@ -192,7 +191,7 @@ export default async function AdminActivationLinksPage({
                   const isExpiredByTime = new Date(row.expires_at).getTime() < Date.now()
                   return (
                     <tr key={row.id} className="transition-colors hover:bg-gray-50/50">
-                      <td className="px-4 py-3 font-medium">{formatKZPhone(row.phone_target)}</td>
+                      <td className="px-4 py-3 font-medium">{row.phone_target}</td>
                       <td className="px-4 py-3 text-gray-600">{row.amount} {row.currency}</td>
                       <td className="px-4 py-3">
                         <Badge color={statusBadgeColor(row.status, isExpiredByTime)}>

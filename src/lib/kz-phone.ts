@@ -1,53 +1,90 @@
 /**
- * KZ mobile: +7 + 10 digits. Display: +7 (7xx) xxx xxxx
+ * Разрешает только "+" и цифры.
+ * Плюс может быть только в начале.
  */
-
-/** Внутренняя часть без кода страны (макс. 10 цифр). */
-export function subscriberDigitsFromRaw(input: string): string {
-  let d = input.replace(/\D/g, '').slice(0, 12)
-
-  // Маска показывает "+7 (...)" — при разборе строки в поле первая 7 уже в "+7", не в номере.
-  // Иначе каждый ввод даёт лишнюю семёрку («вводятся сразу две цифры»).
-  if (/^\s*\+7/.test(input) && d.length > 0 && d[0] === '7') {
-    d = d.slice(1)
+export function sanitizePhoneInput(input: string): string {
+  const cleaned = input.replace(/[^\d+]/g, '')
+  if (!cleaned) return ''
+  if (cleaned.startsWith('+')) {
+    return `+${cleaned.slice(1).replace(/\+/g, '')}`
   }
-
-  d = d.slice(0, 11)
-
-  if (d.startsWith('8')) {
-    d = ('7' + d.slice(1)).slice(0, 11)
-  }
-  if (d.length === 11 && d[0] === '7') {
-    return d.slice(1)
-  }
-  if (d.length === 1 && d === '7') {
-    return ''
-  }
-  return d.slice(0, 10)
+  return cleaned.replace(/\+/g, '')
 }
 
-export function formatKZPhone(input: string): string {
-  const s = subscriberDigitsFromRaw(input)
-  if (!s) return '+7'
+/**
+ * Нормализация к E.164-like.
+ * Возвращает +<digits> или null, если номер слишком короткий.
+ *
+ * KZ распознаётся как:
+ * - +7XXXXXXXXXX
+ * - 8XXXXXXXXXX -> +7XXXXXXXXXX
+ * - 7XXXXXXXXXX -> +7XXXXXXXXXX
+ */
+export function normalizeToE164Like(input: string): string | null {
+  const raw = sanitizePhoneInput(input.trim())
+  if (!raw) return null
+
+  const digits = raw.replace(/\D/g, '')
+  if (raw.startsWith('+')) {
+    if (digits.length < 8) return null
+    return `+${digits}`
+  }
+
+  if (digits.length === 11 && digits.startsWith('8')) {
+    return `+7${digits.slice(1)}`
+  }
+  if (digits.length === 11 && digits.startsWith('7')) {
+    return `+7${digits.slice(1)}`
+  }
+
+  if (digits.length < 8) return null
+  return `+${digits}`
+}
+
+export function isKZNumber(e164: string): boolean {
+  return /^\+7\d{10}$/.test(e164)
+}
+
+/**
+ * digits11: строка из 11 цифр, начиная с 7.
+ * Пример: 77001234567 -> +7 (700) 123 4567
+ */
+export function formatKZPhoneFromDigits(digits11: string): string {
+  if (!/^\d{11}$/.test(digits11) || !digits11.startsWith('7')) {
+    return `+${digits11.replace(/\D/g, '')}`
+  }
+
+  const s = digits11.slice(1)
   const a = s.slice(0, 3)
   const b = s.slice(3, 6)
   const c = s.slice(6, 10)
-  let out = `+7 (${a}`
-  if (s.length >= 3) {
-    out += ')'
-  }
-  if (s.length > 3) {
-    out += ` ${b}`
-  }
-  if (s.length > 6) {
-    out += ` ${c}`
-  }
-  return out
+  return `+7 (${a}) ${b} ${c}`
 }
 
-/** Полный номер E.164 для KZ: +7 и 10 цифр абонента. */
+export function formatPhoneForDisplay(input: string): string {
+  const normalized = normalizeToE164Like(input)
+  if (!normalized) return sanitizePhoneInput(input)
+  if (isKZNumber(normalized)) {
+    return formatKZPhoneFromDigits(normalized.slice(1))
+  }
+  return normalized
+}
+
+/** Backward compatibility for existing imports. */
+export function subscriberDigitsFromRaw(input: string): string {
+  return sanitizePhoneInput(input)
+}
+
+/** Backward compatibility for existing imports. */
+export function formatKZPhone(input: string): string {
+  const normalized = normalizeToE164Like(input)
+  if (!normalized || !isKZNumber(normalized)) return sanitizePhoneInput(input)
+  return formatKZPhoneFromDigits(normalized.slice(1))
+}
+
+/** Backward compatibility for existing imports. */
 export function normalizeKZPhone(input: string): string | null {
-  const s = subscriberDigitsFromRaw(input)
-  if (s.length !== 10) return null
-  return `+7${s}`
+  const normalized = normalizeToE164Like(input)
+  if (!normalized || !isKZNumber(normalized)) return null
+  return normalized
 }

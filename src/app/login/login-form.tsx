@@ -2,9 +2,13 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { PhoneInput, formatKZPhone, normalizeKZPhone } from '@/components/phone-input'
+import {
+  PhoneInput,
+  formatKZPhoneFromDigits,
+  isKZNumber,
+  normalizeToE164Like,
+} from '@/components/phone-input'
 import { sendWhatsAppLogin, verifyWhatsAppLoginCode } from './actions'
-import { subscriberDigitsFromRaw } from '@/lib/kz-phone'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 
@@ -16,9 +20,7 @@ export function LoginForm({
   presetPhone?: string
 }) {
   const router = useRouter()
-  const [subscriber, setSubscriber] = useState(() =>
-    presetPhone ? subscriberDigitsFromRaw(presetPhone) : '',
-  )
+  const [subscriber, setSubscriber] = useState(() => presetPhone ?? '')
   const [otpCode, setOtpCode] = useState('')
   const [codeRequested, setCodeRequested] = useState(false)
   const [whatsAppLoading, setWhatsAppLoading] = useState(false)
@@ -40,9 +42,14 @@ export function LoginForm({
     setMessage(null)
     setError(null)
 
-    const phoneE164 = normalizeKZPhone(subscriber)
+    const phoneE164 = normalizeToE164Like(subscriber)
     if (!phoneE164) {
       setError('Введите полный номер телефона.')
+      setWhatsAppLoading(false)
+      return
+    }
+    if (!isKZNumber(phoneE164)) {
+      setError('Пока поддерживаем только номера Казахстана (+7 ...).')
       setWhatsAppLoading(false)
       return
     }
@@ -118,7 +125,13 @@ export function LoginForm({
             />
             {isPhoneLocked ? (
               <p className="mt-1 text-xs text-gray-400">
-                Войдите с номера {formatKZPhone(subscriber)}
+                Войдите с номера{' '}
+                {(() => {
+                  const normalized = normalizeToE164Like(subscriber)
+                  if (!normalized) return subscriber
+                  if (!isKZNumber(normalized)) return normalized
+                  return formatKZPhoneFromDigits(normalized.slice(1))
+                })()}
               </p>
             ) : null}
           </div>

@@ -1,4 +1,5 @@
 import { redirect } from 'next/navigation'
+import { normalizeToE164Like } from '@/lib/kz-phone'
 
 export default async function WhatsAppLoginPage({
   searchParams,
@@ -11,7 +12,8 @@ export default async function WhatsAppLoginPage({
     params.set('next', next)
   }
   if (phone) {
-    params.set('phone', phone)
+    const normalized = normalizeToE164Like(phone)
+    params.set('phone', normalized ?? phone)
   }
   const qs = params.toString()
   redirect(qs ? `/login?${qs}` : '/login')

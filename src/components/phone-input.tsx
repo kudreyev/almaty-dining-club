@@ -3,21 +3,31 @@
 import { useCallback, useState } from 'react'
 import {
   formatKZPhone,
+  formatKZPhoneFromDigits,
+  isKZNumber,
   normalizeKZPhone,
-  subscriberDigitsFromRaw,
+  normalizeToE164Like,
+  sanitizePhoneInput,
 } from '@/lib/kz-phone'
 
-export { formatKZPhone, normalizeKZPhone } from '@/lib/kz-phone'
+export {
+  formatKZPhone,
+  formatKZPhoneFromDigits,
+  isKZNumber,
+  normalizeKZPhone,
+  normalizeToE164Like,
+  sanitizePhoneInput,
+} from '@/lib/kz-phone'
 
 export type PhoneInputProps = Omit<
   React.InputHTMLAttributes<HTMLInputElement>,
   'type' | 'value' | 'defaultValue' | 'onChange' | 'inputMode' | 'autoComplete'
 > & {
-  /** Скрытое поле: отправляется уже нормализованное +7XXXXXXXXXX или пустая строка */
+  /** Скрытое поле: отправляется +<digits> или пустая строка */
   name?: string
-  /** Контролируемое значение — только цифры абонента (0–10), без +7 */
+  /** Контролируемое значение поля (как отображается пользователю) */
   subscriber?: string
-  /** Неконтролируемый старт: E.164 или сырой ввод */
+  /** Неконтролируемый старт: E.164-like или сырой ввод */
   defaultValue?: string
   onSubscriberChange?: (subscriber: string) => void
 }
@@ -32,27 +42,25 @@ export function PhoneInput({
   readOnly,
   disabled,
   required,
-  placeholder = '+7 (700) 123 4567',
+  placeholder = '+7 (7__) ___ ____',
+  onBlur,
   ...rest
 }: PhoneInputProps) {
-  const [internal, setInternal] = useState(() =>
-    defaultValue ? subscriberDigitsFromRaw(defaultValue) : '',
-  )
+  const [internal, setInternal] = useState(() => (defaultValue ? sanitizePhoneInput(defaultValue) : ''))
 
   const controlled = subscriberProp !== undefined
   const subscriber = controlled ? subscriberProp : internal
 
   const setSubscriber = useCallback(
     (raw: string) => {
-      const next = subscriberDigitsFromRaw(raw)
+      const next = sanitizePhoneInput(raw)
       if (!controlled) setInternal(next)
       onSubscriberChange?.(next)
     },
     [controlled, onSubscriberChange],
   )
 
-  const display = formatKZPhone(subscriber)
-  const hiddenValue = normalizeKZPhone(subscriber) ?? ''
+  const hiddenValue = normalizeToE164Like(subscriber) ?? ''
   const hiddenRequired = Boolean(name && required)
 
   return (
@@ -72,10 +80,10 @@ export function PhoneInput({
         {...rest}
         id={id}
         type="text"
-        inputMode="numeric"
+        inputMode="tel"
         autoComplete="tel"
         className={className}
-        value={display}
+        value={subscriber}
         readOnly={readOnly}
         disabled={disabled}
         required={Boolean(required && !name)}
@@ -83,6 +91,26 @@ export function PhoneInput({
         onChange={(e) => {
           if (readOnly || disabled) return
           setSubscriber(e.target.value)
+        }}
+        onBlur={(e) => {
+          if (!readOnly && !disabled) {
+            const current = e.target.value
+            const normalized = normalizeToE164Like(current)
+
+            let nextValue = sanitizePhoneInput(current)
+            if (normalized) {
+              nextValue = isKZNumber(normalized)
+                ? formatKZPhoneFromDigits(normalized.slice(1))
+                : normalized
+            } else {
+              const digits = current.replace(/\D/g, '')
+              if (!current.trim().startsWith('+') && digits.length >= 8) {
+                nextValue = `+${digits}`
+              }
+            }
+            setSubscriber(nextValue)
+          }
+          onBlur?.(e)
         }}
       />
     </>

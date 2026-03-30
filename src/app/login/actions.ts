@@ -6,7 +6,7 @@ import {
   createWhatsAppLoginChallenge,
   sendWhatsAppVerificationCode,
 } from '@/lib/auth/whatsapp-login'
-import { normalizeKZPhone } from '@/lib/kz-phone'
+import { isKZNumber, normalizeToE164Like } from '@/lib/kz-phone'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import type { EmailOtpType } from '@supabase/supabase-js'
 
@@ -89,12 +89,18 @@ export async function sendWhatsAppLogin(
   formData: FormData
 ): Promise<SendWhatsAppLoginResult> {
   const phoneRaw = String(formData.get('phone') || '').trim()
-  const phone = normalizeKZPhone(phoneRaw)
+  const phone = normalizeToE164Like(phoneRaw)
 
   if (!phone) {
     return {
       ok: false,
-      error: 'Введите полный номер телефона (+7 и 10 цифр).',
+      error: 'Введите корректный номер телефона.',
+    }
+  }
+  if (!isKZNumber(phone)) {
+    return {
+      ok: false,
+      error: 'Пока поддерживаем только номера Казахстана (+7 ...).',
     }
   }
 

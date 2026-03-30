@@ -32,7 +32,7 @@ export function Footer() {
                 rel="noopener noreferrer"
                 className="text-sm text-gray-600 transition-colors hover:text-black"
               >
-                Поддержка
+                Поддержка через WhatsApp
               </a>
             </div>
           </div>

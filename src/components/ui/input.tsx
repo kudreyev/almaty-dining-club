@@ -14,7 +14,7 @@ export function Input({ label, hint, error, id, className = '', ...props }: Inpu
       ) : null}
       <input
         id={id}
-        className={`w-full rounded-xl border bg-white px-4 py-2.5 text-sm outline-none transition-colors placeholder:text-gray-400 focus:border-black focus:ring-1 focus:ring-black/10 ${
+        className={`w-full rounded-xl border bg-white px-4 py-2.5 text-sm outline-none transition-colors placeholder:text-gray-400 focus:border-brand focus:ring-1 focus:ring-brand/20 ${
           error ? 'border-red-300' : 'border-gray-200'
         } ${className}`}
         {...props}
@@ -39,7 +39,7 @@ export function Select({ label, id, className = '', children, ...props }: Select
       ) : null}
       <select
         id={id}
-        className={`w-full rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm outline-none transition-colors focus:border-black focus:ring-1 focus:ring-black/10 ${className}`}
+        className={`w-full rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm outline-none transition-colors focus:border-brand focus:ring-1 focus:ring-brand/20 ${className}`}
         {...props}
       >
         {children}
@@ -62,7 +62,7 @@ export function Textarea({ label, id, className = '', ...props }: TextareaProps)
       ) : null}
       <textarea
         id={id}
-        className={`w-full rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm outline-none transition-colors placeholder:text-gray-400 focus:border-black focus:ring-1 focus:ring-black/10 ${className}`}
+        className={`w-full rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm outline-none transition-colors placeholder:text-gray-400 focus:border-brand focus:ring-1 focus:ring-brand/20 ${className}`}
         {...props}
       />
     </div>

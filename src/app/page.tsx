@@ -135,7 +135,7 @@ export default async function HomePage({ searchParams }: PageProps) {
             <select
               name="cuisine"
               defaultValue={cuisine}
-              className="w-full rounded-xl border border-gray-200 bg-white px-3.5 py-2.5 text-sm outline-none transition-colors focus:border-black"
+              className="w-full rounded-xl border border-gray-200 bg-white px-3.5 py-2.5 text-sm outline-none transition-colors focus:border-brand focus:ring-1 focus:ring-brand/20"
             >
               <option value="all">Все кухни</option>
               {cuisines.map((c) => (
@@ -149,7 +149,7 @@ export default async function HomePage({ searchParams }: PageProps) {
             <select
               name="offer"
               defaultValue={offer}
-              className="w-full rounded-xl border border-gray-200 bg-white px-3.5 py-2.5 text-sm outline-none transition-colors focus:border-black"
+              className="w-full rounded-xl border border-gray-200 bg-white px-3.5 py-2.5 text-sm outline-none transition-colors focus:border-brand focus:ring-1 focus:ring-brand/20"
             >
               <option value="all">Все</option>
               <option value="2for1">1+1</option>
@@ -180,7 +180,7 @@ export default async function HomePage({ searchParams }: PageProps) {
             <Link
               key={r.id}
               href={`/r/${r.slug}`}
-              className="group block overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm transition-all duration-200 hover:shadow-md hover:-translate-y-0.5"
+              className="group block overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 hover:border-brand/30"
             >
               {/* PHOTO */}
               <div className="aspect-[4/3] overflow-hidden bg-gray-100">
@@ -214,7 +214,7 @@ export default async function HomePage({ searchParams }: PageProps) {
                 {r.offers.length > 0 ? (
                   <div className="mt-3 flex flex-wrap gap-1.5">
                     {r.offers.slice(0, 2).map((o, i) => (
-                      <Badge key={i} color="dark">
+                      <Badge key={i} color="brand">
                         {offerTypeLabel(o.offer_type)}
                       </Badge>
                     ))}

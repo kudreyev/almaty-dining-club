@@ -19,7 +19,7 @@ export function Tabs({ tabs, active, onChange }: TabsProps) {
         const isActive = active === tab.id
         const cls = `rounded-lg px-4 py-2 text-sm font-medium transition-all ${
           isActive
-            ? 'bg-white text-black shadow-sm'
+            ? 'bg-white text-brand shadow-sm'
             : 'text-gray-600 hover:text-black'
         }`
 

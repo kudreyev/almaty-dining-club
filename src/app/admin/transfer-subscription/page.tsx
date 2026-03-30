@@ -65,7 +65,7 @@ export default function TransferSubscriptionPage() {
               id="from_phone"
               subscriber={fromSub}
               onSubscriberChange={(s) => { setFromSub(s); setPreview(null); setResult(null) }}
-              className="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm outline-none transition-colors focus:border-black"
+              className="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm outline-none transition-colors focus:border-brand"
             />
           </div>
           <div>
@@ -76,7 +76,7 @@ export default function TransferSubscriptionPage() {
               id="to_phone"
               subscriber={toSub}
               onSubscriberChange={(s) => { setToSub(s); setPreview(null); setResult(null) }}
-              className="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm outline-none transition-colors focus:border-black"
+              className="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm outline-none transition-colors focus:border-brand"
             />
           </div>
         </div>

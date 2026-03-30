@@ -85,7 +85,7 @@ export default async function StaffRedeemPage({ searchParams }: PageProps) {
             label="Код гостя"
             required
             placeholder="482193"
-            className="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-center text-sm tracking-[0.2em] outline-none transition-colors focus:border-black"
+            className="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-center text-sm tracking-[0.2em] outline-none transition-colors focus:border-brand"
           />
           <Button type="submit" className="w-full">
             Погасить код

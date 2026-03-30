@@ -92,7 +92,7 @@ export default async function AlmatyPage({ searchParams }: PageProps) {
               name="q"
               defaultValue={q}
               placeholder="Название или кухня"
-              className="w-full rounded-xl border border-gray-200 bg-white px-3.5 py-2.5 text-sm outline-none transition-colors placeholder:text-gray-400 focus:border-black"
+              className="w-full rounded-xl border border-gray-200 bg-white px-3.5 py-2.5 text-sm outline-none transition-colors placeholder:text-gray-400 focus:border-brand"
             />
           </div>
           <div className="w-full sm:w-48">
@@ -101,7 +101,7 @@ export default async function AlmatyPage({ searchParams }: PageProps) {
               id="offer"
               name="offer"
               defaultValue={offer}
-              className="w-full rounded-xl border border-gray-200 bg-white px-3.5 py-2.5 text-sm outline-none transition-colors focus:border-black"
+              className="w-full rounded-xl border border-gray-200 bg-white px-3.5 py-2.5 text-sm outline-none transition-colors focus:border-brand"
             >
               <option value="all">Все</option>
               <option value="2for1">1+1</option>

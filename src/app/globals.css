@@ -12,9 +12,9 @@
   --font-mono: var(--font-geist-mono);
 
   /* Brand */
-  --color-brand:      #DD4F41;
-  --color-brand-dark: #C94337;
-  --color-brand-soft: #FCE9E7;
+  --color-brand:      #C0392B;
+  --color-brand-dark: #A93226;
+  --color-brand-soft: #F9E5E3;
 }
 
 body {

@@ -6,12 +6,38 @@ import {
   getActivationLinkByToken,
   precheckActivationLink,
 } from '@/lib/activation-links'
+import { createSupabaseAdminClient } from '@/lib/supabase/admin'
+import { LogoutButton } from '@/components/logout-button'
+
+const WHATSAPP_SUPPORT_URL =
+  'https://wa.me/77066059899?text=%D0%97%D0%B4%D1%80%D0%B0%D0%B2%D1%81%D1%82%D0%B2%D1%83%D0%B9%D1%82%D0%B5%21%20%D0%9D%D1%83%D0%B6%D0%BD%D0%B0%20%D0%BF%D0%BE%D0%BC%D0%BE%D1%89%D1%8C%20%D1%81%20%D0%B0%D0%BA%D1%82%D0%B8%D0%B2%D0%B0%D1%86%D0%B8%D0%B5%D0%B9%20%D0%BF%D0%BE%D0%B4%D0%BF%D0%B8%D1%81%D0%BA%D0%B8%20KudaPass'
 
 function loginRedirectWithNext(token: string): never {
   const qs = new URLSearchParams()
   qs.set('token', token)
   const nextPath = `/activate?${qs.toString()}`
   redirect(`/login/whatsapp?next=${encodeURIComponent(nextPath)}`)
+}
+
+function CtaRow({ primaryHref, primaryText }: { primaryHref: string; primaryText: string }) {
+  return (
+    <div className="mt-6 flex flex-wrap gap-3">
+      <Link
+        href={primaryHref}
+        className="inline-flex rounded-2xl bg-black px-5 py-3 text-sm font-medium text-white"
+      >
+        {primaryText}
+      </Link>
+      <a
+        href={WHATSAPP_SUPPORT_URL}
+        target="_blank"
+        rel="noreferrer"
+        className="inline-flex rounded-2xl border border-gray-300 bg-white px-5 py-3 text-sm font-medium text-black"
+      >
+        Написать в WhatsApp
+      </a>
+    </div>
+  )
 }
 
 export default async function ActivatePage({
@@ -34,9 +60,7 @@ export default async function ActivatePage({
           <p className="mt-3 text-sm text-gray-600">
             Проверьте ссылку или запросите новую у менеджера KudaPass.
           </p>
-          <Link href="/pricing" className="mt-6 inline-flex rounded-2xl bg-black px-5 py-3 text-sm font-medium text-white">
-            Подписка
-          </Link>
+          <CtaRow primaryHref="/" primaryText="Перейти к заведениям" />
         </div>
       </main>
     )
@@ -47,24 +71,33 @@ export default async function ActivatePage({
     return (
       <main className="mx-auto max-w-lg px-6 py-16">
         <div className="rounded-3xl border border-gray-200 bg-white p-8 shadow-sm">
-          <h1 className="text-xl font-semibold">Ссылка отозвана</h1>
-          <p className="mt-3 text-sm text-gray-600">Обратитесь в поддержку KudaPass.</p>
-          <Link href="/pricing" className="mt-6 inline-flex rounded-2xl bg-black px-5 py-3 text-sm font-medium text-white">
-            Подписка
-          </Link>
+          <h1 className="text-xl font-semibold">Ссылка отменена</h1>
+          <p className="mt-3 text-sm text-gray-600">
+            Эта ссылка была отменена. Напишите в WhatsApp — поможем оформить новую.
+          </p>
+          <CtaRow primaryHref="/" primaryText="Перейти к заведениям" />
         </div>
       </main>
     )
   }
   if (pre.kind === 'expired') {
+    // Idempotently mark as expired if it wasn't activated/revoked.
+    if (row.status === 'issued') {
+      const admin = createSupabaseAdminClient()
+      await admin
+        .from('activation_links')
+        .update({ status: 'expired' })
+        .eq('id', row.id)
+        .eq('status', 'issued')
+    }
     return (
       <main className="mx-auto max-w-lg px-6 py-16">
         <div className="rounded-3xl border border-gray-200 bg-white p-8 shadow-sm">
-          <h1 className="text-xl font-semibold">Срок ссылки истёк</h1>
-          <p className="mt-3 text-sm text-gray-600">Запросите у менеджера новую ссылку для активации.</p>
-          <Link href="/pricing" className="mt-6 inline-flex rounded-2xl bg-black px-5 py-3 text-sm font-medium text-white">
-            Подписка
-          </Link>
+          <h1 className="text-xl font-semibold">Ссылка истекла</h1>
+          <p className="mt-3 text-sm text-gray-600">
+            Срок действия ссылки истёк. Напишите в WhatsApp — мы пришлём новую ссылку для активации.
+          </p>
+          <CtaRow primaryHref="/" primaryText="Перейти к заведениям" />
         </div>
       </main>
     )
@@ -73,11 +106,24 @@ export default async function ActivatePage({
     return (
       <main className="mx-auto max-w-lg px-6 py-16">
         <div className="rounded-3xl border border-gray-200 bg-white p-8 shadow-sm">
-          <h1 className="text-xl font-semibold">Ссылка уже использована</h1>
-          <p className="mt-3 text-sm text-gray-600">Войдите в личный кабинет, чтобы проверить подписку.</p>
-          <Link href="/app/me" className="mt-6 inline-flex rounded-2xl bg-black px-5 py-3 text-sm font-medium text-white">
-            Личный кабинет
-          </Link>
+          <h1 className="text-xl font-semibold">Подписка активирована ✅</h1>
+          <p className="mt-3 text-sm text-gray-600">
+            Подписка уже активирована по этой ссылке. Можно сразу переходить к заведениям.
+          </p>
+          <div className="mt-6 flex flex-wrap gap-3">
+            <Link
+              href="/"
+              className="inline-flex rounded-2xl bg-black px-5 py-3 text-sm font-medium text-white"
+            >
+              Перейти к заведениям
+            </Link>
+            <Link
+              href="/pricing"
+              className="inline-flex rounded-2xl border border-gray-300 bg-white px-5 py-3 text-sm font-medium text-black"
+            >
+              Как это работает
+            </Link>
+          </div>
         </div>
       </main>
     )
@@ -89,7 +135,38 @@ export default async function ActivatePage({
   } = await supabase.auth.getUser()
 
   if (!user) {
-    loginRedirectWithNext(token.trim())
+    return (
+      <main className="mx-auto max-w-lg px-6 py-16">
+        <div className="rounded-3xl border border-gray-200 bg-white p-8 shadow-sm">
+          <h1 className="text-xl font-semibold">Ссылка создана ✅</h1>
+          <p className="mt-3 text-sm text-gray-600">
+            Если вы уже оплатили, менеджер отправит ссылку для активации. Если ссылка у вас уже есть — откройте её ещё раз после входа.
+          </p>
+          <div className="mt-6 flex flex-wrap gap-3">
+            <Link
+              href="/"
+              className="inline-flex rounded-2xl bg-black px-5 py-3 text-sm font-medium text-white"
+            >
+              Перейти к заведениям
+            </Link>
+            <a
+              href={WHATSAPP_SUPPORT_URL}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex rounded-2xl border border-gray-300 bg-white px-5 py-3 text-sm font-medium text-black"
+            >
+              Написать в WhatsApp
+            </a>
+            <Link
+              href={`/login/whatsapp?next=${encodeURIComponent(`/activate?token=${encodeURIComponent(token.trim())}`)}`}
+              className="inline-flex rounded-2xl border border-gray-300 bg-white px-5 py-3 text-sm font-medium text-black"
+            >
+              Войти и активировать
+            </Link>
+          </div>
+        </div>
+      </main>
+    )
   }
 
   const result = await completeActivation({
@@ -98,7 +175,30 @@ export default async function ActivatePage({
   })
 
   if (result.ok) {
-    redirect('/app/me')
+    return (
+      <main className="mx-auto max-w-lg px-6 py-16">
+        <div className="rounded-3xl border border-gray-200 bg-white p-8 shadow-sm">
+          <h1 className="text-xl font-semibold">Подписка активирована ✅</h1>
+          <p className="mt-3 text-sm text-gray-600">
+            Готово! Подписка активирована на 30 дней. Можно сразу выбирать заведения и офферы.
+          </p>
+          <div className="mt-6 flex flex-wrap gap-3">
+            <Link
+              href="/"
+              className="inline-flex rounded-2xl bg-black px-5 py-3 text-sm font-medium text-white"
+            >
+              Перейти к заведениям
+            </Link>
+            <Link
+              href="/pricing"
+              className="inline-flex rounded-2xl border border-gray-300 bg-white px-5 py-3 text-sm font-medium text-black"
+            >
+              Как это работает
+            </Link>
+          </div>
+        </div>
+      </main>
+    )
   }
 
   if (result.reason === 'wrong_phone') {
@@ -107,24 +207,16 @@ export default async function ActivatePage({
         <div className="rounded-3xl border border-gray-200 bg-white p-8 shadow-sm">
           <h1 className="text-xl font-semibold">Нужен другой номер</h1>
           <p className="mt-3 text-sm text-gray-600">
-            Войдите в аккаунт с номером{' '}
-            <span className="font-medium text-gray-900">{row.phone_target}</span>, указанным при оформлении.
-          </p>
-          <p className="mt-3 text-sm text-gray-600">
-            Сейчас вы авторизованы под другим пользователем. Выйдите и войдите через WhatsApp с нужным номером.
+            Подписка оформлена на номер{' '}
+            <span className="font-medium text-gray-900">{row.phone_target}</span>. Выйдите и войдите с нужного номера.
           </p>
           <div className="mt-6 flex flex-wrap gap-3">
+            <LogoutButton />
             <Link
-              href="/login"
-              className="inline-flex rounded-2xl bg-black px-5 py-3 text-sm font-medium text-white"
-            >
-              Войти снова
-            </Link>
-            <Link
-              href="/app/me"
+              href="/"
               className="inline-flex rounded-2xl border border-gray-300 bg-white px-5 py-3 text-sm font-medium text-black"
             >
-              Кабинет
+              Перейти к заведениям
             </Link>
           </div>
         </div>
@@ -153,9 +245,7 @@ export default async function ActivatePage({
       <div className="rounded-3xl border border-gray-200 bg-white p-8 shadow-sm">
         <h1 className="text-xl font-semibold">Не удалось обработать ссылку</h1>
         <p className="mt-3 text-sm text-gray-600">Попробуйте открыть ссылку ещё раз или обратитесь к менеджеру.</p>
-        <Link href="/pricing" className="mt-6 inline-flex rounded-2xl bg-black px-5 py-3 text-sm font-medium text-white">
-          Подписка
-        </Link>
+        <CtaRow primaryHref="/" primaryText="Перейти к заведениям" />
       </div>
     </main>
   )

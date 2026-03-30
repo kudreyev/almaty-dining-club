@@ -13,11 +13,24 @@ import { logAnalyticsEvent } from '@/lib/analytics'
 const WHATSAPP_SUPPORT_URL =
   'https://wa.me/77066059899?text=%D0%97%D0%B4%D1%80%D0%B0%D0%B2%D1%81%D1%82%D0%B2%D1%83%D0%B9%D1%82%D0%B5%21%20%D0%9D%D1%83%D0%B6%D0%BD%D0%B0%20%D0%BF%D0%BE%D0%BC%D0%BE%D1%89%D1%8C%20%D1%81%20%D0%B0%D0%BA%D1%82%D0%B8%D0%B2%D0%B0%D1%86%D0%B8%D0%B5%D0%B9%20%D0%BF%D0%BE%D0%B4%D0%BF%D0%B8%D1%81%D0%BA%D0%B8%20KudaPass'
 
-function loginRedirectWithNext(token: string): never {
+function normalizePhoneForQuery(raw: string): string {
+  const cleaned = raw.replace(/[^\d+]/g, '')
+  if (cleaned.startsWith('+')) return cleaned
+  const digits = cleaned.replace(/\D/g, '')
+  if (digits.length === 11 && digits.startsWith('8')) return `+7${digits.slice(1)}`
+  if (digits.length === 11 && digits.startsWith('7')) return `+${digits}`
+  if (digits.length === 10) return `+7${digits}`
+  return cleaned
+}
+
+function loginRedirectWithNext(token: string, phoneTarget: string): never {
   const qs = new URLSearchParams()
   qs.set('token', token)
   const nextPath = `/activate?${qs.toString()}`
-  redirect(`/login/whatsapp?next=${encodeURIComponent(nextPath)}`)
+  const loginParams = new URLSearchParams()
+  loginParams.set('next', nextPath)
+  loginParams.set('phone', normalizePhoneForQuery(phoneTarget))
+  redirect(`/login/whatsapp?${loginParams.toString()}`)
 }
 
 function CtaRow({ primaryHref, primaryText }: { primaryHref: string; primaryText: string }) {
@@ -183,38 +196,7 @@ export default async function ActivatePage({
       token: row.token,
       phone_target: row.phone_target,
     })
-    return (
-      <main className="mx-auto max-w-lg px-6 py-16">
-        <div className="rounded-3xl border border-gray-200 bg-white p-8 shadow-sm">
-          <h1 className="text-xl font-semibold">Ссылка создана ✅</h1>
-          <p className="mt-3 text-sm text-gray-600">
-            Если вы уже оплатили, менеджер отправит ссылку для активации. Если ссылка у вас уже есть — откройте её ещё раз после входа.
-          </p>
-          <div className="mt-6 flex flex-wrap gap-3">
-            <Link
-              href="/"
-              className="inline-flex rounded-2xl bg-black px-5 py-3 text-sm font-medium text-white"
-            >
-              Перейти к заведениям
-            </Link>
-            <a
-              href={WHATSAPP_SUPPORT_URL}
-              target="_blank"
-              rel="noreferrer"
-              className="inline-flex rounded-2xl border border-gray-300 bg-white px-5 py-3 text-sm font-medium text-black"
-            >
-              Написать в WhatsApp
-            </a>
-            <Link
-              href={`/login/whatsapp?next=${encodeURIComponent(`/activate?token=${encodeURIComponent(token.trim())}`)}`}
-              className="inline-flex rounded-2xl border border-gray-300 bg-white px-5 py-3 text-sm font-medium text-black"
-            >
-              Войти и активировать
-            </Link>
-          </div>
-        </div>
-      </main>
-    )
+    loginRedirectWithNext(token.trim(), row.phone_target)
   }
 
   const result = await completeActivation({

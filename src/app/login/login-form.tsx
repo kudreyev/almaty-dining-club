@@ -4,15 +4,22 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { sendWhatsAppLogin, verifyWhatsAppLoginCode } from './actions'
 
-export function LoginForm({ safeNext }: { safeNext?: string }) {
+export function LoginForm({
+  safeNext,
+  presetPhone,
+}: {
+  safeNext?: string
+  presetPhone?: string
+}) {
   const router = useRouter()
-  const [phone, setPhone] = useState('')
+  const [phone, setPhone] = useState(presetPhone ?? '')
   const [otpCode, setOtpCode] = useState('')
   const [codeRequested, setCodeRequested] = useState(false)
   const [whatsAppLoading, setWhatsAppLoading] = useState(false)
   const [otpLoading, setOtpLoading] = useState(false)
   const [message, setMessage] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const isPhoneLocked = Boolean(presetPhone)
 
   const normalizeOtpCode = (value: string) => value.replace(/\D/g, '').slice(0, 6)
 
@@ -95,13 +102,18 @@ export function LoginForm({ safeNext }: { safeNext?: string }) {
               type="tel"
               required
               value={phone}
+              readOnly={isPhoneLocked}
               onChange={(e) => setPhone(e.target.value)}
               placeholder="+7 777 123 45 67"
               className="w-full rounded-2xl border border-gray-300 px-4 py-3 text-sm outline-none"
             />
-            <p className="mt-2 text-xs text-gray-500">
-              Можно ввести в формате +7XXXXXXXXXX, 8XXXXXXXXXX или 7XXXXXXXXXX.
-            </p>
+            {isPhoneLocked ? (
+              <p className="mt-2 text-xs text-gray-500">Войдите с номера {presetPhone}</p>
+            ) : (
+              <p className="mt-2 text-xs text-gray-500">
+                Можно ввести в формате +7XXXXXXXXXX, 8XXXXXXXXXX или 7XXXXXXXXXX.
+              </p>
+            )}
           </div>
 
           <button

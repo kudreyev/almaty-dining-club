@@ -1,4 +1,5 @@
 import { LoginForm } from './login-form'
+import { normalizePhoneToE164 } from '@/lib/auth/whatsapp-login'
 
 function sanitizeNext(next: string | undefined): string | undefined {
   if (!next || typeof next !== 'string') return undefined
@@ -6,11 +7,16 @@ function sanitizeNext(next: string | undefined): string | undefined {
   return next
 }
 
+function sanitizePhone(phone: string | undefined): string | undefined {
+  if (!phone || typeof phone !== 'string') return undefined
+  return normalizePhoneToE164(phone) ?? undefined
+}
+
 export default async function LoginPage({
   searchParams,
 }: {
-  searchParams: Promise<{ next?: string }>
+  searchParams: Promise<{ next?: string; phone?: string }>
 }) {
-  const { next } = await searchParams
-  return <LoginForm safeNext={sanitizeNext(next)} />
+  const { next, phone } = await searchParams
+  return <LoginForm safeNext={sanitizeNext(next)} presetPhone={sanitizePhone(phone)} />
 }

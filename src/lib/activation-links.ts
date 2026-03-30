@@ -191,6 +191,24 @@ export async function completeActivation(args: {
     return { ok: false, reason: 'wrong_phone' }
   }
 
+  // Claim the link first to ensure idempotency / race-safety.
+  // If we can't update exactly one row (status must be 'issued'), treat as already used.
+  const { data: claimed, error: claimError } = await admin
+    .from('activation_links')
+    .update({
+      status: 'activated',
+      activated_user_id: args.userId,
+      activated_at: new Date().toISOString(),
+    })
+    .eq('token', args.token)
+    .eq('status', 'issued')
+    .select('id')
+    .maybeSingle()
+
+  if (claimError || !claimed) {
+    return { ok: false, reason: 'already_used' }
+  }
+
   const today = new Date()
   const endDate = new Date(today)
   endDate.setDate(endDate.getDate() + 30)
@@ -240,22 +258,6 @@ export async function completeActivation(args: {
   const phoneToSync = metaRaw ? normalizePhoneToE164(metaRaw) : resolved
   if (phoneToSync && !profile?.phone) {
     await admin.from('profiles').update({ phone: phoneToSync }).eq('id', args.userId)
-  }
-
-  const { data: updatedLink, error: linkUpdateError } = await admin
-    .from('activation_links')
-    .update({
-      status: 'activated',
-      activated_user_id: args.userId,
-      activated_at: new Date().toISOString(),
-    })
-    .eq('token', args.token)
-    .eq('status', 'issued')
-    .select('id')
-    .maybeSingle()
-
-  if (linkUpdateError || !updatedLink) {
-    return { ok: false, reason: 'already_used' }
   }
 
   revalidatePath('/app/me')

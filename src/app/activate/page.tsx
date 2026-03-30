@@ -110,9 +110,9 @@ export default async function ActivatePage({
     return (
       <main className="mx-auto max-w-lg px-6 py-16">
         <div className="rounded-3xl border border-gray-200 bg-white p-8 shadow-sm">
-          <h1 className="text-xl font-semibold">Подписка активирована ✅</h1>
+          <h1 className="text-xl font-semibold">Ссылка уже использована ✅</h1>
           <p className="mt-3 text-sm text-gray-600">
-            Подписка уже активирована по этой ссылке. Можно сразу переходить к заведениям.
+            Подписка уже активирована. Если вы хотите продлить — напишите в WhatsApp.
           </p>
           <div className="mt-6 flex flex-wrap gap-3">
             <Link
@@ -122,11 +122,19 @@ export default async function ActivatePage({
               Перейти к заведениям
             </Link>
             <Link
-              href="/pricing"
+              href="/app/me"
               className="inline-flex rounded-2xl border border-gray-300 bg-white px-5 py-3 text-sm font-medium text-black"
             >
-              Как это работает
+              Открыть кабинет
             </Link>
+            <a
+              href={WHATSAPP_SUPPORT_URL}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex rounded-2xl border border-gray-300 bg-white px-5 py-3 text-sm font-medium text-black"
+            >
+              Написать в WhatsApp
+            </a>
           </div>
         </div>
       </main>

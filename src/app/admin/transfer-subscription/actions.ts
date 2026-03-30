@@ -2,7 +2,7 @@
 
 import { revalidatePath } from 'next/cache'
 import { requireAdmin } from '@/lib/admin'
-import { normalizePhoneToE164 } from '@/lib/auth/whatsapp-login'
+import { normalizeKZPhone } from '@/lib/kz-phone'
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 import { logAnalyticsEvent } from '@/lib/analytics'
 
@@ -40,8 +40,8 @@ export async function transferSubscription(formData: FormData): Promise<Transfer
   const fromPhoneRaw = String(formData.get('from_phone') ?? '').trim()
   const toPhoneRaw = String(formData.get('to_phone') ?? '').trim()
 
-  const fromPhone = normalizePhoneToE164(fromPhoneRaw)
-  const toPhone = normalizePhoneToE164(toPhoneRaw)
+  const fromPhone = normalizeKZPhone(fromPhoneRaw)
+  const toPhone = normalizeKZPhone(toPhoneRaw)
 
   if (!fromPhone) return { ok: false, error: 'Некорректный номер отправителя.' }
   if (!toPhone) return { ok: false, error: 'Некорректный номер получателя.' }
@@ -152,8 +152,8 @@ export async function previewTransfer(formData: FormData) {
   const fromPhoneRaw = String(formData.get('from_phone') ?? '').trim()
   const toPhoneRaw = String(formData.get('to_phone') ?? '').trim()
 
-  const fromPhone = normalizePhoneToE164(fromPhoneRaw)
-  const toPhone = normalizePhoneToE164(toPhoneRaw)
+  const fromPhone = normalizeKZPhone(fromPhoneRaw)
+  const toPhone = normalizeKZPhone(toPhoneRaw)
 
   if (!fromPhone) return { ok: false as const, error: 'Некорректный номер отправителя.' }
   if (!toPhone) return { ok: false as const, error: 'Некорректный номер получателя.' }

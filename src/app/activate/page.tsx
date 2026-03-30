@@ -9,19 +9,10 @@ import {
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 import { LogoutButton } from '@/components/logout-button'
 import { logAnalyticsEvent } from '@/lib/analytics'
+import { normalizeKZPhone } from '@/lib/kz-phone'
 
 const WHATSAPP_SUPPORT_URL =
   'https://wa.me/77066059899?text=%D0%97%D0%B4%D1%80%D0%B0%D0%B2%D1%81%D1%82%D0%B2%D1%83%D0%B9%D1%82%D0%B5%21%20%D0%9D%D1%83%D0%B6%D0%BD%D0%B0%20%D0%BF%D0%BE%D0%BC%D0%BE%D1%89%D1%8C%20%D1%81%20%D0%B0%D0%BA%D1%82%D0%B8%D0%B2%D0%B0%D1%86%D0%B8%D0%B5%D0%B9%20%D0%BF%D0%BE%D0%B4%D0%BF%D0%B8%D1%81%D0%BA%D0%B8%20KudaPass'
-
-function normalizePhoneForQuery(raw: string): string {
-  const cleaned = raw.replace(/[^\d+]/g, '')
-  if (cleaned.startsWith('+')) return cleaned
-  const digits = cleaned.replace(/\D/g, '')
-  if (digits.length === 11 && digits.startsWith('8')) return `+7${digits.slice(1)}`
-  if (digits.length === 11 && digits.startsWith('7')) return `+${digits}`
-  if (digits.length === 10) return `+7${digits}`
-  return cleaned
-}
 
 function loginRedirectWithNext(token: string, phoneTarget: string): never {
   const qs = new URLSearchParams()
@@ -29,7 +20,7 @@ function loginRedirectWithNext(token: string, phoneTarget: string): never {
   const nextPath = `/activate?${qs.toString()}`
   const loginParams = new URLSearchParams()
   loginParams.set('next', nextPath)
-  loginParams.set('phone', normalizePhoneForQuery(phoneTarget))
+  loginParams.set('phone', normalizeKZPhone(phoneTarget) ?? phoneTarget)
   redirect(`/login/whatsapp?${loginParams.toString()}`)
 }
 

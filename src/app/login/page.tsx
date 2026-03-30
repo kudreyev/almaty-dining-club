@@ -1,5 +1,5 @@
 import { LoginForm } from './login-form'
-import { normalizePhoneToE164 } from '@/lib/auth/whatsapp-login'
+import { normalizeKZPhone } from '@/lib/kz-phone'
 
 function sanitizeNext(next: string | undefined): string | undefined {
   if (!next || typeof next !== 'string') return undefined
@@ -9,7 +9,7 @@ function sanitizeNext(next: string | undefined): string | undefined {
 
 function sanitizePhone(phone: string | undefined): string | undefined {
   if (!phone || typeof phone !== 'string') return undefined
-  return normalizePhoneToE164(phone) ?? undefined
+  return normalizeKZPhone(phone) ?? undefined
 }
 
 export default async function LoginPage({

@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { requireAdmin } from '@/lib/admin'
+import { PhoneInput } from '@/components/phone-input'
 import { createRestaurant } from '../actions'
 
 export default async function AdminRestaurantNewPage() {
@@ -23,7 +24,7 @@ export default async function AdminRestaurantNewPage() {
           <input name="short_description" placeholder="Короткое описание (до 120)" required className="w-full rounded-2xl border px-4 py-3 text-sm" />
           <input name="instagram_url" placeholder="Instagram URL" className="w-full rounded-2xl border px-4 py-3 text-sm" />
           <input name="two_gis_url" placeholder="2GIS URL (полная ссылка)" className="w-full rounded-2xl border px-4 py-3 text-sm" />
-          <input name="phone" placeholder="Телефон" className="w-full rounded-2xl border px-4 py-3 text-sm" />
+          <PhoneInput name="phone" placeholder="Телефон" className="w-full rounded-2xl border px-4 py-3 text-sm" />
           <input name="photo_1_url" placeholder="Фото 1 URL" className="w-full rounded-2xl border px-4 py-3 text-sm" />
 
           <label className="flex items-center gap-3 text-sm">

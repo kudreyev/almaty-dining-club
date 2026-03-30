@@ -2,7 +2,9 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { PhoneInput, formatKZPhone, normalizeKZPhone } from '@/components/phone-input'
 import { sendWhatsAppLogin, verifyWhatsAppLoginCode } from './actions'
+import { subscriberDigitsFromRaw } from '@/lib/kz-phone'
 
 export function LoginForm({
   safeNext,
@@ -12,7 +14,9 @@ export function LoginForm({
   presetPhone?: string
 }) {
   const router = useRouter()
-  const [phone, setPhone] = useState(presetPhone ?? '')
+  const [subscriber, setSubscriber] = useState(() =>
+    presetPhone ? subscriberDigitsFromRaw(presetPhone) : '',
+  )
   const [otpCode, setOtpCode] = useState('')
   const [codeRequested, setCodeRequested] = useState(false)
   const [whatsAppLoading, setWhatsAppLoading] = useState(false)
@@ -34,8 +38,15 @@ export function LoginForm({
     setMessage(null)
     setError(null)
 
+    const phoneE164 = normalizeKZPhone(subscriber)
+    if (!phoneE164) {
+      setError('Введите полный номер телефона.')
+      setWhatsAppLoading(false)
+      return
+    }
+
     const formData = new FormData()
-    formData.set('phone', phone)
+    formData.set('phone', phoneE164)
 
     const result = await sendWhatsAppLogin(formData)
 
@@ -97,21 +108,20 @@ export function LoginForm({
             <label htmlFor="phone" className="mb-2 block text-sm font-medium text-gray-700">
               WhatsApp номер
             </label>
-            <input
+            <PhoneInput
               id="phone"
-              type="tel"
-              required
-              value={phone}
+              subscriber={subscriber}
+              onSubscriberChange={setSubscriber}
               readOnly={isPhoneLocked}
-              onChange={(e) => setPhone(e.target.value)}
-              placeholder="+7 777 123 45 67"
-              className="w-full rounded-2xl border border-gray-300 px-4 py-3 text-sm outline-none"
+              aria-required
             />
             {isPhoneLocked ? (
-              <p className="mt-2 text-xs text-gray-500">Войдите с номера {presetPhone}</p>
+              <p className="mt-2 text-xs text-gray-500">
+                Войдите с номера {formatKZPhone(subscriber)}
+              </p>
             ) : (
               <p className="mt-2 text-xs text-gray-500">
-                Можно ввести в формате +7XXXXXXXXXX, 8XXXXXXXXXX или 7XXXXXXXXXX.
+                Формат: +7 (7xx) xxx xxxx. Допускается ввод с 8 или без кода страны.
               </p>
             )}
           </div>

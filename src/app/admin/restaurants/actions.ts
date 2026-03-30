@@ -3,16 +3,20 @@
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { requireAdmin } from '@/lib/admin'
+import { normalizeKZPhone } from '@/lib/kz-phone'
 
 export async function createRestaurant(formData: FormData) {
   const { supabase } = await requireAdmin()
+
+  const phoneRaw = String(formData.get('phone') || '').trim()
+  const phoneNormalized = phoneRaw ? normalizeKZPhone(phoneRaw) : null
 
   const payload = {
     restaurant_name: String(formData.get('restaurant_name') || ''),
     slug: String(formData.get('slug') || ''),
     city: 'almaty',
     address: String(formData.get('address') || ''),
-    phone: String(formData.get('phone') || '') || null,
+    phone: phoneNormalized,
     instagram_url: String(formData.get('instagram_url') || '') || null,
     website_url: String(formData.get('website_url') || '') || null,
     two_gis_url: String(formData.get('two_gis_url') || '') || null,
@@ -39,11 +43,14 @@ export async function updateRestaurant(formData: FormData) {
   const id = String(formData.get('id') || '')
   if (!id) throw new Error('Missing id')
 
+  const phoneRaw = String(formData.get('phone') || '').trim()
+  const phoneNormalized = phoneRaw ? normalizeKZPhone(phoneRaw) : null
+
   const payload = {
     restaurant_name: String(formData.get('restaurant_name') || ''),
     slug: String(formData.get('slug') || ''),
     address: String(formData.get('address') || ''),
-    phone: String(formData.get('phone') || '') || null,
+    phone: phoneNormalized,
     instagram_url: String(formData.get('instagram_url') || '') || null,
     website_url: String(formData.get('website_url') || '') || null,
     two_gis_url: String(formData.get('two_gis_url') || '') || null,

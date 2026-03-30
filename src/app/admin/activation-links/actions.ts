@@ -1,8 +1,9 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
+import { redirect } from 'next/navigation'
 import { requireAdmin } from '@/lib/admin'
-import { normalizePhoneToE164 } from '@/lib/auth/whatsapp-login'
+import { normalizeKZPhone } from '@/lib/kz-phone'
 import { generateHashedActivationToken } from '@/lib/activation-links'
 import { logAnalyticsEvent } from '@/lib/analytics'
 
@@ -13,9 +14,9 @@ export async function createActivationLink(formData: FormData) {
   const amountRaw = Number(formData.get('amount'))
   const amount = Number.isFinite(amountRaw) && amountRaw > 0 ? Math.floor(amountRaw) : 4990
 
-  const phoneTarget = normalizePhoneToE164(phoneRaw)
+  const phoneTarget = normalizeKZPhone(phoneRaw)
   if (!phoneTarget) {
-    throw new Error('Укажите номер в формате +7…')
+    redirect('/admin/activation-links?error=invalid_phone')
   }
 
   const token = generateHashedActivationToken()

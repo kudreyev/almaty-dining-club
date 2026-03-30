@@ -2,11 +2,13 @@
 
 import Link from 'next/link'
 import { useState, useTransition } from 'react'
+import { PhoneInput } from '@/components/phone-input'
+import { normalizeKZPhone } from '@/lib/kz-phone'
 import { previewTransfer, transferSubscription } from './actions'
 
 export default function TransferSubscriptionPage() {
-  const [fromPhone, setFromPhone] = useState('')
-  const [toPhone, setToPhone] = useState('')
+  const [fromSub, setFromSub] = useState('')
+  const [toSub, setToSub] = useState('')
   const [preview, setPreview] = useState<Awaited<ReturnType<typeof previewTransfer>> | null>(null)
   const [result, setResult] = useState<{ ok: boolean; error?: string; details?: string } | null>(null)
   const [isPending, startTransition] = useTransition()
@@ -17,8 +19,8 @@ export default function TransferSubscriptionPage() {
 
     startTransition(async () => {
       const formData = new FormData()
-      formData.set('from_phone', fromPhone)
-      formData.set('to_phone', toPhone)
+      formData.set('from_phone', normalizeKZPhone(fromSub) ?? '')
+      formData.set('to_phone', normalizeKZPhone(toSub) ?? '')
 
       const res = await previewTransfer(formData)
       setPreview(res)
@@ -30,8 +32,8 @@ export default function TransferSubscriptionPage() {
 
     startTransition(async () => {
       const formData = new FormData()
-      formData.set('from_phone', fromPhone)
-      formData.set('to_phone', toPhone)
+      formData.set('from_phone', normalizeKZPhone(fromSub) ?? '')
+      formData.set('to_phone', normalizeKZPhone(toSub) ?? '')
 
       const res = await transferSubscription(formData)
       setResult(res)
@@ -42,8 +44,8 @@ export default function TransferSubscriptionPage() {
   }
 
   const handleReset = () => {
-    setFromPhone('')
-    setToPhone('')
+    setFromSub('')
+    setToSub('')
     setPreview(null)
     setResult(null)
   }
@@ -71,36 +73,28 @@ export default function TransferSubscriptionPage() {
             <label htmlFor="from_phone" className="mb-2 block text-sm font-medium text-gray-700">
               С номера (текущий владелец)
             </label>
-            <input
+            <PhoneInput
               id="from_phone"
-              type="tel"
-              required
-              value={fromPhone}
-              onChange={(e) => {
-                setFromPhone(e.target.value)
+              subscriber={fromSub}
+              onSubscriberChange={(s) => {
+                setFromSub(s)
                 setPreview(null)
                 setResult(null)
               }}
-              placeholder="+7 700 000 00 00"
-              className="w-full rounded-2xl border border-gray-300 px-4 py-3 text-sm outline-none"
             />
           </div>
           <div>
             <label htmlFor="to_phone" className="mb-2 block text-sm font-medium text-gray-700">
               На номер (новый владелец)
             </label>
-            <input
+            <PhoneInput
               id="to_phone"
-              type="tel"
-              required
-              value={toPhone}
-              onChange={(e) => {
-                setToPhone(e.target.value)
+              subscriber={toSub}
+              onSubscriberChange={(s) => {
+                setToSub(s)
                 setPreview(null)
                 setResult(null)
               }}
-              placeholder="+7 700 000 00 00"
-              className="w-full rounded-2xl border border-gray-300 px-4 py-3 text-sm outline-none"
             />
           </div>
         </div>
@@ -109,7 +103,7 @@ export default function TransferSubscriptionPage() {
           <button
             type="button"
             onClick={handlePreview}
-            disabled={isPending || !fromPhone.trim() || !toPhone.trim()}
+            disabled={isPending || !normalizeKZPhone(fromSub) || !normalizeKZPhone(toSub)}
             className="rounded-2xl border border-gray-300 bg-white px-6 py-3 text-sm font-medium text-black disabled:opacity-50"
           >
             {isPending ? 'Загрузка...' : 'Предпросмотр'}

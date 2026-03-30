@@ -6,6 +6,7 @@ import {
   createWhatsAppLoginChallenge,
   sendWhatsAppVerificationCode,
 } from '@/lib/auth/whatsapp-login'
+import { normalizeKZPhone } from '@/lib/kz-phone'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import type { EmailOtpType } from '@supabase/supabase-js'
 
@@ -87,12 +88,13 @@ async function clearWhatsAppChallengeCookies() {
 export async function sendWhatsAppLogin(
   formData: FormData
 ): Promise<SendWhatsAppLoginResult> {
-  const phone = String(formData.get('phone') || '').trim()
+  const phoneRaw = String(formData.get('phone') || '').trim()
+  const phone = normalizeKZPhone(phoneRaw)
 
   if (!phone) {
     return {
       ok: false,
-      error: 'Введите номер телефона.',
+      error: 'Введите полный номер телефона (+7 и 10 цифр).',
     }
   }
 

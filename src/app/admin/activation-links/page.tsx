@@ -3,6 +3,8 @@ import { requireAdmin } from '@/lib/admin'
 import { buildActivationUrl } from '@/lib/activation-links'
 import { createActivationLink } from './actions'
 import { CopyLinkButton } from '@/components/copy-link-button'
+import { PhoneInput } from '@/components/phone-input'
+import { formatKZPhone } from '@/lib/kz-phone'
 
 type ActivationLinkListRow = {
   id: string
@@ -42,7 +44,7 @@ async function countEvent(eventName: string, supabase: any, sinceIso: string) {
 export default async function AdminActivationLinksPage({
   searchParams,
 }: {
-  searchParams: Promise<{ filter?: string }>
+  searchParams: Promise<{ filter?: string; error?: string }>
 }) {
   const { supabase } = await requireAdmin()
 
@@ -57,7 +59,7 @@ export default async function AdminActivationLinksPage({
   const openedPerCreated = createdCount > 0 ? openedCount / createdCount : 0
   const activatedPerOpened = openedCount > 0 ? activatedCount / openedCount : 0
 
-  const { filter: filterRaw } = await searchParams
+  const { filter: filterRaw, error: errorParam } = await searchParams
   const filter = filterRaw && isValidFilter(filterRaw) ? filterRaw : 'active'
   const nowIso = new Date().toISOString()
 
@@ -136,19 +138,18 @@ export default async function AdminActivationLinksPage({
           </div>
         </div>
 
+        {errorParam === 'invalid_phone' ? (
+          <div className="mt-6 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+            Укажите полный номер Казахстана: 10 цифр после +7 (маска +7 (7xx) xxx xxxx).
+          </div>
+        ) : null}
+
         <form action={createActivationLink} className="mt-8 grid gap-4 rounded-2xl border border-gray-200 p-6 md:grid-cols-[1fr_1fr_auto] md:items-end">
           <div>
             <label htmlFor="phone_target" className="mb-2 block text-sm font-medium text-gray-700">
               Номер клиента
             </label>
-            <input
-              id="phone_target"
-              name="phone_target"
-              type="tel"
-              required
-              placeholder="+7 700 000 00 00"
-              className="w-full rounded-2xl border border-gray-300 px-4 py-3 text-sm outline-none"
-            />
+            <PhoneInput id="phone_target" name="phone_target" required />
           </div>
           <div>
             <label htmlFor="amount" className="mb-2 block text-sm font-medium text-gray-700">
@@ -218,7 +219,7 @@ export default async function AdminActivationLinksPage({
                   const isExpiredByTime = new Date(row.expires_at).getTime() < Date.now()
                   return (
                     <tr key={row.id} className="border-b border-gray-100">
-                      <td className="py-3 pr-4 font-medium">{row.phone_target}</td>
+                      <td className="py-3 pr-4 font-medium">{formatKZPhone(row.phone_target)}</td>
                       <td className="py-3 pr-4">
                         {row.amount} {row.currency}
                       </td>

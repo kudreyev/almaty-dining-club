@@ -70,6 +70,12 @@ export async function Header() {
               >
                 Активации
               </Link>
+              <Link
+                href="/admin/transfer-subscription"
+                className="text-sm font-medium text-gray-600 hover:text-black"
+              >
+                Перенос
+              </Link>
             </>
           ) : null}
         </nav>

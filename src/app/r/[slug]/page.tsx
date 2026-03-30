@@ -231,7 +231,7 @@ export default async function RestaurantPage({ params }: PageProps) {
             {/* LINKS */}
             <div className="mt-4 flex flex-wrap gap-2">
               {restaurant.two_gis_url ? (
-                <Button href={restaurant.two_gis_url} variant="outline" size="sm" target="_blank" rel="noreferrer">
+                <Button href={restaurant.two_gis_url} variant="secondary" size="sm" target="_blank" rel="noreferrer">
                   Открыть в 2GIS
                 </Button>
               ) : null}
@@ -316,7 +316,7 @@ export default async function RestaurantPage({ params }: PageProps) {
             </div>
 
             <div className="mt-5 border-t border-gray-100 pt-5">
-              <Button href="/pricing" className="w-full">
+              <Button href="/pricing" variant="secondary" className="w-full">
                 Оформить подписку
               </Button>
             </div>

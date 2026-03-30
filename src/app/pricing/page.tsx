@@ -64,7 +64,7 @@ export default function PricingPage() {
                 'Подписка через WhatsApp за 2 минуты',
               ].map((item) => (
                 <li key={item} className="flex items-start gap-3 text-sm text-gray-700">
-                  <svg className="mt-0.5 h-4 w-4 shrink-0 text-brand" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor">
+                  <svg className="mt-0.5 h-4 w-4 shrink-0 text-emerald-500" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
                   </svg>
                   {item}
@@ -99,7 +99,7 @@ export default function PricingPage() {
               { step: '3', title: 'Покажи код', desc: 'Персонал проверит код — предложение применят к заказу.' },
             ].map((s) => (
               <Card key={s.step} padding="md">
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand text-sm font-bold text-white">
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-black text-sm font-bold text-white">
                   {s.step}
                 </div>
                 <p className="mt-3 text-sm font-semibold">{s.title}</p>

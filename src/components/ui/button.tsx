@@ -1,12 +1,11 @@
 import Link from 'next/link'
 
 const base =
-  'inline-flex items-center justify-center font-medium transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/30 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 active:scale-[0.98]'
+  'inline-flex items-center justify-center font-medium transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/20 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 active:scale-[0.98]'
 
 const variants = {
-  primary:   'bg-brand text-white hover:bg-brand-dark',
+  primary:   'bg-black text-white hover:bg-gray-800',
   secondary: 'border border-gray-200 bg-white text-black hover:bg-gray-50 hover:border-gray-300',
-  outline:   'border border-brand text-brand bg-white hover:bg-brand-soft',
   ghost:     'text-gray-600 hover:text-black hover:bg-gray-100',
   danger:    'bg-red-600 text-white hover:bg-red-700',
 } as const

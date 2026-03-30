@@ -35,7 +35,7 @@ export type PhoneInputProps = Omit<
 export function PhoneInput({
   id,
   name,
-  className = 'w-full rounded-2xl border border-gray-300 px-4 py-3 text-sm outline-none transition-colors focus:border-brand focus:ring-1 focus:ring-brand/20',
+  className = 'w-full rounded-2xl border border-gray-300 px-4 py-3 text-sm outline-none transition-colors focus:border-black focus:ring-1 focus:ring-black/10',
   subscriber: subscriberProp,
   defaultValue,
   onSubscriberChange,

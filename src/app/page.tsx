@@ -135,7 +135,7 @@ export default async function HomePage({ searchParams }: PageProps) {
             <select
               name="cuisine"
               defaultValue={cuisine}
-              className="w-full rounded-xl border border-gray-200 bg-white px-3.5 py-2.5 text-sm outline-none transition-colors focus:border-black"
+              className="w-full rounded-xl border border-gray-200 bg-white px-3.5 py-2.5 text-sm outline-none transition-colors focus:border-accent focus:ring-1 focus:ring-accent/20"
             >
               <option value="all">Все кухни</option>
               {cuisines.map((c) => (
@@ -149,7 +149,7 @@ export default async function HomePage({ searchParams }: PageProps) {
             <select
               name="offer"
               defaultValue={offer}
-              className="w-full rounded-xl border border-gray-200 bg-white px-3.5 py-2.5 text-sm outline-none transition-colors focus:border-black"
+              className="w-full rounded-xl border border-gray-200 bg-white px-3.5 py-2.5 text-sm outline-none transition-colors focus:border-accent focus:ring-1 focus:ring-accent/20"
             >
               <option value="all">Все</option>
               <option value="2for1">1+1</option>

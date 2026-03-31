@@ -39,9 +39,9 @@ export async function Header() {
     : []
 
   return (
-    <header className="sticky top-0 z-50 border-b border-gray-200/80 bg-white/80 backdrop-blur-lg">
+    <header className="sticky top-0 z-50 border-b border-gray-200/80 bg-white/90 backdrop-blur-lg">
       <div className="mx-auto flex h-14 max-w-6xl items-center justify-between gap-4 px-5">
-        <Link href="/" className="text-lg font-bold tracking-tight">
+        <Link href="/" className="text-lg font-bold tracking-tight text-accent">
           KudaPass
         </Link>
 
@@ -50,7 +50,7 @@ export async function Header() {
             <Link
               key={l.href}
               href={l.href}
-              className="rounded-lg px-3 py-2 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-100 hover:text-black"
+              className="rounded-lg px-3 py-2 text-sm font-medium text-gray-600 transition-colors hover:bg-accent-soft hover:text-accent"
             >
               {l.label}
             </Link>
@@ -62,7 +62,7 @@ export async function Header() {
                 <Link
                   key={l.href}
                   href={l.href}
-                  className="rounded-lg px-3 py-2 text-xs font-medium text-gray-500 transition-colors hover:bg-gray-100 hover:text-black"
+                  className="rounded-lg px-3 py-2 text-xs font-medium text-gray-500 transition-colors hover:bg-accent-soft hover:text-accent"
                 >
                   {l.label}
                 </Link>

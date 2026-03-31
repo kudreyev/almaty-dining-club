@@ -47,7 +47,7 @@ export function RedeemTokenCard({
       className={`mt-8 rounded-3xl p-6 ${
         isExpired
           ? 'border border-red-200 bg-red-50 text-red-900'
-          : 'border border-black bg-black text-white'
+          : 'border border-accent bg-accent text-white'
       }`}
     >
       <p className={`text-sm ${isExpired ? 'text-red-700' : 'text-white/70'}`}>

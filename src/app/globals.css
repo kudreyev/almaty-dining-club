@@ -1,8 +1,8 @@
 @import "tailwindcss";
 
 :root {
-  --background: #fafafa;
-  --foreground: #111111;
+  --background: #F7F8FA;
+  --foreground: #111827;
 }
 
 @theme inline {
@@ -11,6 +11,10 @@
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 
+  /* Indigo accent */
+  --color-accent:      #3730A3;
+  --color-accent-dark: #312E81;
+  --color-accent-soft: #EEF2FF;
 }
 
 body {

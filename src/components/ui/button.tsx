@@ -1,12 +1,12 @@
 import Link from 'next/link'
 
 const base =
-  'inline-flex items-center justify-center font-medium transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/20 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 active:scale-[0.98]'
+  'inline-flex items-center justify-center font-medium transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/30 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 active:scale-[0.98]'
 
 const variants = {
-  primary:   'bg-black text-white hover:bg-gray-800',
-  secondary: 'border border-gray-200 bg-white text-black hover:bg-gray-50 hover:border-gray-300',
-  ghost:     'text-gray-600 hover:text-black hover:bg-gray-100',
+  primary:   'bg-accent text-white hover:bg-accent-dark',
+  secondary: 'border border-gray-200 bg-white text-gray-900 hover:bg-accent-soft hover:border-accent/30',
+  ghost:     'text-gray-500 hover:text-accent hover:bg-accent-soft',
   danger:    'bg-red-600 text-white hover:bg-red-700',
 } as const
 

@@ -19,8 +19,8 @@ export function Tabs({ tabs, active, onChange }: TabsProps) {
         const isActive = active === tab.id
         const cls = `rounded-lg px-4 py-2 text-sm font-medium transition-all ${
           isActive
-            ? 'bg-white text-black shadow-sm'
-            : 'text-gray-600 hover:text-black'
+            ? 'bg-white text-accent shadow-sm'
+            : 'text-gray-500 hover:text-accent'
         }`
 
         if (tab.href) {

@@ -83,7 +83,7 @@ export function PaymentRequestForm({ userId }: { userId: string }) {
       <button
         type="submit"
         disabled={loading}
-        className="w-full rounded-2xl bg-black px-4 py-3 text-sm font-medium text-white disabled:opacity-50"
+        className="w-full rounded-2xl bg-accent px-4 py-3 text-sm font-medium text-white hover:bg-accent-dark disabled:opacity-50 transition-colors"
       >
         {loading ? 'Отправка...' : 'Отправить заявку'}
       </button>

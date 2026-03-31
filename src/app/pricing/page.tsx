@@ -100,7 +100,7 @@ export default function PricingPage() {
               { step: '3', title: 'Покажи код', desc: 'Персонал проверит код — предложение применят к заказу.' },
             ].map((s) => (
               <Card key={s.step} padding="md">
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-black text-sm font-bold text-white">
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-accent text-sm font-bold text-white">
                   {s.step}
                 </div>
                 <p className="mt-3 text-sm font-semibold">{s.title}</p>

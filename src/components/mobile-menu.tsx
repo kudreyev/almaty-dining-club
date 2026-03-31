@@ -21,7 +21,7 @@ export function MobileMenu({
       <button
         type="button"
         onClick={() => setOpen(!open)}
-        className="rounded-lg p-2 text-gray-600 transition-colors hover:bg-gray-100 hover:text-black"
+        className="rounded-lg p-2 text-gray-600 transition-colors hover:bg-accent-soft hover:text-accent"
         aria-label="Меню"
       >
         {open ? (
@@ -70,7 +70,7 @@ export function MobileMenu({
                 <Link
                   href="/login"
                   onClick={() => setOpen(false)}
-                  className="rounded-lg bg-black px-3 py-2.5 text-center text-sm font-medium text-white"
+                  className="rounded-lg bg-accent px-3 py-2.5 text-center text-sm font-medium text-white"
                 >
                   Войти
                 </Link>

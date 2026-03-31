@@ -31,7 +31,7 @@ export function PaywallModal({ onClose }: PaywallModalProps) {
       role="dialog"
       aria-modal="true"
       aria-labelledby="paywall-title"
-      className="fixed inset-0 z-50 flex items-end justify-center sm:items-center px-4 pb-4 sm:pb-0"
+      className="fixed inset-0 z-[100] flex items-end justify-center px-4 pb-4 sm:items-center sm:pb-0"
     >
       {/* Overlay */}
       <div
@@ -54,14 +54,7 @@ export function PaywallModal({ onClose }: PaywallModalProps) {
           </svg>
         </button>
 
-        {/* Icon */}
-        <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#FEF0EE]">
-          <svg className="h-6 w-6 text-[#DD4F41]" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
-          </svg>
-        </div>
-
-        <h2 id="paywall-title" className="mt-4 text-lg font-bold leading-snug">
+        <h2 id="paywall-title" className="text-lg font-bold leading-snug">
           Нужна подписка KudaPass
         </h2>
         <p className="mt-1.5 text-sm text-gray-500">
@@ -77,7 +70,7 @@ export function PaywallModal({ onClose }: PaywallModalProps) {
           ].map((text) => (
             <li key={text} className="flex items-start gap-2.5 text-sm text-gray-700">
               <svg
-                className="mt-0.5 h-4 w-4 shrink-0 text-[#DD4F41]"
+                className="mt-0.5 h-4 w-4 shrink-0 text-gray-400"
                 fill="none"
                 viewBox="0 0 24 24"
                 strokeWidth={2.5}
@@ -96,7 +89,7 @@ export function PaywallModal({ onClose }: PaywallModalProps) {
             href={WHATSAPP_SUBSCRIBE_URL}
             target="_blank"
             rel="noopener noreferrer"
-            className="flex w-full items-center justify-center rounded-2xl bg-[#DD4F41] px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-[#C94337] active:scale-[0.98]"
+            className="flex w-full items-center justify-center rounded-2xl bg-black px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-gray-800 active:scale-[0.98]"
           >
             Оформить в WhatsApp
           </a>

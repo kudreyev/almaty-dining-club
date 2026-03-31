@@ -48,7 +48,7 @@ export default async function AdminRestaurantEditPage({ params }: PageProps) {
           <Input name="two_gis_url" label="2GIS" defaultValue={r.two_gis_url ?? ''} placeholder="Ссылка 2GIS" />
           <div>
             <label className="mb-1.5 block text-sm font-medium text-gray-700">Телефон</label>
-            <PhoneInput name="phone" defaultValue={r.phone ?? ''} className="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm outline-none transition-colors focus:border-black" />
+            <PhoneInput name="phone" defaultValue={r.phone ?? ''} className="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm outline-none transition-colors focus:border-accent" />
           </div>
           <Input name="photo_1_url" label="Фото (URL)" defaultValue={r.photo_1_url ?? ''} />
 

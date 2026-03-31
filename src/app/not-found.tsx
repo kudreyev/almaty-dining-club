@@ -9,7 +9,7 @@ export default function NotFoundPage() {
       </p>
       <Link
         href="/almaty"
-        className="mt-8 inline-flex rounded-2xl bg-black px-5 py-3 text-sm font-medium text-white"
+        className="mt-8 inline-flex rounded-2xl bg-accent px-5 py-3 text-sm font-medium text-white"
       >
         Вернуться к списку ресторанов
       </Link>

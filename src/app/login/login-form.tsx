@@ -113,7 +113,7 @@ export function LoginForm({
               onSubscriberChange={setSubscriber}
               readOnly={isPhoneLocked}
               placeholder="Например: +77001234567"
-              className="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm outline-none transition-colors focus:border-black"
+              className="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm outline-none transition-colors focus:border-accent"
             />
             {isPhoneLocked ? (
               <p className="mt-1 text-xs text-gray-400">
@@ -164,7 +164,7 @@ export function LoginForm({
                   if (!otpLoading && next.length === 6) await submitWhatsAppCode(next)
                 }}
                 placeholder="123456"
-                className="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-center text-sm tracking-[0.3em] outline-none transition-colors focus:border-black"
+                className="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-center text-sm tracking-[0.3em] outline-none transition-colors focus:border-accent"
               />
             </div>
 

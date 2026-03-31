@@ -29,7 +29,7 @@ function CtaRow({ primaryHref, primaryText }: { primaryHref: string; primaryText
     <div className="mt-6 flex flex-wrap gap-3">
       <Link
         href={primaryHref}
-        className="inline-flex rounded-2xl bg-black px-5 py-3 text-sm font-medium text-white"
+        className="inline-flex rounded-2xl bg-accent px-5 py-3 text-sm font-medium text-white"
       >
         {primaryText}
       </Link>
@@ -149,7 +149,7 @@ export default async function ActivatePage({
           <div className="mt-6 flex flex-wrap gap-3">
             <Link
               href="/"
-              className="inline-flex rounded-2xl bg-black px-5 py-3 text-sm font-medium text-white"
+              className="inline-flex rounded-2xl bg-accent px-5 py-3 text-sm font-medium text-white"
             >
               Перейти к заведениям
             </Link>
@@ -211,7 +211,7 @@ export default async function ActivatePage({
           <div className="mt-6 flex flex-wrap gap-3">
             <Link
               href="/"
-              className="inline-flex rounded-2xl bg-black px-5 py-3 text-sm font-medium text-white"
+              className="inline-flex rounded-2xl bg-accent px-5 py-3 text-sm font-medium text-white"
             >
               Перейти к заведениям
             </Link>
@@ -268,7 +268,7 @@ export default async function ActivatePage({
           <p className="mt-3 text-sm text-red-800">
             Произошла ошибка при записи подписки. Попробуйте позже или напишите в поддержку.
           </p>
-          <Link href="/pricing" className="mt-6 inline-flex rounded-2xl bg-black px-5 py-3 text-sm font-medium text-white">
+          <Link href="/pricing" className="mt-6 inline-flex rounded-2xl bg-accent px-5 py-3 text-sm font-medium text-white">
             На главную по подписке
           </Link>
         </div>

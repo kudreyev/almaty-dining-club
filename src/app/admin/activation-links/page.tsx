@@ -144,7 +144,7 @@ export default async function AdminActivationLinksPage({
             <label htmlFor="phone_target" className="mb-1.5 block text-sm font-medium text-gray-700">
               Номер клиента
             </label>
-            <PhoneInput id="phone_target" name="phone_target" required className="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm outline-none transition-colors focus:border-black" />
+            <PhoneInput id="phone_target" name="phone_target" required className="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm outline-none transition-colors focus:border-accent" />
           </div>
           <div className="w-full sm:w-32">
             <label htmlFor="amount" className="mb-1.5 block text-sm font-medium text-gray-700">
@@ -156,7 +156,7 @@ export default async function AdminActivationLinksPage({
               type="number"
               defaultValue={4990}
               min={1}
-              className="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm outline-none transition-colors focus:border-black"
+              className="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm outline-none transition-colors focus:border-accent"
             />
           </div>
           <Button type="submit" size="lg">Создать</Button>

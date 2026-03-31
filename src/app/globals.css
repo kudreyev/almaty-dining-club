@@ -1,8 +1,8 @@
 @import "tailwindcss";
 
 :root {
-  --background: #FDFAF5;
-  --foreground: #1C1713;
+  --background: #fafafa;
+  --foreground: #111111;
 }
 
 @theme inline {
@@ -11,10 +11,10 @@
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 
-  /* Warm Ivory accent */
-  --color-accent:      #2B2119;
-  --color-accent-dark: #1F1711;
-  --color-accent-soft: #F3EDE4;
+  /* Default black accent */
+  --color-accent:      #111111;
+  --color-accent-dark: #000000;
+  --color-accent-soft: #f3f4f6;
 }
 
 body {

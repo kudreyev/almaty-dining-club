@@ -1,6 +1,8 @@
 import { notFound } from 'next/navigation'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
+import { getCurrentUserSubscription, isSubscriptionCurrentlyActive } from '@/lib/subscription'
 import { RestaurantPhotoGallery } from '@/components/restaurant-photo-gallery'
+import { OffersPanel } from '@/components/offers-panel'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card } from '@/components/ui/card'
@@ -43,8 +45,6 @@ type PageProps = {
   params: Promise<{ slug: string }>
 }
 
-export const revalidate = 300
-
 export default async function RestaurantPage({ params }: PageProps) {
   const { slug } = await params
   const supabase = await createSupabaseServerClient()
@@ -70,7 +70,7 @@ export default async function RestaurantPage({ params }: PageProps) {
     sort_order: number
   }
 
-  const [locationsResult, offersResult] = await Promise.all([
+  const [locationsResult, offersResult, { subscription }] = await Promise.all([
     supabase
       .from('restaurant_locations')
       .select('id, address, phone, sort_order')
@@ -88,10 +88,12 @@ export default async function RestaurantPage({ params }: PageProps) {
       .eq('restaurant_id', restaurant.id)
       .eq('is_active', true)
       .order('created_at', { ascending: true }),
+    getCurrentUserSubscription(),
   ])
 
   const activeLocations = locationsResult.data ?? []
   const { data: offers, error: offersError } = offersResult
+  const hasSubscription = isSubscriptionCurrentlyActive(subscription)
 
   if (offersError) {
     return (
@@ -198,57 +200,11 @@ export default async function RestaurantPage({ params }: PageProps) {
               </ol>
             </div>
 
-            <div className="mt-5 space-y-4">
-              {!offers || offers.length === 0 ? (
-                <div className="rounded-xl bg-gray-50 px-4 py-6 text-center text-sm text-gray-400">
-                  Пока нет активных офферов
-                </div>
-              ) : (
-                offers.map((offer: Offer) => (
-                  <div key={offer.id} className="rounded-xl border border-gray-100 p-4">
-                    <div className="flex items-center justify-between gap-2">
-                      <Badge color="dark">
-                        {offer.offer_type === '2for1' ? '1+1' : 'Комплимент'}
-                      </Badge>
-                      <span className="text-xs text-gray-400">
-                        {offer.offer_time_from.slice(0, 5)}–{offer.offer_time_to.slice(0, 5)}
-                      </span>
-                    </div>
-
-                    <h3 className="mt-3 text-sm font-semibold">{offer.offer_title}</h3>
-                    <p className="mt-1 text-sm leading-relaxed text-gray-600">
-                      {offer.offer_terms_short}
-                    </p>
-
-                    {offer.offer_terms_full ? (
-                      <p className="mt-2 text-xs leading-relaxed text-gray-500">
-                        {offer.offer_terms_full}
-                      </p>
-                    ) : null}
-
-                    <div className="mt-3 space-y-0.5 text-xs text-gray-400">
-                      <p>Дни: {offer.offer_days}</p>
-                      {offer.requires_main_course ? <p>Требуется основное блюдо</p> : null}
-                      {!offer.is_stackable_with_other_promos ? <p>Не суммируется с другими акциями</p> : null}
-                    </div>
-
-                    <Button
-                      href={`/app/redeem/${restaurant.id}/${offer.id}`}
-                      size="md"
-                      className="mt-4 w-full"
-                    >
-                      Активировать
-                    </Button>
-                  </div>
-                ))
-              )}
-            </div>
-
-            <div className="mt-5 border-t border-gray-100 pt-5">
-              <Button href="/pricing" variant="secondary" className="w-full">
-                Оформить подписку
-              </Button>
-            </div>
+            <OffersPanel
+              offers={offers ?? []}
+              restaurantId={restaurant.id}
+              hasSubscription={hasSubscription}
+            />
           </Card>
         </div>
       </div>

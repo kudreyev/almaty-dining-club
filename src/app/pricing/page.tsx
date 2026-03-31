@@ -34,7 +34,7 @@ const FAQ_ITEMS = [
 export default function PricingPage() {
   return (
     <>
-      <div className="mx-auto max-w-3xl px-5 py-10 md:py-16">
+      <div className="mx-auto max-w-3xl px-5 py-10 pb-28 sm:pb-16 md:py-16 md:pb-16">
         {/* HERO */}
         <section className="text-center">
           <p className="text-xs font-medium uppercase tracking-widest text-gray-400">
@@ -120,16 +120,21 @@ export default function PricingPage() {
       </div>
 
       {/* STICKY CTA — mobile only */}
-      <div className="fixed bottom-0 left-0 right-0 z-40 border-t border-gray-200 bg-white/95 p-4 backdrop-blur-sm sm:hidden">
-        <Button
-          href={WHATSAPP_SUBSCRIBE_URL}
-          size="lg"
-          className="w-full"
-          target="_blank"
-          rel="noreferrer"
-        >
-          Оформить подписку — 4 990 ₸
-        </Button>
+      <div className="fixed bottom-0 left-0 right-0 z-40 border-t border-gray-200 bg-white/95 px-4 py-3 backdrop-blur-sm sm:hidden">
+        <div className="flex items-center gap-3">
+          <div className="min-w-0 flex-1">
+            <p className="text-base font-bold leading-tight">4 990 ₸</p>
+            <p className="text-xs text-gray-500">/ 30 дней</p>
+          </div>
+          <a
+            href={WHATSAPP_SUBSCRIBE_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex shrink-0 items-center justify-center rounded-xl bg-[#DD4F41] px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[#C94337] active:scale-[0.98]"
+          >
+            Оформить в WhatsApp
+          </a>
+        </div>
       </div>
     </>
   )

@@ -10,6 +10,7 @@ import { RedeemTokenCard } from '@/components/redeem-token-card'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { RESTAURANT_REDEEM_COOLDOWN_DAYS } from '@/lib/redeem-policy'
 
 type PageProps = {
   params: Promise<{
@@ -29,7 +30,8 @@ type RedeemToken = { id: string; token_code: string; status: string; expires_at:
 function getRedeemErrorMessage(code?: string) {
   switch (code) {
     case 'active_token': return 'У вас уже есть активный код.'
-    case 'cooldown_month': return 'Этот оффер доступен раз в 30 дней.'
+    case 'cooldown_restaurant':
+      return `Этот оффер доступен не чаще 1 раза в ${RESTAURANT_REDEEM_COOLDOWN_DAYS} дней.`
     case 'server_error': return 'Ошибка. Попробуйте снова.'
     default: return null
   }
@@ -115,7 +117,7 @@ export default async function RedeemPage({ params, searchParams }: PageProps) {
             <ul className="mt-2 space-y-1 text-xs text-gray-500">
               <li>Код действует 10 минут</li>
               <li>Одновременно — 1 активный код</li>
-              <li>1 раз в 30 дней на ресторан</li>
+              <li>{`Не чаще 1 раза в ${RESTAURANT_REDEEM_COOLDOWN_DAYS} дней на ресторан`}</li>
             </ul>
 
             <form action={generateRedeemToken} className="mt-4">

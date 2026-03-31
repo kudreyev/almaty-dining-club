@@ -1,6 +1,7 @@
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { FaqAccordion } from '@/components/faq-accordion'
+import { RESTAURANT_REDEEM_COOLDOWN_DAYS } from '@/lib/redeem-policy'
 
 export const runtime = 'edge'
 
@@ -10,7 +11,7 @@ const WHATSAPP_SUBSCRIBE_URL =
 const FAQ_ITEMS = [
   {
     q: 'Сколько раз можно использовать подписку?',
-    a: 'Вы можете использовать любой оффер неограниченное количество раз в течение действия подписки. Каждый раз — новый одноразовый код.',
+    a: `Вы можете пользоваться офферами в течение действия подписки, но по каждому ресторану действует ограничение: не чаще 1 раза в ${RESTAURANT_REDEEM_COOLDOWN_DAYS} дней. Каждый раз — новый одноразовый код.`,
   },
   {
     q: 'Как именно работает 1+1?',

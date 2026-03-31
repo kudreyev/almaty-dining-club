@@ -7,6 +7,7 @@ import {
   getCurrentUserSubscription,
   isSubscriptionCurrentlyActive,
 } from '@/lib/subscription'
+import { RESTAURANT_REDEEM_COOLDOWN_DAYS } from '@/lib/redeem-policy'
 
 function generateTokenCode() {
   return String(Math.floor(100000 + Math.random() * 900000))
@@ -53,16 +54,16 @@ export async function generateRedeemToken(formData: FormData) {
     redirect(`${backUrl}?error=active_token`)
   }
 
-  // 2) Cooldown 30 дней (раз в месяц)
-  const thirtyDaysAgo = new Date()
-  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
+  // 2) Cooldown по ресторану: 1 раз в N дней
+  const cooldownStart = new Date()
+  cooldownStart.setDate(cooldownStart.getDate() - RESTAURANT_REDEEM_COOLDOWN_DAYS)
 
   const { data: recentRedemptions, error: recentRedemptionsError } = await supabase
     .from('redemptions')
     .select('id')
     .eq('user_id', user.id)
     .eq('restaurant_id', restaurantId)
-    .gte('redeemed_at', thirtyDaysAgo.toISOString())
+    .gte('redeemed_at', cooldownStart.toISOString())
     .order('redeemed_at', { ascending: false })
     .limit(1)
 
@@ -71,7 +72,7 @@ export async function generateRedeemToken(formData: FormData) {
   }
 
   if (recentRedemptions && recentRedemptions.length > 0) {
-    redirect(`${backUrl}?error=cooldown_month`)
+    redirect(`${backUrl}?error=cooldown_restaurant`)
   }
 
   // 3) Создаём токен на 10 минут

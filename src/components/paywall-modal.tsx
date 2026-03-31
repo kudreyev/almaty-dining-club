@@ -1,6 +1,7 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import Link from 'next/link'
 
 const WHATSAPP_SUBSCRIBE_URL =
@@ -11,7 +12,13 @@ type PaywallModalProps = {
 }
 
 export function PaywallModal({ onClose }: PaywallModalProps) {
+  const [mounted, setMounted] = useState(false)
+  const portalRef = useRef<HTMLElement | null>(null)
+
   useEffect(() => {
+    portalRef.current = document.body
+    setMounted(true)
+
     const prev = document.body.style.overflow
     document.body.style.overflow = 'hidden'
 
@@ -26,7 +33,9 @@ export function PaywallModal({ onClose }: PaywallModalProps) {
     }
   }, [onClose])
 
-  return (
+  if (!mounted || !portalRef.current) return null
+
+  return createPortal(
     <div
       role="dialog"
       aria-modal="true"
@@ -102,6 +111,7 @@ export function PaywallModal({ onClose }: PaywallModalProps) {
           </Link>
         </div>
       </div>
-    </div>
+    </div>,
+    portalRef.current,
   )
 }

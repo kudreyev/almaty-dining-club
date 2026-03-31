@@ -186,19 +186,7 @@ export default async function RestaurantPage({ params }: PageProps) {
         {/* RIGHT — OFFERS */}
         <div>
           <Card className="sticky top-20">
-            <h2 className="text-lg font-bold">Офферы</h2>
-            <p className="mt-1 text-sm text-gray-500">
-              Доступно по подписке
-            </p>
-
-            <div className="mt-4 rounded-xl bg-gray-50 p-4 text-sm">
-              <p className="font-medium text-gray-700">Как использовать</p>
-              <ol className="mt-2 list-inside list-decimal space-y-1 text-gray-500">
-                <li>Оформи подписку</li>
-                <li>Нажми «Активировать» — получи код</li>
-                <li>Покажи код персоналу</li>
-              </ol>
-            </div>
+            <h2 className="text-lg font-bold">Предложения</h2>
 
             <OffersPanel
               offers={offers ?? []}

@@ -7,6 +7,7 @@ import {
   sendWhatsAppVerificationCode,
 } from '@/lib/auth/whatsapp-login'
 import { normalizeToE164Like } from '@/lib/kz-phone'
+import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import type { EmailOtpType } from '@supabase/supabase-js'
 
@@ -85,6 +86,18 @@ async function clearWhatsAppChallengeCookies() {
   cookieStore.delete(WA_CHALLENGE_VERIFY_TYPE_COOKIE)
 }
 
+async function syncProfilePhoneFromAuthUser(args: { userId: string; phone: string | null }) {
+  const admin = createSupabaseAdminClient()
+  await admin.from('profiles').upsert(
+    {
+      id: args.userId,
+      role: 'user',
+      phone: args.phone,
+    },
+    { onConflict: 'id' },
+  )
+}
+
 export async function sendWhatsAppLogin(
   formData: FormData
 ): Promise<SendWhatsAppLoginResult> {
@@ -149,7 +162,7 @@ export async function verifyWhatsAppLoginCode(
   }
 
   const supabase = await createSupabaseServerClient()
-  const { error } = await supabase.auth.verifyOtp({
+  const { data, error } = await supabase.auth.verifyOtp({
     token_hash: tokenHash,
     type: verifyTypeRaw,
   })
@@ -157,6 +170,13 @@ export async function verifyWhatsAppLoginCode(
   if (error) {
     await clearWhatsAppChallengeCookies()
     return { ok: false, error: 'Не удалось подтвердить код. Запросите новый.' }
+  }
+
+  if (data.user?.id) {
+    await syncProfilePhoneFromAuthUser({
+      userId: data.user.id,
+      phone: data.user.phone ?? null,
+    })
   }
 
   await clearWhatsAppChallengeCookies()

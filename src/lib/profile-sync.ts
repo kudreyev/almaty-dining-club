@@ -24,13 +24,20 @@ export async function ensureProfilePhone(
 
   const admin = createSupabaseAdminClient()
 
+  console.log('[ensureProfilePhone] syncing phone for user:', userId, phone)
+
   try {
     // New-user path: insert full row with default role.
     const { error: insertError } = await admin
       .from('profiles')
       .insert({ id: userId, phone, role: 'user' })
 
-    if (!insertError) return
+    if (!insertError) {
+      console.log('[ensureProfilePhone] inserted new profile with phone')
+      return
+    }
+
+    console.log('[ensureProfilePhone] insert conflict, updating existing profile. insert error:', insertError.message)
 
     // Existing-user path: only update phone, preserving role and all other fields.
     const { error: updateError } = await admin
@@ -40,6 +47,8 @@ export async function ensureProfilePhone(
 
     if (updateError) {
       console.error('[ensureProfilePhone] update failed:', updateError.message)
+    } else {
+      console.log('[ensureProfilePhone] updated phone for existing profile')
     }
   } catch (err) {
     console.error('[ensureProfilePhone] unexpected error:', err)

@@ -14,6 +14,7 @@ import type { EmailOtpType } from '@supabase/supabase-js'
 const WA_CHALLENGE_CODE_HASH_COOKIE = 'wa_challenge_code_hash'
 const WA_CHALLENGE_TOKEN_HASH_COOKIE = 'wa_challenge_token_hash'
 const WA_CHALLENGE_VERIFY_TYPE_COOKIE = 'wa_challenge_verify_type'
+const WA_CHALLENGE_PHONE_COOKIE = 'wa_challenge_phone'
 
 type VerifyWhatsAppCodeResult = {
   ok: boolean
@@ -60,10 +61,12 @@ async function setWhatsAppChallengeCookies({
   codeHash,
   tokenHash,
   verifyType,
+  phoneE164,
 }: {
   codeHash: string
   tokenHash: string
   verifyType: EmailOtpType
+  phoneE164: string
 }) {
   const cookieStore = await cookies()
   const commonOptions = {
@@ -77,6 +80,9 @@ async function setWhatsAppChallengeCookies({
   cookieStore.set(WA_CHALLENGE_CODE_HASH_COOKIE, codeHash, commonOptions)
   cookieStore.set(WA_CHALLENGE_TOKEN_HASH_COOKIE, tokenHash, commonOptions)
   cookieStore.set(WA_CHALLENGE_VERIFY_TYPE_COOKIE, verifyType, commonOptions)
+  // Store phone so verifyWhatsAppLoginCode can save it to profiles reliably,
+  // regardless of what verifyOtp returns in user_metadata.
+  cookieStore.set(WA_CHALLENGE_PHONE_COOKIE, phoneE164, commonOptions)
 }
 
 async function clearWhatsAppChallengeCookies() {
@@ -84,6 +90,7 @@ async function clearWhatsAppChallengeCookies() {
   cookieStore.delete(WA_CHALLENGE_CODE_HASH_COOKIE)
   cookieStore.delete(WA_CHALLENGE_TOKEN_HASH_COOKIE)
   cookieStore.delete(WA_CHALLENGE_VERIFY_TYPE_COOKIE)
+  cookieStore.delete(WA_CHALLENGE_PHONE_COOKIE)
 }
 
 
@@ -114,6 +121,7 @@ export async function sendWhatsAppLogin(
       codeHash: hashCode(verificationCode),
       tokenHash,
       verifyType,
+      phoneE164,
     })
 
     return {
@@ -141,6 +149,9 @@ export async function verifyWhatsAppLoginCode(
   const storedCodeHash = cookieStore.get(WA_CHALLENGE_CODE_HASH_COOKIE)?.value
   const tokenHash = cookieStore.get(WA_CHALLENGE_TOKEN_HASH_COOKIE)?.value
   const verifyTypeRaw = cookieStore.get(WA_CHALLENGE_VERIFY_TYPE_COOKIE)?.value
+  // Phone stored at challenge creation — guaranteed to be the exact E.164 number
+  // the user entered, regardless of what verifyOtp returns.
+  const phoneFromCookie = cookieStore.get(WA_CHALLENGE_PHONE_COOKIE)?.value ?? null
 
   if (!storedCodeHash || !tokenHash || !verifyTypeRaw || !isEmailOtpType(verifyTypeRaw)) {
     return { ok: false, error: 'Код устарел. Запросите новый.' }
@@ -163,12 +174,23 @@ export async function verifyWhatsAppLoginCode(
 
   if (data.user?.id) {
     // auth.users.phone is always null (synthetic email auth, not Supabase Phone provider).
-    // The real phone was stored in user_metadata.phone_e164 during user creation.
+    // Use phone from cookie (set at challenge creation) as primary source;
+    // fall back to user_metadata.phone_e164 for backward compatibility.
     const phoneE164 =
-      typeof data.user.user_metadata?.phone_e164 === 'string'
+      phoneFromCookie ??
+      (typeof data.user.user_metadata?.phone_e164 === 'string'
         ? data.user.user_metadata.phone_e164
-        : null
+        : null)
+
+    console.log('[verifyWhatsAppLoginCode] user.id:', data.user.id)
+    console.log('[verifyWhatsAppLoginCode] phoneFromCookie:', phoneFromCookie)
+    console.log('[verifyWhatsAppLoginCode] user_metadata:', JSON.stringify(data.user.user_metadata))
+    console.log('[verifyWhatsAppLoginCode] phoneE164 resolved:', phoneE164)
+
     await ensureProfilePhone(data.user.id, phoneE164)
+    console.log('[verifyWhatsAppLoginCode] ensureProfilePhone done')
+  } else {
+    console.warn('[verifyWhatsAppLoginCode] verifyOtp returned no user:', JSON.stringify(data))
   }
 
   await clearWhatsAppChallengeCookies()

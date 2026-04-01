@@ -48,6 +48,15 @@ export function normalizePhoneToE164(rawPhone: string) {
     } else {
       return null
     }
+  } else {
+    // User typed with '+'. Check for common KZ mistake: +7XXXXXXXXX (10 digits after +)
+    // where they forgot the leading 7 of the subscriber number.
+    // E.g. "+7080451111" (10 digits) → should be "+77080451111" (11 digits).
+    const afterPlus = normalized.slice(1).replace(/\D/g, '')
+    if (afterPlus.length === 10 && afterPlus.startsWith('7')) {
+      // Treat as KZ number without the extra 7 prefix — prepend it.
+      normalized = `+7${afterPlus}`
+    }
   }
 
   if (!PHONE_E164_REGEX.test(normalized)) {
@@ -77,7 +86,7 @@ async function ensureAuthUserForPhone(phoneE164: string) {
   const supabaseAdmin = createSupabaseAdminClient()
   const email = toSyntheticEmail(phoneE164)
 
-  const { error: createError } = await supabaseAdmin.auth.admin.createUser({
+  const { data: createData, error: createError } = await supabaseAdmin.auth.admin.createUser({
     email,
     email_confirm: true,
     user_metadata: {
@@ -86,10 +95,19 @@ async function ensureAuthUserForPhone(phoneE164: string) {
     },
   })
 
-  if (createError && !createError.message.toLowerCase().includes('already')) {
+  if (!createError) {
+    console.log('[whatsapp-login] new auth user created:', createData.user?.id, phoneE164)
+    return email
+  }
+
+  const alreadyExists = createError.message.toLowerCase().includes('already')
+  if (!alreadyExists) {
     throw new Error(`Failed to create auth user: ${createError.message}`)
   }
 
+  // User already exists — that's fine. Phone will be saved to profiles
+  // via the phoneE164 cookie set in setWhatsAppChallengeCookies.
+  console.log('[whatsapp-login] user already exists for phone:', phoneE164)
   return email
 }
 

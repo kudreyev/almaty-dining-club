@@ -7,7 +7,7 @@ import {
   sendWhatsAppVerificationCode,
 } from '@/lib/auth/whatsapp-login'
 import { normalizeToE164Like } from '@/lib/kz-phone'
-import { createSupabaseAdminClient } from '@/lib/supabase/admin'
+import { ensureProfilePhone } from '@/lib/profile-sync'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import type { EmailOtpType } from '@supabase/supabase-js'
 
@@ -86,17 +86,6 @@ async function clearWhatsAppChallengeCookies() {
   cookieStore.delete(WA_CHALLENGE_VERIFY_TYPE_COOKIE)
 }
 
-async function syncProfilePhoneFromAuthUser(args: { userId: string; phone: string | null }) {
-  const admin = createSupabaseAdminClient()
-  await admin.from('profiles').upsert(
-    {
-      id: args.userId,
-      role: 'user',
-      phone: args.phone,
-    },
-    { onConflict: 'id' },
-  )
-}
 
 export async function sendWhatsAppLogin(
   formData: FormData
@@ -173,10 +162,13 @@ export async function verifyWhatsAppLoginCode(
   }
 
   if (data.user?.id) {
-    await syncProfilePhoneFromAuthUser({
-      userId: data.user.id,
-      phone: data.user.phone ?? null,
-    })
+    // auth.users.phone is always null (synthetic email auth, not Supabase Phone provider).
+    // The real phone was stored in user_metadata.phone_e164 during user creation.
+    const phoneE164 =
+      typeof data.user.user_metadata?.phone_e164 === 'string'
+        ? data.user.user_metadata.phone_e164
+        : null
+    await ensureProfilePhone(data.user.id, phoneE164)
   }
 
   await clearWhatsAppChallengeCookies()

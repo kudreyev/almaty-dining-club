@@ -1,6 +1,7 @@
 import { revalidatePath } from 'next/cache'
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 import { normalizePhoneToE164 } from '@/lib/auth/whatsapp-login'
+import { ensureProfilePhone } from '@/lib/profile-sync'
 
 export type ActivationLinkStatus = 'issued' | 'activated' | 'revoked' | 'expired'
 
@@ -256,9 +257,8 @@ export async function completeActivation(args: {
       ? userData.user.user_metadata.phone_e164
       : null
   const phoneToSync = metaRaw ? normalizePhoneToE164(metaRaw) : resolved
-  if (phoneToSync && !profile?.phone) {
-    await admin.from('profiles').update({ phone: phoneToSync }).eq('id', args.userId)
-  }
+  // Always sync, even if profile already has a phone (may need updating).
+  await ensureProfilePhone(args.userId, phoneToSync)
 
   revalidatePath('/app/me')
   revalidatePath('/admin/activation-links')

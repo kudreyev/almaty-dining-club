@@ -187,45 +187,47 @@ export default async function HomePage({ searchParams }: PageProps) {
   return (
     <div className="mx-auto max-w-6xl px-5 py-8 md:py-12">
       {/* HERO */}
-      <section className="mb-6 md:mb-8">
-        <p className="text-xs font-medium uppercase tracking-widest text-gray-400">
-          Алматы
-        </p>
-        <h1 className="mt-3 max-w-3xl text-3xl font-bold tracking-tight md:text-5xl md:leading-[1.15]">
-          1+1 и комплименты в ресторанах по&nbsp;подписке
-        </h1>
-        <p className="mt-4 max-w-xl text-base leading-relaxed text-gray-500">
-          Выбирай заведение, показывай код персоналу. Без купонов и распечаток.
-        </p>
-        <p className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-gray-600">
-          <span>
-            <span className="font-semibold text-gray-900">{totalVenues}</span>
-            {' '}
-            {ruCountWord(totalVenues, ['заведение', 'заведения', 'заведений'])} в Алматы
-          </span>
-          <span className="hidden text-gray-300 sm:inline" aria-hidden>·</span>
-          <span>
-            <span className="font-semibold text-gray-900">{totalActiveOffers}</span>
-            {' '}
-            {ruCountWord(totalActiveOffers, [
-              'активное предложение',
-              'активных предложения',
-              'активных предложений',
-            ])}
-          </span>
-        </p>
-        <div className="mt-6 flex flex-wrap gap-3">
-          <Button href="/pricing" size="lg">
-            Оформить подписку
-          </Button>
-          <Button href="/pricing" variant="secondary" size="lg">
-            Как это работает
-          </Button>
+      <section className="relative -mx-5 mb-6 md:mx-0 md:mb-8">
+        <div className="bg-gradient-to-b from-stone-400/[0.07] via-orange-50/[0.025] to-background px-5 py-8 md:rounded-3xl md:px-8 md:py-10">
+          <p className="text-xs font-semibold uppercase tracking-widest text-gray-400">
+            Алматы
+          </p>
+          <h1 className="mt-3 max-w-3xl text-3xl font-semibold tracking-tight text-gray-950 leading-[1.1] md:text-5xl md:font-bold md:leading-[1.05]">
+            1+1 и комплименты в ресторанах по&nbsp;подписке
+          </h1>
+          <p className="mt-4 max-w-xl text-base leading-relaxed text-gray-500">
+            Выбирай заведение, показывай код персоналу. Без купонов и распечаток.
+          </p>
+          <p className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-gray-600">
+            <span>
+              <span className="font-semibold text-gray-900">{totalVenues}</span>
+              {' '}
+              {ruCountWord(totalVenues, ['заведение', 'заведения', 'заведений'])} в Алматы
+            </span>
+            <span className="hidden text-gray-300 sm:inline" aria-hidden>·</span>
+            <span>
+              <span className="font-semibold text-gray-900">{totalActiveOffers}</span>
+              {' '}
+              {ruCountWord(totalActiveOffers, [
+                'активное предложение',
+                'активных предложения',
+                'активных предложений',
+              ])}
+            </span>
+          </p>
+          <div className="mt-6 flex flex-wrap gap-3">
+            <Button href="/pricing" size="lg">
+              Оформить подписку
+            </Button>
+            <Button href="/pricing" variant="secondary" size="lg">
+              Как это работает
+            </Button>
+          </div>
         </div>
       </section>
 
       {/* STICKY: quick chips + filter bar */}
-      <div className="sticky top-14 z-30 -mx-5 mb-8 border-b border-gray-200/80 bg-background/95 px-5 py-3 backdrop-blur-md sm:-mx-0 sm:rounded-2xl sm:border sm:shadow-sm">
+      <div className="sticky top-14 z-30 -mx-5 mb-8 border-b border-gray-300/80 bg-background/95 px-5 py-3 backdrop-blur-md sm:-mx-0 sm:rounded-2xl sm:border sm:border-gray-300/90 sm:shadow-[0_2px_8px_-2px_rgba(0,0,0,0.06)]">
         <p className="mb-2 text-xs font-medium text-gray-500">Быстрый выбор</p>
         <div className="flex gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           {quickChips.map((chip) => (
@@ -236,7 +238,7 @@ export default async function HomePage({ searchParams }: PageProps) {
               className={`shrink-0 rounded-full px-3.5 py-1.5 text-xs font-medium transition-colors ${
                 chip.isActive
                   ? 'bg-gray-900 text-white'
-                  : 'border border-gray-200 bg-white text-gray-700 hover:border-gray-300 hover:bg-gray-50'
+                  : 'border border-gray-300/90 bg-white text-gray-700 hover:border-gray-400/80 hover:bg-gray-50'
               }`}
             >
               {chip.label}
@@ -244,14 +246,14 @@ export default async function HomePage({ searchParams }: PageProps) {
           ))}
         </div>
 
-        <div className="mt-3 rounded-xl border border-gray-200/80 bg-white/80 p-3 sm:bg-white">
+        <div className="mt-3 rounded-xl border border-gray-300/80 bg-white/90 p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.6)] sm:bg-white">
           <form className="flex flex-col gap-3 sm:flex-row sm:items-end">
             <div className="flex-1">
               <label className="mb-1.5 block text-xs font-medium text-gray-500">Кухня</label>
               <select
                 name="cuisine"
                 defaultValue={cuisine}
-                className="w-full rounded-xl border border-gray-200 bg-white px-3.5 py-2.5 text-sm outline-none transition-colors focus:border-accent focus:ring-1 focus:ring-accent/20"
+                className="w-full rounded-xl border border-gray-300/90 bg-white px-3.5 py-2.5 text-sm outline-none transition-colors focus:border-accent focus:ring-1 focus:ring-accent/20"
               >
                 <option value="all">Все кухни</option>
                 {cuisines.map((c) => (
@@ -265,7 +267,7 @@ export default async function HomePage({ searchParams }: PageProps) {
               <select
                 name="offer"
                 defaultValue={offer}
-                className="w-full rounded-xl border border-gray-200 bg-white px-3.5 py-2.5 text-sm outline-none transition-colors focus:border-accent focus:ring-1 focus:ring-accent/20"
+                className="w-full rounded-xl border border-gray-300/90 bg-white px-3.5 py-2.5 text-sm outline-none transition-colors focus:border-accent focus:ring-1 focus:ring-accent/20"
               >
                 <option value="all">Все</option>
                 <option value="2for1">1+1</option>
@@ -282,7 +284,7 @@ export default async function HomePage({ searchParams }: PageProps) {
 
       {/* RESULTS */}
       <div className="mb-6 flex items-baseline justify-between">
-        <h2 className="text-lg font-semibold">Рестораны</h2>
+        <h2 className="text-xl font-bold tracking-tight text-gray-950">Рестораны</h2>
         <p className="text-sm text-gray-400">{filteredRestaurants.length} шт.</p>
       </div>
 
@@ -297,7 +299,7 @@ export default async function HomePage({ searchParams }: PageProps) {
             <Link
               key={r.id}
               href={`/r/${r.slug}`}
-              className="group block overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm transition-all duration-200 hover:shadow-md hover:-translate-y-0.5"
+              className="group block overflow-hidden rounded-2xl border border-gray-300/90 bg-white shadow-[0_1px_2px_rgba(0,0,0,0.04),0_4px_14px_-2px_rgba(0,0,0,0.08)] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_2px_6px_rgba(0,0,0,0.05),0_12px_28px_-6px_rgba(0,0,0,0.12)]"
             >
               {/* PHOTO */}
               <div className="aspect-[4/3] overflow-hidden bg-gray-100">
@@ -317,7 +319,7 @@ export default async function HomePage({ searchParams }: PageProps) {
 
               <div className="p-4">
                 {/* NAME + CUISINES */}
-                <h3 className="text-base font-semibold leading-snug">{r.restaurant_name}</h3>
+                <h3 className="text-base font-bold tracking-tight leading-tight text-gray-950">{r.restaurant_name}</h3>
                 <div className="mt-1.5 flex flex-wrap gap-1.5">
                   {[r.cuisine, r.cuisine_2, r.cuisine_3]
                     .filter(Boolean)

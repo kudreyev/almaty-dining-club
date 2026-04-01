@@ -19,8 +19,10 @@ export function Card({
 }: CardProps) {
   return (
     <div
-      className={`rounded-2xl border border-gray-200 bg-white shadow-sm ${
-        hover ? 'transition-shadow duration-150 hover:shadow-md' : ''
+      className={`rounded-2xl border border-gray-300/90 bg-white shadow-[0_1px_2px_rgba(0,0,0,0.04),0_4px_12px_-2px_rgba(0,0,0,0.07)] ${
+        hover
+          ? 'transition-shadow duration-150 hover:shadow-[0_2px_4px_rgba(0,0,0,0.05),0_8px_20px_-4px_rgba(0,0,0,0.1)]'
+          : ''
       } ${paddings[padding]} ${className}`}
       {...props}
     >

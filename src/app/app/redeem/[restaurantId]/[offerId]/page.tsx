@@ -11,6 +11,7 @@ import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { formatOfferCooldownText, formatOfferHeadline, resolveOfferCooldownDays } from '@/lib/offers'
+import { ruDayWordAfterNumber } from '@/lib/ru-plural'
 
 type PageProps = {
   params: Promise<{
@@ -38,8 +39,8 @@ function getRedeemErrorMessage(code: string | undefined, cooldownDays: number) {
     case 'active_token': return 'У вас уже есть активный код.'
     case 'cooldown_offer':
       return cooldownDays === 1
-        ? 'Этот оффер доступен не чаще 1 раза в день.'
-        : `Этот оффер доступен не чаще 1 раза в ${cooldownDays} дней.`
+        ? 'Этот оффер доступен не чаще одного раза в день.'
+        : `Этот оффер доступен не чаще одного раза в ${cooldownDays} ${ruDayWordAfterNumber(cooldownDays)}.`
     case 'server_error': return 'Ошибка. Попробуйте снова.'
     default: return null
   }

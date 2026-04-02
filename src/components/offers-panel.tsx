@@ -12,7 +12,6 @@ type Offer = {
   offer_terms_short: string
   estimated_value?: number | null
   cooldown_days?: number | null
-  requires_main_course: boolean
 }
 
 type OffersPanelProps = {
@@ -48,23 +47,28 @@ export function OffersPanel({ offers, restaurantId, hasSubscription }: OffersPan
             Пока нет активных офферов
           </div>
         ) : (
-          visibleOffers.map((offer) => (
+          visibleOffers.map((offer) => {
+            const benefitLabel = formatEstimatedValue(offer.estimated_value)
+            return (
             <div key={offer.id} className="rounded-xl border border-gray-100 bg-white p-4">
               <h3 className="text-sm font-semibold text-gray-900">
                 {formatOfferHeadline(offer.offer_type, offer.offer_title)}
               </h3>
 
-              {formatEstimatedValue(offer.estimated_value) ? (
-                <p className="mt-1 text-sm text-gray-500">{formatEstimatedValue(offer.estimated_value)}</p>
-              ) : null}
-              <p className="mt-1 text-sm leading-relaxed text-gray-600">
+              <div className="mt-2 flex flex-wrap gap-2">
+                {benefitLabel ? (
+                  <span className="inline-flex rounded-full bg-gray-100 px-3 py-1 text-xs font-medium text-gray-800">
+                    {benefitLabel}
+                  </span>
+                ) : null}
+                <span className="inline-flex rounded-full bg-gray-100 px-3 py-1 text-xs font-medium text-gray-800">
+                  {formatOfferCooldownText(offer.cooldown_days)}
+                </span>
+              </div>
+
+              <p className="mt-3 text-sm leading-relaxed text-gray-600">
                 {offer.offer_terms_short}
               </p>
-
-              <div className="mt-3 space-y-0.5 border-t border-gray-100 pt-3 text-xs text-gray-400">
-                <p>{formatOfferCooldownText(offer.cooldown_days)}</p>
-                {offer.requires_main_course ? <p>Требуется основное блюдо</p> : null}
-              </div>
 
               {hasSubscription ? (
                 <Button
@@ -84,7 +88,8 @@ export function OffersPanel({ offers, restaurantId, hasSubscription }: OffersPan
                 </a>
               )}
             </div>
-          ))
+            )
+          })
         )}
         {hiddenOffersCount > 0 ? (
           <p className="text-center text-xs text-gray-400">и ещё {hiddenOffersCount}</p>

@@ -42,7 +42,7 @@ export async function createOffer(formData: FormData) {
     offer_terms_full: '',
     estimated_value: sanitizeEstimatedValue(formData.get('estimated_value')),
     cooldown_days: sanitizeCooldownDays(formData.get('cooldown_days')),
-    requires_main_course: formData.get('requires_main_course') === 'on',
+    requires_main_course: false,
     is_active: formData.get('is_active') === 'on',
   }
 
@@ -68,7 +68,7 @@ export async function updateOffer(formData: FormData) {
     offer_terms_full: '',
     estimated_value: sanitizeEstimatedValue(formData.get('estimated_value')),
     cooldown_days: sanitizeCooldownDays(formData.get('cooldown_days')),
-    requires_main_course: formData.get('requires_main_course') === 'on',
+    requires_main_course: false,
     is_active: formData.get('is_active') === 'on',
   }
 

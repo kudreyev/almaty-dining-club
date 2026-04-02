@@ -79,11 +79,6 @@ export default async function AdminOfferEditPage({ params }: PageProps) {
           </div>
 
           <label className="flex items-center gap-2 text-sm text-gray-600">
-            <input type="checkbox" name="requires_main_course" defaultChecked={!!offer.requires_main_course} className="rounded" />
-            Требует основное блюдо
-          </label>
-
-          <label className="flex items-center gap-2 text-sm text-gray-600">
             <input type="checkbox" name="is_active" defaultChecked={!!offer.is_active} className="rounded" />
             Активен
           </label>

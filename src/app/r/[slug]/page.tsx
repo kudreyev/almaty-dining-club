@@ -34,7 +34,6 @@ type Offer = {
   offer_terms_short: string
   estimated_value?: number | null
   cooldown_days?: number | null
-  requires_main_course: boolean
   is_active: boolean
 }
 
@@ -79,7 +78,7 @@ export default async function RestaurantPage({ params }: PageProps) {
       .from('offers')
       .select(`
         id, offer_type, offer_title, offer_terms_short,
-        estimated_value, cooldown_days, requires_main_course, is_active
+        estimated_value, cooldown_days, is_active
       `)
       .eq('restaurant_id', restaurant.id)
       .eq('is_active', true)

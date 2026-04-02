@@ -1,3 +1,5 @@
+import { ruDayWordAfterNumber } from '@/lib/ru-plural'
+
 export const DEFAULT_OFFER_COOLDOWN_DAYS = 7
 
 export type OfferType = '2for1' | 'compliment'
@@ -14,7 +16,7 @@ export function formatEstimatedValue(estimatedValue?: number | null): string | n
   }
 
   const formatted = new Intl.NumberFormat('ru-RU').format(Math.max(0, Math.round(estimatedValue)))
-  return `~${formatted} ₸ выгода`
+  return `Выгода ~${formatted} ₸`
 }
 
 export function resolveOfferCooldownDays(
@@ -28,9 +30,11 @@ export function resolveOfferCooldownDays(
   return Math.round(cooldownDays)
 }
 
+/** Текст доступности оффера для UI (чип «Доступно …»). */
 export function formatOfferCooldownText(cooldownDays?: number | null): string {
   const days = resolveOfferCooldownDays(cooldownDays)
-  return days === 1
-    ? 'Можно получить: 1 раз в день'
-    : `Можно получить: 1 раз в ${days} дней`
+  if (days === 1) {
+    return 'Доступно каждый день'
+  }
+  return `Доступно раз в ${days} ${ruDayWordAfterNumber(days)}`
 }

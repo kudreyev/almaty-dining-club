@@ -340,7 +340,7 @@ export default async function HomePage({ searchParams }: PageProps) {
                       <span
                         key={`${r.id}-offer-${i}`}
                         className={`inline-flex max-w-full shrink-0 items-center rounded-full px-3 py-1 text-xs font-medium text-white ${
-                          o.offer_type === '2for1' ? 'bg-[#DD4F41]' : 'bg-black'
+                          o.offer_type === '2for1' ? 'bg-[#DA5F3D]' : 'bg-black'
                         }`}
                       >
                         <span className="truncate">{formatOfferHeadline(o.offer_type, o.offer_title)}</span>

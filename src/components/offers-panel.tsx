@@ -52,12 +52,12 @@ export function OffersPanel({ offers, restaurantId, hasSubscription }: OffersPan
           visibleOffers.map((offer) => (
             <div
               key={offer.id}
-              className="rounded-xl border border-white/20 bg-[#DD4F41] p-4"
+              className="rounded-xl border border-white/20 bg-[#DA5F3D] p-4"
             >
               <span
                 className={`inline-flex max-w-full items-center rounded-full px-3 py-1 text-xs font-medium text-white ${
                   offer.offer_type === 'compliment'
-                    ? 'bg-[#DD4F41] ring-1 ring-inset ring-white/50'
+                    ? 'bg-[#DA5F3D] ring-1 ring-inset ring-white/50'
                     : 'bg-black'
                 }`}
               >
@@ -96,7 +96,7 @@ export function OffersPanel({ offers, restaurantId, hasSubscription }: OffersPan
                 <a
                   href={`/app/redeem/${restaurantId}/${offer.id}`}
                   onClick={handleActivateClick}
-                  className="mt-4 flex w-full items-center justify-center rounded-2xl bg-white px-5 py-2.5 text-sm font-medium text-black transition-all duration-150 hover:bg-white/90 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40 focus-visible:ring-offset-2 focus-visible:ring-offset-[#DD4F41]"
+                  className="mt-4 flex w-full items-center justify-center rounded-2xl bg-white px-5 py-2.5 text-sm font-medium text-black transition-all duration-150 hover:bg-white/90 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40 focus-visible:ring-offset-2 focus-visible:ring-offset-[#DA5F3D]"
                 >
                   Получить
                 </a>

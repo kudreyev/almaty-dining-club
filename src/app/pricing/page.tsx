@@ -130,7 +130,7 @@ export default function PricingPage() {
             href={WHATSAPP_SUBSCRIBE_URL}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex shrink-0 items-center justify-center rounded-xl bg-[#DD4F41] px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[#C94337] active:scale-[0.98]"
+            className="inline-flex shrink-0 items-center justify-center rounded-xl bg-[#DA5F3D] px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[#C94337] active:scale-[0.98]"
           >
             Оформить в WhatsApp
           </a>

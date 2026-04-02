@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import { createSupabasePublicClient } from '@/lib/supabase/public'
-import { offerTypeLabel } from '@/lib/labels'
+import { formatOfferHeadline } from '@/lib/offers'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card } from '@/components/ui/card'
@@ -13,6 +13,8 @@ type Offer = {
   offer_type: '2for1' | 'compliment'
   offer_title: string
   offer_terms_short: string
+  estimated_value?: number | null
+  cooldown_days?: number | null
   is_active: boolean
 }
 
@@ -87,6 +89,8 @@ export default async function HomePage({ searchParams }: PageProps) {
         offer_type,
         offer_title,
         offer_terms_short,
+        estimated_value,
+        cooldown_days,
         is_active
       ),
       restaurant_locations (
@@ -142,7 +146,7 @@ export default async function HomePage({ searchParams }: PageProps) {
 
   const quickChips: QuickChip[] = [
     {
-      label: '1+1',
+      label: '2за1',
       href: homeQuery({ offer: '2for1' }),
       isActive: offer === '2for1' && cuisine === 'all',
     },
@@ -193,7 +197,7 @@ export default async function HomePage({ searchParams }: PageProps) {
             Алматы
           </p>
           <h1 className="mt-3 max-w-3xl text-3xl font-semibold tracking-tight text-gray-950 leading-[1.1] md:text-5xl md:font-bold md:leading-[1.05]">
-            1+1 и комплименты в ресторанах по&nbsp;подписке
+            2за1 и подарки в ресторанах по&nbsp;подписке
           </h1>
           <p className="mt-4 max-w-xl text-base leading-relaxed text-gray-500">
             Выбирай заведение, показывай код персоналу. Без купонов и распечаток.
@@ -270,8 +274,8 @@ export default async function HomePage({ searchParams }: PageProps) {
                 className="w-full rounded-xl border border-gray-300/90 bg-white px-3.5 py-2.5 text-sm outline-none transition-colors focus:border-accent focus:ring-1 focus:ring-accent/20"
               >
                 <option value="all">Все</option>
-                <option value="2for1">1+1</option>
-                <option value="compliment">Комплимент</option>
+                <option value="2for1">2за1</option>
+                <option value="compliment">в подарок</option>
               </select>
             </div>
 
@@ -331,14 +335,17 @@ export default async function HomePage({ searchParams }: PageProps) {
 
                 {/* OFFERS */}
                 {r.offers.length > 0 ? (
-                  <div className="mt-3 flex flex-wrap gap-1.5">
-                    {r.offers.slice(0, 2).map((o, i) => (
-                      <Badge key={i} color="dark">
-                        {offerTypeLabel(o.offer_type)}
-                      </Badge>
+                  <div className="mt-3 space-y-1.5">
+                    {r.offers.slice(0, 3).map((o, i) => (
+                      <div
+                        key={i}
+                        className="rounded-lg border border-gray-200 bg-gray-50 px-2.5 py-1.5 text-xs font-medium text-gray-700"
+                      >
+                        {formatOfferHeadline(o.offer_type, o.offer_title)}
+                      </div>
                     ))}
-                    {r.offers.length > 2 ? (
-                      <Badge>+{r.offers.length - 2}</Badge>
+                    {r.offers.length > 3 ? (
+                      <p className="text-xs text-gray-400">и ещё {r.offers.length - 3}</p>
                     ) : null}
                   </div>
                 ) : null}

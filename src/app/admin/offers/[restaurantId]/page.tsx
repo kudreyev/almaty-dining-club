@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import { requireAdmin } from '@/lib/admin'
-import { listingVisibilityLabel } from '@/lib/labels'
+import { listingVisibilityLabel, offerTypeLabel } from '@/lib/labels'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -46,7 +46,7 @@ export default async function AdminOffersForRestaurantPage({ params }: PageProps
                 <div className="flex flex-wrap items-center gap-2">
                   <p className="truncate font-semibold">{o.offer_title}</p>
                   <Badge color={o.offer_type === '2for1' ? 'dark' : 'blue'}>
-                    {o.offer_type === '2for1' ? '1+1' : 'Комплимент'}
+                    {offerTypeLabel(o.offer_type)}
                   </Badge>
                   <Badge color={o.is_active ? 'green' : 'default'}>
                     {listingVisibilityLabel(!!o.is_active)}

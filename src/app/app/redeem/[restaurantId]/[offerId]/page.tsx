@@ -10,7 +10,7 @@ import { RedeemTokenCard } from '@/components/redeem-token-card'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { RESTAURANT_REDEEM_COOLDOWN_DAYS } from '@/lib/redeem-policy'
+import { formatOfferCooldownText, formatOfferHeadline, resolveOfferCooldownDays } from '@/lib/offers'
 
 type PageProps = {
   params: Promise<{
@@ -24,14 +24,22 @@ type PageProps = {
 }
 
 type Restaurant = { id: string; restaurant_name: string; slug: string }
-type Offer = { id: string; offer_title: string; offer_terms_short: string; offer_type: '2for1' | 'compliment' }
+type Offer = {
+  id: string
+  offer_title: string
+  offer_terms_short: string
+  offer_type: '2for1' | 'compliment'
+  cooldown_days?: number | null
+}
 type RedeemToken = { id: string; token_code: string; status: string; expires_at: string; created_at: string }
 
-function getRedeemErrorMessage(code?: string) {
+function getRedeemErrorMessage(code: string | undefined, cooldownDays: number) {
   switch (code) {
     case 'active_token': return 'У вас уже есть активный код.'
-    case 'cooldown_restaurant':
-      return `Этот оффер доступен не чаще 1 раза в ${RESTAURANT_REDEEM_COOLDOWN_DAYS} дней.`
+    case 'cooldown_offer':
+      return cooldownDays === 1
+        ? 'Этот оффер доступен не чаще 1 раза в день.'
+        : `Этот оффер доступен не чаще 1 раза в ${cooldownDays} дней.`
     case 'server_error': return 'Ошибка. Попробуйте снова.'
     default: return null
   }
@@ -40,7 +48,6 @@ function getRedeemErrorMessage(code?: string) {
 export default async function RedeemPage({ params, searchParams }: PageProps) {
   const { restaurantId, offerId } = await params
   const { error, success } = await searchParams
-  const errorMessage = getRedeemErrorMessage(error)
 
   const { user, subscription } = await getCurrentUserSubscription()
   if (!user) redirect('/login')
@@ -57,13 +64,15 @@ export default async function RedeemPage({ params, searchParams }: PageProps) {
 
   const { data: offer } = await supabase
     .from('offers')
-    .select('id, offer_title, offer_terms_short, offer_type')
+    .select('id, offer_title, offer_terms_short, offer_type, cooldown_days')
     .eq('id', offerId)
     .eq('restaurant_id', restaurantId)
     .eq('is_active', true)
     .maybeSingle<Offer>()
 
   if (!restaurant || !offer) notFound()
+  const offerCooldownDays = resolveOfferCooldownDays(offer.cooldown_days)
+  const errorMessage = getRedeemErrorMessage(error, offerCooldownDays)
 
   const nowIso = new Date().toISOString()
   const { data: activeTokens } = await supabase
@@ -85,13 +94,13 @@ export default async function RedeemPage({ params, searchParams }: PageProps) {
       <Card padding="lg">
         <div className="flex flex-wrap items-center gap-2">
           <Badge color="dark">
-            {offer.offer_type === '2for1' ? '1+1' : 'Комплимент'}
+            {offer.offer_type === '2for1' ? '2за1' : 'в подарок'}
           </Badge>
           <Badge color="green">Подписка активна</Badge>
         </div>
 
         <h1 className="mt-4 text-xl font-bold">{restaurant.restaurant_name}</h1>
-        <p className="mt-1 text-sm font-medium">{offer.offer_title}</p>
+        <p className="mt-1 text-sm font-medium">{formatOfferHeadline(offer.offer_type, offer.offer_title)}</p>
         <p className="mt-2 text-sm text-gray-500">{offer.offer_terms_short}</p>
 
         {success === 'code_generated' ? (
@@ -117,7 +126,7 @@ export default async function RedeemPage({ params, searchParams }: PageProps) {
             <ul className="mt-2 space-y-1 text-xs text-gray-500">
               <li>Код действует 10 минут</li>
               <li>Одновременно — 1 активный код</li>
-              <li>{`Не чаще 1 раза в ${RESTAURANT_REDEEM_COOLDOWN_DAYS} дней на ресторан`}</li>
+              <li>{formatOfferCooldownText(offerCooldownDays)}</li>
             </ul>
 
             <form action={generateRedeemToken} className="mt-4">

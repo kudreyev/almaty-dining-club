@@ -2,6 +2,7 @@
 
 import { redirect } from 'next/navigation'
 import { requireAdmin } from '@/lib/admin'
+import { DEFAULT_OFFER_COOLDOWN_DAYS } from '@/lib/offers'
 
 type Row = Record<string, string>
 
@@ -9,6 +10,12 @@ function parseBoolean(value: string | undefined, defaultValue = false) {
   if (value == null || value === '') return defaultValue
   const v = value.trim().toLowerCase()
   return v === 'true' || v === '1' || v === 'yes' || v === 'y' || v === 'on'
+}
+
+function parseOptionalInteger(value: string | undefined): number | null {
+  if (value == null || value.trim() === '') return null
+  const parsed = Number.parseInt(value, 10)
+  return Number.isNaN(parsed) ? null : parsed
 }
 
 /**
@@ -157,11 +164,19 @@ export async function importCsvText(formData: FormData) {
       offer_title: row.offer_title || '',
       offer_terms_short: row.offer_terms_short || '',
       offer_terms_full: row.offer_terms_full || '',
-      offer_days: row.offer_days || 'Mon,Tue,Wed,Thu,Fri,Sat,Sun',
-      offer_time_from: row.offer_time_from || '12:00',
-      offer_time_to: row.offer_time_to || '22:00',
+      estimated_value: (() => {
+        const value = parseOptionalInteger(row.estimated_value)
+        if (value == null) return null
+        return value < 0 ? 0 : value
+      })(),
+      cooldown_days: (() => {
+        const value = parseOptionalInteger(row.cooldown_days)
+        if (value == null) return DEFAULT_OFFER_COOLDOWN_DAYS
+        if (value < 1) return 1
+        if (value > 365) return 365
+        return value
+      })(),
       requires_main_course: parseBoolean(row.requires_main_course, offerType === 'compliment'),
-      is_stackable_with_other_promos: parseBoolean(row.is_stackable_with_other_promos, false),
       is_active: parseBoolean(row.is_active, true),
     }
 

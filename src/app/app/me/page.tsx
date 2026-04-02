@@ -2,7 +2,7 @@ import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { LogoutButton } from '@/components/logout-button'
-import { subscriptionStatusLabel } from '@/lib/labels'
+import { offerTypeLabel, subscriptionStatusLabel } from '@/lib/labels'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -140,7 +140,7 @@ export default async function MePage({ searchParams }: PageProps) {
                 </div>
                 <div className="shrink-0 text-right">
                   <Badge color={item.offers?.offer_type === '2for1' ? 'dark' : 'blue'}>
-                    {item.offers?.offer_type === '2for1' ? '1+1' : 'Комплимент'}
+                    {item.offers?.offer_type ? offerTypeLabel(item.offers.offer_type) : '—'}
                   </Badge>
                   <p className="mt-1 text-xs text-gray-400">
                     {new Date(item.redeemed_at).toLocaleDateString('ru-RU')}

@@ -40,6 +40,10 @@ export default async function AdminImportPage({ searchParams }: PageProps) {
         <p className="mt-2 text-xs text-gray-400">
           Обязательные поля: <code className="rounded bg-gray-100 px-1">restaurant_name</code>, <code className="rounded bg-gray-100 px-1">slug</code>, <code className="rounded bg-gray-100 px-1">district</code>, <code className="rounded bg-gray-100 px-1">address</code>, <code className="rounded bg-gray-100 px-1">cuisine</code>, <code className="rounded bg-gray-100 px-1">short_description</code>, <code className="rounded bg-gray-100 px-1">offer_type</code>, <code className="rounded bg-gray-100 px-1">offer_title</code>, <code className="rounded bg-gray-100 px-1">staff_pin</code>
         </p>
+        <p className="mt-2 text-xs text-gray-400">
+          Опционально для офферов: <code className="rounded bg-gray-100 px-1">estimated_value</code>, <code className="rounded bg-gray-100 px-1">cooldown_days</code>.
+          Старые поля времени/дней/stackable можно не передавать.
+        </p>
       </Card>
 
       <Card>

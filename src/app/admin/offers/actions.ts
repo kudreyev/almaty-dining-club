@@ -3,6 +3,29 @@
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { requireAdmin } from '@/lib/admin'
+import { DEFAULT_OFFER_COOLDOWN_DAYS } from '@/lib/offers'
+
+function parseOptionalInteger(value: FormDataEntryValue | null): number | null {
+  if (value == null) return null
+  const stringValue = String(value).trim()
+  if (!stringValue) return null
+  const parsed = Number.parseInt(stringValue, 10)
+  return Number.isNaN(parsed) ? null : parsed
+}
+
+function sanitizeEstimatedValue(value: FormDataEntryValue | null): number | null {
+  const parsed = parseOptionalInteger(value)
+  if (parsed == null) return null
+  return parsed < 0 ? 0 : parsed
+}
+
+function sanitizeCooldownDays(value: FormDataEntryValue | null): number {
+  const parsed = parseOptionalInteger(value)
+  if (parsed == null) return DEFAULT_OFFER_COOLDOWN_DAYS
+  if (parsed < 1) return 1
+  if (parsed > 365) return 365
+  return parsed
+}
 
 export async function createOffer(formData: FormData) {
   const { supabase } = await requireAdmin()
@@ -17,11 +40,9 @@ export async function createOffer(formData: FormData) {
     offer_title: String(formData.get('offer_title') || ''),
     offer_terms_short: String(formData.get('offer_terms_short') || ''),
     offer_terms_full: String(formData.get('offer_terms_full') || ''),
-    offer_days: String(formData.get('offer_days') || 'Mon,Tue,Wed,Thu,Fri,Sat,Sun'),
-    offer_time_from: String(formData.get('offer_time_from') || '12:00'),
-    offer_time_to: String(formData.get('offer_time_to') || '22:00'),
+    estimated_value: sanitizeEstimatedValue(formData.get('estimated_value')),
+    cooldown_days: sanitizeCooldownDays(formData.get('cooldown_days')),
     requires_main_course: formData.get('requires_main_course') === 'on',
-    is_stackable_with_other_promos: formData.get('is_stackable_with_other_promos') === 'on',
     is_active: formData.get('is_active') === 'on',
   }
 
@@ -45,11 +66,9 @@ export async function updateOffer(formData: FormData) {
     offer_title: String(formData.get('offer_title') || ''),
     offer_terms_short: String(formData.get('offer_terms_short') || ''),
     offer_terms_full: String(formData.get('offer_terms_full') || ''),
-    offer_days: String(formData.get('offer_days') || 'Mon,Tue,Wed,Thu,Fri,Sat,Sun'),
-    offer_time_from: String(formData.get('offer_time_from') || '12:00'),
-    offer_time_to: String(formData.get('offer_time_to') || '22:00'),
+    estimated_value: sanitizeEstimatedValue(formData.get('estimated_value')),
+    cooldown_days: sanitizeCooldownDays(formData.get('cooldown_days')),
     requires_main_course: formData.get('requires_main_course') === 'on',
-    is_stackable_with_other_promos: formData.get('is_stackable_with_other_promos') === 'on',
     is_active: formData.get('is_active') === 'on',
   }
 

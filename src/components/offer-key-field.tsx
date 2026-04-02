@@ -59,7 +59,7 @@ export function OfferKeyField(props: {
           name={nameTitle}
           value={title}
           onChange={(e) => setTitle(e.target.value)}
-          placeholder="Например: 1+1 на пасту"
+          placeholder="Например: Паста"
           required
           className="w-full rounded-2xl border border-gray-300 px-4 py-3 text-sm outline-none"
         />

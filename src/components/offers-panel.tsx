@@ -3,8 +3,8 @@
 import { useCallback, useState } from 'react'
 import Link from 'next/link'
 import { PaywallModal } from '@/components/paywall-modal'
-import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { formatEstimatedValue, formatOfferCooldownText, formatOfferHeadline } from '@/lib/offers'
 
 type Offer = {
   id: string
@@ -12,11 +12,9 @@ type Offer = {
   offer_title: string
   offer_terms_short: string
   offer_terms_full: string
-  offer_days: string
-  offer_time_from: string
-  offer_time_to: string
+  estimated_value?: number | null
+  cooldown_days?: number | null
   requires_main_course: boolean
-  is_stackable_with_other_promos: boolean
 }
 
 type OffersPanelProps = {
@@ -27,6 +25,8 @@ type OffersPanelProps = {
 
 export function OffersPanel({ offers, restaurantId, hasSubscription }: OffersPanelProps) {
   const [showPaywall, setShowPaywall] = useState(false)
+  const visibleOffers = offers.slice(0, 3)
+  const hiddenOffersCount = Math.max(offers.length - visibleOffers.length, 0)
 
   const handleActivateClick = useCallback(
     (e: React.MouseEvent<HTMLAnchorElement>) => {
@@ -45,23 +45,19 @@ export function OffersPanel({ offers, restaurantId, hasSubscription }: OffersPan
       {showPaywall ? <PaywallModal onClose={handleClosePaywall} /> : null}
 
       <div className="mt-4 space-y-4">
-        {offers.length === 0 ? (
+        {visibleOffers.length === 0 ? (
           <div className="rounded-xl bg-gray-50 px-4 py-6 text-center text-sm text-gray-400">
             Пока нет активных офферов
           </div>
         ) : (
-          offers.map((offer) => (
+          visibleOffers.map((offer) => (
             <div key={offer.id} className="rounded-xl border border-gray-100 p-4">
-              <div className="flex items-center justify-between gap-2">
-                <Badge color="dark">
-                  {offer.offer_type === '2for1' ? '1+1' : 'Комплимент'}
-                </Badge>
-                <span className="text-xs text-gray-400">
-                  {offer.offer_time_from.slice(0, 5)}–{offer.offer_time_to.slice(0, 5)}
-                </span>
-              </div>
-
-              <h3 className="mt-3 text-sm font-semibold">{offer.offer_title}</h3>
+              <h3 className="text-sm font-semibold">
+                {formatOfferHeadline(offer.offer_type, offer.offer_title)}
+              </h3>
+              {formatEstimatedValue(offer.estimated_value) ? (
+                <p className="mt-1 text-sm text-gray-500">{formatEstimatedValue(offer.estimated_value)}</p>
+              ) : null}
               <p className="mt-1 text-sm leading-relaxed text-gray-600">
                 {offer.offer_terms_short}
               </p>
@@ -73,11 +69,8 @@ export function OffersPanel({ offers, restaurantId, hasSubscription }: OffersPan
               ) : null}
 
               <div className="mt-3 space-y-0.5 text-xs text-gray-400">
-                <p>Дни: {offer.offer_days}</p>
+                <p>{formatOfferCooldownText(offer.cooldown_days)}</p>
                 {offer.requires_main_course ? <p>Требуется основное блюдо</p> : null}
-                {!offer.is_stackable_with_other_promos ? (
-                  <p>Не суммируется с другими акциями</p>
-                ) : null}
               </div>
 
               {hasSubscription ? (
@@ -86,7 +79,7 @@ export function OffersPanel({ offers, restaurantId, hasSubscription }: OffersPan
                   size="md"
                   className="mt-4 w-full"
                 >
-                  Активировать
+                  Получить
                 </Button>
               ) : (
                 <a
@@ -94,12 +87,15 @@ export function OffersPanel({ offers, restaurantId, hasSubscription }: OffersPan
                   onClick={handleActivateClick}
                   className="mt-4 flex w-full items-center justify-center rounded-xl bg-accent px-5 py-2.5 text-sm font-medium text-white transition-all duration-150 hover:bg-accent-dark active:scale-[0.98]"
                 >
-                  Активировать
+                  Получить
                 </a>
               )}
             </div>
           ))
         )}
+        {hiddenOffersCount > 0 ? (
+          <p className="text-center text-xs text-gray-400">и ещё {hiddenOffersCount}</p>
+        ) : null}
       </div>
 
       <div className="mt-5 border-t border-gray-100 pt-5">

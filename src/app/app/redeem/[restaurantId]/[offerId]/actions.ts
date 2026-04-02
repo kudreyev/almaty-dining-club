@@ -7,7 +7,7 @@ import {
   getCurrentUserSubscription,
   isSubscriptionCurrentlyActive,
 } from '@/lib/subscription'
-import { RESTAURANT_REDEEM_COOLDOWN_DAYS } from '@/lib/redeem-policy'
+import { resolveOfferCooldownDays } from '@/lib/offers'
 
 function generateTokenCode() {
   return String(Math.floor(100000 + Math.random() * 900000))
@@ -54,15 +54,29 @@ export async function generateRedeemToken(formData: FormData) {
     redirect(`${backUrl}?error=active_token`)
   }
 
-  // 2) Cooldown по ресторану: 1 раз в N дней
+  const { data: offerForCooldown, error: offerCooldownError } = await supabase
+    .from('offers')
+    .select('cooldown_days')
+    .eq('id', offerId)
+    .eq('restaurant_id', restaurantId)
+    .eq('is_active', true)
+    .maybeSingle<{ cooldown_days: number | null }>()
+
+  if (offerCooldownError || !offerForCooldown) {
+    redirect(`${backUrl}?error=server_error`)
+  }
+
+  const cooldownDays = resolveOfferCooldownDays(offerForCooldown.cooldown_days)
+
+  // 2) Cooldown по офферу: 1 раз в N дней
   const cooldownStart = new Date()
-  cooldownStart.setDate(cooldownStart.getDate() - RESTAURANT_REDEEM_COOLDOWN_DAYS)
+  cooldownStart.setDate(cooldownStart.getDate() - cooldownDays)
 
   const { data: recentRedemptions, error: recentRedemptionsError } = await supabase
     .from('redemptions')
     .select('id')
     .eq('user_id', user.id)
-    .eq('restaurant_id', restaurantId)
+    .eq('offer_id', offerId)
     .gte('redeemed_at', cooldownStart.toISOString())
     .order('redeemed_at', { ascending: false })
     .limit(1)
@@ -72,7 +86,7 @@ export async function generateRedeemToken(formData: FormData) {
   }
 
   if (recentRedemptions && recentRedemptions.length > 0) {
-    redirect(`${backUrl}?error=cooldown_restaurant`)
+    redirect(`${backUrl}?error=cooldown_offer`)
   }
 
   // 3) Создаём токен на 10 минут

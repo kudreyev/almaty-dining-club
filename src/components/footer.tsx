@@ -8,7 +8,7 @@ export function Footer() {
           <div>
             <p className="text-sm font-bold tracking-tight">KudaPass</p>
             <p className="mt-2 text-sm leading-relaxed text-gray-500">
-              Подписка с офферами 1+1 и комплиментами в ресторанах Алматы.
+              Подписка с офферами 2за1 и в подарок в ресторанах Алматы.
             </p>
           </div>
 

@@ -5,12 +5,15 @@ import { Badge } from '@/components/ui/badge'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { EmptyState } from '@/components/ui/empty-state'
+import { formatOfferHeadline } from '@/lib/offers'
 
 type Offer = {
   id: string
   offer_type: '2for1' | 'compliment'
   offer_title: string
   offer_terms_short: string
+  estimated_value?: number | null
+  cooldown_days?: number | null
   is_active: boolean
 }
 
@@ -45,7 +48,7 @@ export default async function AlmatyPage({ searchParams }: PageProps) {
       id, restaurant_name, slug, address,
       cuisine, cuisine_2, cuisine_3,
       short_description, working_hours, photo_1_url,
-      offers ( id, offer_type, offer_title, offer_terms_short, is_active )
+      offers ( id, offer_type, offer_title, offer_terms_short, estimated_value, cooldown_days, is_active )
     `)
     .eq('city', 'almaty')
     .eq('is_active', true)
@@ -80,7 +83,7 @@ export default async function AlmatyPage({ searchParams }: PageProps) {
     <div className="mx-auto max-w-6xl px-5 py-8">
       <div className="mb-6">
         <h1 className="text-2xl font-bold">Рестораны Алматы</h1>
-        <p className="mt-1 text-sm text-gray-500">Партнёры с офферами 1+1 и комплиментами.</p>
+        <p className="mt-1 text-sm text-gray-500">Партнёры с офферами 2за1 и в подарок.</p>
       </div>
 
       <Card padding="sm" className="mb-8">
@@ -104,8 +107,8 @@ export default async function AlmatyPage({ searchParams }: PageProps) {
               className="w-full rounded-xl border border-gray-200 bg-white px-3.5 py-2.5 text-sm outline-none transition-colors focus:border-accent"
             >
               <option value="all">Все</option>
-              <option value="2for1">1+1</option>
-              <option value="compliment">Комплимент</option>
+              <option value="2for1">2за1</option>
+              <option value="compliment">в подарок</option>
             </select>
           </div>
           <Button type="submit" size="lg" className="sm:w-auto">Найти</Button>
@@ -156,14 +159,17 @@ export default async function AlmatyPage({ searchParams }: PageProps) {
                   </div>
 
                   {activeOffers.length > 0 ? (
-                    <div className="mt-3 flex flex-wrap gap-1.5">
-                      {activeOffers.slice(0, 2).map((o, i) => (
-                        <Badge key={i} color="dark">
-                          {o.offer_type === '2for1' ? '1+1' : 'Комплимент'}
-                        </Badge>
+                    <div className="mt-3 space-y-1.5">
+                      {activeOffers.slice(0, 3).map((o, i) => (
+                        <div
+                          key={i}
+                          className="rounded-lg border border-gray-200 bg-gray-50 px-2.5 py-1.5 text-xs font-medium text-gray-700"
+                        >
+                          {formatOfferHeadline(o.offer_type, o.offer_title)}
+                        </div>
                       ))}
-                      {activeOffers.length > 2 ? (
-                        <Badge>+{activeOffers.length - 2}</Badge>
+                      {activeOffers.length > 3 ? (
+                        <p className="text-xs text-gray-400">и ещё {activeOffers.length - 3}</p>
                       ) : null}
                     </div>
                   ) : null}

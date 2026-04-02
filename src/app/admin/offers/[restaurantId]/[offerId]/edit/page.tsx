@@ -6,6 +6,7 @@ import { FormSubmitGuard } from '@/components/form-submit-guard'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input, Select, Textarea } from '@/components/ui/input'
+import { DEFAULT_OFFER_COOLDOWN_DAYS } from '@/lib/offers'
 
 type PageProps = { params: Promise<{ restaurantId: string; offerId: string }> }
 
@@ -47,8 +48,8 @@ export default async function AdminOfferEditPage({ params }: PageProps) {
           <input type="hidden" name="restaurant_id" value={restaurantId} />
 
           <Select name="offer_type" label="Тип оффера" defaultValue={offer.offer_type}>
-            <option value="2for1">1+1 (два по цене одного)</option>
-            <option value="compliment">Комплимент</option>
+            <option value="2for1">2за1</option>
+            <option value="compliment">в подарок</option>
           </Select>
 
           <OfferKeyField
@@ -58,20 +59,29 @@ export default async function AdminOfferEditPage({ params }: PageProps) {
           <Input name="offer_terms_short" label="Краткие условия" defaultValue={offer.offer_terms_short} required />
           <Textarea name="offer_terms_full" label="Полные условия" defaultValue={offer.offer_terms_full} rows={5} required />
 
-          <Input name="offer_days" label="Дни" defaultValue={offer.offer_days} />
           <div className="grid gap-4 sm:grid-cols-2">
-            <Input name="offer_time_from" label="Время с" defaultValue={String(offer.offer_time_from).slice(0, 5)} />
-            <Input name="offer_time_to" label="Время до" defaultValue={String(offer.offer_time_to).slice(0, 5)} />
+            <Input
+              name="estimated_value"
+              type="number"
+              min={0}
+              label="Примерная выгода (₸)"
+              placeholder="3500"
+              defaultValue={offer.estimated_value == null ? '' : String(offer.estimated_value)}
+            />
+            <Input
+              name="cooldown_days"
+              type="number"
+              min={1}
+              max={365}
+              label="Cooldown (дней)"
+              placeholder="7"
+              defaultValue={String(offer.cooldown_days ?? DEFAULT_OFFER_COOLDOWN_DAYS)}
+            />
           </div>
 
           <label className="flex items-center gap-2 text-sm text-gray-600">
             <input type="checkbox" name="requires_main_course" defaultChecked={!!offer.requires_main_course} className="rounded" />
             Требует основное блюдо
-          </label>
-
-          <label className="flex items-center gap-2 text-sm text-gray-600">
-            <input type="checkbox" name="is_stackable_with_other_promos" defaultChecked={!!offer.is_stackable_with_other_promos} className="rounded" />
-            Суммируется с акциями
           </label>
 
           <label className="flex items-center gap-2 text-sm text-gray-600">

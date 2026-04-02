@@ -33,11 +33,9 @@ type Offer = {
   offer_title: string
   offer_terms_short: string
   offer_terms_full: string
-  offer_days: string
-  offer_time_from: string
-  offer_time_to: string
+  estimated_value?: number | null
+  cooldown_days?: number | null
   requires_main_course: boolean
-  is_stackable_with_other_promos: boolean
   is_active: boolean
 }
 
@@ -82,8 +80,7 @@ export default async function RestaurantPage({ params }: PageProps) {
       .from('offers')
       .select(`
         id, offer_type, offer_title, offer_terms_short, offer_terms_full,
-        offer_days, offer_time_from, offer_time_to,
-        requires_main_course, is_stackable_with_other_promos, is_active
+        estimated_value, cooldown_days, requires_main_course, is_active
       `)
       .eq('restaurant_id', restaurant.id)
       .eq('is_active', true)
@@ -186,7 +183,7 @@ export default async function RestaurantPage({ params }: PageProps) {
         {/* RIGHT — OFFERS */}
         <div>
           <Card className="sticky top-20">
-            <h2 className="text-lg font-bold">Предложения</h2>
+            <h2 className="text-lg font-bold">Предложения KudaPass</h2>
 
             <OffersPanel
               offers={offers ?? []}

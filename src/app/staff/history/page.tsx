@@ -3,6 +3,7 @@ import Link from 'next/link'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { getStaffSessionRestaurantId } from '@/lib/staff-session'
 import { logoutStaff } from '../login/actions'
+import { offerTypeLabel } from '@/lib/labels'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -97,7 +98,7 @@ export default async function StaffHistoryPage() {
                 </div>
                 <div className="shrink-0 text-right">
                   <Badge color={item.offers?.offer_type === '2for1' ? 'dark' : 'blue'}>
-                    {item.offers?.offer_type === '2for1' ? '1+1' : 'Комплимент'}
+                    {item.offers?.offer_type ? offerTypeLabel(item.offers.offer_type) : '—'}
                   </Badge>
                   <p className="mt-1 text-xs text-gray-400">
                     {new Date(item.redeemed_at).toLocaleString('ru-RU')}

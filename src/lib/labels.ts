@@ -40,7 +40,7 @@ export function paymentStatusLabel(status: 'pending' | 'approved' | 'rejected') 
   }
   
   export function offerTypeLabel(type: '2for1' | 'compliment') {
-    return type === '2for1' ? '1+1' : 'Комплимент'
+    return type === '2for1' ? '2за1' : 'в подарок'
   }
 
   /** Статусы записей activation_links для отображения в админке */

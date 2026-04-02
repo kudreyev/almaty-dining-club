@@ -42,7 +42,7 @@ export function OffersPanel({ offers, restaurantId, hasSubscription }: OffersPan
     <>
       {showPaywall ? <PaywallModal onClose={handleClosePaywall} /> : null}
 
-      <div className="mt-4 space-y-4">
+      <div className="flex flex-col gap-4">
         {visibleOffers.length === 0 ? (
           <div className="rounded-xl bg-gray-50 px-4 py-6 text-center text-sm text-gray-400">
             Пока нет активных офферов
@@ -91,17 +91,11 @@ export function OffersPanel({ offers, restaurantId, hasSubscription }: OffersPan
         ) : null}
       </div>
 
-      <div className="mt-5 border-t border-gray-100 pt-5">
-        {hasSubscription ? (
-          <div className="rounded-xl bg-emerald-50 px-4 py-2.5 text-center text-xs font-medium text-emerald-700">
-            Подписка активна
-          </div>
-        ) : (
-          <Button href="/pricing" variant="secondary" className="w-full">
-            Оформить подписку
-          </Button>
-        )}
-      </div>
+      {hasSubscription ? (
+        <div className="rounded-xl bg-emerald-50 px-4 py-2.5 text-center text-xs font-medium text-emerald-700">
+          Подписка активна
+        </div>
+      ) : null}
     </>
   )
 }

@@ -180,16 +180,12 @@ export default async function RestaurantPage({ params }: PageProps) {
         </div>
 
         {/* RIGHT — OFFERS */}
-        <div>
-          <Card className="sticky top-20">
-            <h2 className="text-lg font-bold">Предложения KudaPass</h2>
-
-            <OffersPanel
-              offers={offers ?? []}
-              restaurantId={restaurant.id}
-              hasSubscription={hasSubscription}
-            />
-          </Card>
+        <div className="lg:sticky lg:top-20">
+          <OffersPanel
+            offers={offers ?? []}
+            restaurantId={restaurant.id}
+            hasSubscription={hasSubscription}
+          />
         </div>
       </div>
     </div>

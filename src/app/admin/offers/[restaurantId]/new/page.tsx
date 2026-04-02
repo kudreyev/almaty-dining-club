@@ -4,7 +4,7 @@ import { OfferKeyField } from '@/components/offer-key-field'
 import { FormSubmitGuard } from '@/components/form-submit-guard'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Input, Select, Textarea } from '@/components/ui/input'
+import { Input, Select } from '@/components/ui/input'
 import { DEFAULT_OFFER_COOLDOWN_DAYS } from '@/lib/offers'
 
 type PageProps = { params: Promise<{ restaurantId: string }> }
@@ -40,7 +40,6 @@ export default async function AdminOfferNewPage({ params }: PageProps) {
 
           <OfferKeyField />
           <Input name="offer_terms_short" label="Краткие условия" placeholder="1 строка" required />
-          <Textarea name="offer_terms_full" label="Полные условия" rows={5} required />
 
           <div className="grid gap-4 sm:grid-cols-2">
             <Input name="estimated_value" type="number" min={0} label="Примерная выгода (₸)" placeholder="3500" />

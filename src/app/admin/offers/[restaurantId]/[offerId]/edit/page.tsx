@@ -5,7 +5,7 @@ import { OfferKeyField } from '@/components/offer-key-field'
 import { FormSubmitGuard } from '@/components/form-submit-guard'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Input, Select, Textarea } from '@/components/ui/input'
+import { Input, Select } from '@/components/ui/input'
 import { DEFAULT_OFFER_COOLDOWN_DAYS } from '@/lib/offers'
 
 type PageProps = { params: Promise<{ restaurantId: string; offerId: string }> }
@@ -57,7 +57,6 @@ export default async function AdminOfferEditPage({ params }: PageProps) {
             defaultTitle={offer.offer_title ?? ''}
           />
           <Input name="offer_terms_short" label="Краткие условия" defaultValue={offer.offer_terms_short} required />
-          <Textarea name="offer_terms_full" label="Полные условия" defaultValue={offer.offer_terms_full} rows={5} required />
 
           <div className="grid gap-4 sm:grid-cols-2">
             <Input

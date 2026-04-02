@@ -32,7 +32,6 @@ type Offer = {
   offer_type: '2for1' | 'compliment'
   offer_title: string
   offer_terms_short: string
-  offer_terms_full: string
   estimated_value?: number | null
   cooldown_days?: number | null
   requires_main_course: boolean
@@ -79,7 +78,7 @@ export default async function RestaurantPage({ params }: PageProps) {
     supabase
       .from('offers')
       .select(`
-        id, offer_type, offer_title, offer_terms_short, offer_terms_full,
+        id, offer_type, offer_title, offer_terms_short,
         estimated_value, cooldown_days, requires_main_course, is_active
       `)
       .eq('restaurant_id', restaurant.id)

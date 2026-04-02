@@ -42,7 +42,7 @@ export default async function AdminImportPage({ searchParams }: PageProps) {
         </p>
         <p className="mt-2 text-xs text-gray-400">
           Опционально для офферов: <code className="rounded bg-gray-100 px-1">estimated_value</code>, <code className="rounded bg-gray-100 px-1">cooldown_days</code>.
-          Старые поля времени/дней/stackable можно не передавать.
+          Старые поля времени/дней/stackable можно не передавать. Колонка <code className="rounded bg-gray-100 px-1">offer_terms_full</code>, если есть в файле, не используется.
         </p>
       </Card>
 

@@ -163,7 +163,7 @@ export async function importCsvText(formData: FormData) {
       offer_type: offerType,
       offer_title: row.offer_title || '',
       offer_terms_short: row.offer_terms_short || '',
-      offer_terms_full: row.offer_terms_full || '',
+      offer_terms_full: '',
       estimated_value: (() => {
         const value = parseOptionalInteger(row.estimated_value)
         if (value == null) return null

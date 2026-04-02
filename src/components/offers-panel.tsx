@@ -10,7 +10,6 @@ type Offer = {
   offer_type: '2for1' | 'compliment'
   offer_title: string
   offer_terms_short: string
-  offer_terms_full: string
   estimated_value?: number | null
   cooldown_days?: number | null
   requires_main_course: boolean
@@ -61,12 +60,6 @@ export function OffersPanel({ offers, restaurantId, hasSubscription }: OffersPan
               <p className="mt-1 text-sm leading-relaxed text-gray-600">
                 {offer.offer_terms_short}
               </p>
-
-              {offer.offer_terms_full ? (
-                <p className="mt-2 text-xs leading-relaxed text-gray-500">
-                  {offer.offer_terms_full}
-                </p>
-              ) : null}
 
               <div className="mt-3 space-y-0.5 border-t border-gray-100 pt-3 text-xs text-gray-400">
                 <p>{formatOfferCooldownText(offer.cooldown_days)}</p>

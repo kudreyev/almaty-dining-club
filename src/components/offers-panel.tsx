@@ -50,36 +50,25 @@ export function OffersPanel({ offers, restaurantId, hasSubscription }: OffersPan
           </div>
         ) : (
           visibleOffers.map((offer) => (
-            <div
-              key={offer.id}
-              className="rounded-xl border border-white/20 bg-[#DA5F3D] p-4"
-            >
-              <span
-                className={`inline-flex max-w-full items-center rounded-full px-3 py-1 text-xs font-medium text-white ${
-                  offer.offer_type === 'compliment'
-                    ? 'bg-[#DA5F3D] ring-1 ring-inset ring-white/50'
-                    : 'bg-black'
-                }`}
-              >
-                <span className="truncate">
-                  {formatOfferHeadline(offer.offer_type, offer.offer_title)}
-                </span>
-              </span>
+            <div key={offer.id} className="rounded-xl border border-gray-100 bg-white p-4">
+              <h3 className="text-sm font-semibold text-gray-900">
+                {formatOfferHeadline(offer.offer_type, offer.offer_title)}
+              </h3>
 
               {formatEstimatedValue(offer.estimated_value) ? (
-                <p className="mt-2 text-sm text-white/90">{formatEstimatedValue(offer.estimated_value)}</p>
+                <p className="mt-1 text-sm text-gray-500">{formatEstimatedValue(offer.estimated_value)}</p>
               ) : null}
-              <p className="mt-2 text-sm leading-relaxed text-white/80">
+              <p className="mt-1 text-sm leading-relaxed text-gray-600">
                 {offer.offer_terms_short}
               </p>
 
               {offer.offer_terms_full ? (
-                <p className="mt-2 text-xs leading-relaxed text-white/80">
+                <p className="mt-2 text-xs leading-relaxed text-gray-500">
                   {offer.offer_terms_full}
                 </p>
               ) : null}
 
-              <div className="mt-3 space-y-0.5 border-t border-white/20 pt-3 text-xs text-white/80">
+              <div className="mt-3 space-y-0.5 border-t border-gray-100 pt-3 text-xs text-gray-400">
                 <p>{formatOfferCooldownText(offer.cooldown_days)}</p>
                 {offer.requires_main_course ? <p>Требуется основное блюдо</p> : null}
               </div>
@@ -88,7 +77,7 @@ export function OffersPanel({ offers, restaurantId, hasSubscription }: OffersPan
                 <Button
                   href={`/app/redeem/${restaurantId}/${offer.id}`}
                   size="md"
-                  className="mt-4 w-full rounded-2xl border-0 !bg-white !text-black hover:!bg-white/90 focus-visible:ring-white/40"
+                  className="mt-4 w-full"
                 >
                   Получить
                 </Button>
@@ -96,7 +85,7 @@ export function OffersPanel({ offers, restaurantId, hasSubscription }: OffersPan
                 <a
                   href={`/app/redeem/${restaurantId}/${offer.id}`}
                   onClick={handleActivateClick}
-                  className="mt-4 flex w-full items-center justify-center rounded-2xl bg-white px-5 py-2.5 text-sm font-medium text-black transition-all duration-150 hover:bg-white/90 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40 focus-visible:ring-offset-2 focus-visible:ring-offset-[#DA5F3D]"
+                  className="mt-4 flex w-full items-center justify-center rounded-xl bg-accent px-5 py-2.5 text-sm font-medium text-white transition-all duration-150 hover:bg-accent-dark active:scale-[0.98]"
                 >
                   Получить
                 </a>

@@ -339,9 +339,7 @@ export default async function HomePage({ searchParams }: PageProps) {
                     {r.offers.slice(0, 3).map((o, i) => (
                       <span
                         key={`${r.id}-offer-${i}`}
-                        className={`inline-flex max-w-full shrink-0 items-center rounded-full px-3 py-1 text-xs font-medium text-white ${
-                          o.offer_type === '2for1' ? 'bg-[#DA5F3D]' : 'bg-black'
-                        }`}
+                        className="inline-flex max-w-full shrink-0 items-center rounded-full bg-black px-3 py-1 text-xs font-medium text-white"
                       >
                         <span className="truncate">{formatOfferHeadline(o.offer_type, o.offer_title)}</span>
                       </span>

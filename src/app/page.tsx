@@ -230,30 +230,28 @@ export default async function HomePage({ searchParams }: PageProps) {
         </div>
       </section>
 
-      {/* STICKY: быстрые фильтры (чипы → сразу меняют URL) */}
-      <div className="sticky top-14 z-30 -mx-5 mb-6 border-b border-gray-200/90 bg-background/95 px-5 py-2 backdrop-blur-md sm:-mx-0 sm:rounded-xl sm:border sm:border-gray-200/90 sm:py-2.5 sm:shadow-sm">
-        <div className="flex gap-2 overflow-x-auto pb-0.5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+      {/* Список заведений + быстрые фильтры (чипы → сразу меняют URL) */}
+      <div className="mb-6">
+        <div className="flex items-baseline justify-between gap-3">
+          <h2 className="text-xl font-bold tracking-tight text-gray-950">Заведения</h2>
+          <p className="shrink-0 text-sm text-gray-400">{filteredRestaurants.length} шт.</p>
+        </div>
+        <div className="mt-3 flex flex-wrap gap-2">
           {quickChips.map((chip) => (
             <Link
               key={`${chip.label}-${chip.href}`}
               href={chip.href}
               scroll={false}
-              className={`shrink-0 rounded-full px-3.5 py-1.5 text-xs font-medium transition-colors ${
+              className={`rounded-full border px-3.5 py-1.5 text-xs font-medium transition-colors ${
                 chip.isActive
-                  ? 'bg-gray-900 text-white'
-                  : 'border border-gray-300/90 bg-white text-gray-700 hover:border-gray-400/80 hover:bg-gray-50'
+                  ? 'border-gray-900 bg-black text-white'
+                  : 'border-gray-200 bg-white text-gray-700 hover:bg-gray-50'
               }`}
             >
               {chip.label}
             </Link>
           ))}
         </div>
-      </div>
-
-      {/* RESULTS */}
-      <div className="mb-6 flex items-baseline justify-between">
-        <h2 className="text-xl font-bold tracking-tight text-gray-950">Рестораны</h2>
-        <p className="text-sm text-gray-400">{filteredRestaurants.length} шт.</p>
       </div>
 
       {filteredRestaurants.length === 0 ? (

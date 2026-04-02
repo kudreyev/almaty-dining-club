@@ -15,7 +15,7 @@ export function Footer() {
           <div>
             <p className="text-xs font-medium uppercase tracking-wider text-gray-400">Навигация</p>
             <div className="mt-3 flex flex-col gap-2">
-              <Link href="/" className="text-sm text-gray-600 transition-colors hover:text-black">Рестораны</Link>
+              <Link href="/" className="text-sm text-gray-600 transition-colors hover:text-black">Заведения</Link>
               <Link href="/pricing" className="text-sm text-gray-600 transition-colors hover:text-black">Подписка</Link>
               <Link href="/staff/login" className="text-sm text-gray-600 transition-colors hover:text-black">Вход для персонала</Link>
             </div>

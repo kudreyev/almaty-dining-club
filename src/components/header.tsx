@@ -23,7 +23,7 @@ export async function Header() {
   }
 
   const navLinks = [
-    { href: '/', label: 'Рестораны' },
+    { href: '/', label: 'Заведения' },
     { href: '/pricing', label: 'Подписка' },
   ]
 

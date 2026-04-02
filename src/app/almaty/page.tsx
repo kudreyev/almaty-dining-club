@@ -159,17 +159,19 @@ export default async function AlmatyPage({ searchParams }: PageProps) {
                   </div>
 
                   {activeOffers.length > 0 ? (
-                    <div className="mt-3 space-y-1.5">
+                    <div className="mt-3 flex flex-wrap items-center gap-1.5">
                       {activeOffers.slice(0, 3).map((o, i) => (
-                        <div
-                          key={i}
-                          className="rounded-lg border border-gray-200 bg-gray-50 px-2.5 py-1.5 text-xs font-medium text-gray-700"
+                        <span
+                          key={`${restaurant.id}-offer-${i}`}
+                          className={`inline-flex max-w-full shrink-0 items-center rounded-full px-3 py-1 text-xs font-medium text-white ${
+                            o.offer_type === '2for1' ? 'bg-[#DD4F41]' : 'bg-black'
+                          }`}
                         >
-                          {formatOfferHeadline(o.offer_type, o.offer_title)}
-                        </div>
+                          <span className="truncate">{formatOfferHeadline(o.offer_type, o.offer_title)}</span>
+                        </span>
                       ))}
                       {activeOffers.length > 3 ? (
-                        <p className="text-xs text-gray-400">и ещё {activeOffers.length - 3}</p>
+                        <span className="text-xs text-gray-400">и ещё {activeOffers.length - 3}</span>
                       ) : null}
                     </div>
                   ) : null}

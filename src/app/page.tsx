@@ -230,10 +230,9 @@ export default async function HomePage({ searchParams }: PageProps) {
         </div>
       </section>
 
-      {/* STICKY: quick chips + filter bar */}
-      <div className="sticky top-14 z-30 -mx-5 mb-8 border-b border-gray-300/80 bg-background/95 px-5 py-3 backdrop-blur-md sm:-mx-0 sm:rounded-2xl sm:border sm:border-gray-300/90 sm:shadow-[0_2px_8px_-2px_rgba(0,0,0,0.06)]">
-        <p className="mb-2 text-xs font-medium text-gray-500">Быстрый выбор</p>
-        <div className="flex gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+      {/* STICKY: быстрые фильтры (чипы → сразу меняют URL) */}
+      <div className="sticky top-14 z-30 -mx-5 mb-6 border-b border-gray-200/90 bg-background/95 px-5 py-2 backdrop-blur-md sm:-mx-0 sm:rounded-xl sm:border sm:border-gray-200/90 sm:py-2.5 sm:shadow-sm">
+        <div className="flex gap-2 overflow-x-auto pb-0.5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           {quickChips.map((chip) => (
             <Link
               key={`${chip.label}-${chip.href}`}
@@ -248,41 +247,6 @@ export default async function HomePage({ searchParams }: PageProps) {
               {chip.label}
             </Link>
           ))}
-        </div>
-
-        <div className="mt-3 rounded-xl border border-gray-300/80 bg-white/90 p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.6)] sm:bg-white">
-          <form className="flex flex-col gap-3 sm:flex-row sm:items-end">
-            <div className="flex-1">
-              <label className="mb-1.5 block text-xs font-medium text-gray-500">Кухня</label>
-              <select
-                name="cuisine"
-                defaultValue={cuisine}
-                className="w-full rounded-xl border border-gray-300/90 bg-white px-3.5 py-2.5 text-sm outline-none transition-colors focus:border-accent focus:ring-1 focus:ring-accent/20"
-              >
-                <option value="all">Все кухни</option>
-                {cuisines.map((c) => (
-                  <option key={c} value={c}>{c}</option>
-                ))}
-              </select>
-            </div>
-
-            <div className="flex-1">
-              <label className="mb-1.5 block text-xs font-medium text-gray-500">Тип</label>
-              <select
-                name="offer"
-                defaultValue={offer}
-                className="w-full rounded-xl border border-gray-300/90 bg-white px-3.5 py-2.5 text-sm outline-none transition-colors focus:border-accent focus:ring-1 focus:ring-accent/20"
-              >
-                <option value="all">Все</option>
-                <option value="2for1">2за1</option>
-                <option value="compliment">в подарок</option>
-              </select>
-            </div>
-
-            <Button type="submit" size="lg" className="sm:w-auto">
-              Применить
-            </Button>
-          </form>
         </div>
       </div>
 

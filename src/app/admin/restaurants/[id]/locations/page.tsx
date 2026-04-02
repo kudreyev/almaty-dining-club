@@ -41,8 +41,8 @@ export default async function AdminRestaurantLocationsPage({ params, searchParam
     <div className="mx-auto max-w-2xl px-5 py-8">
       <div className="mb-6 flex items-center justify-between gap-3">
         <div>
-          <h1 className="text-xl font-bold">Адреса</h1>
-          <p className="text-sm text-gray-500">{restaurant.restaurant_name}</p>
+          <h1 className="text-3xl font-bold sm:text-4xl">Адреса</h1>
+          <p className="text-base text-gray-500">{restaurant.restaurant_name}</p>
         </div>
         <div className="flex gap-2">
           <Button href={`/admin/restaurants/${id}/edit`} variant="secondary" size="sm">Ресторан</Button>
@@ -51,19 +51,19 @@ export default async function AdminRestaurantLocationsPage({ params, searchParam
       </div>
 
       {ok ? (
-        <div className="mb-6 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+        <div className="mb-6 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-base text-emerald-700">
           Готово
         </div>
       ) : null}
 
       {error ? (
-        <div className="mb-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+        <div className="mb-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-base text-red-700">
           Ошибка: {error}
         </div>
       ) : null}
 
       <Card className="mb-6">
-        <p className="text-sm font-medium">Добавить адрес</p>
+        <p className="text-base font-medium">Добавить адрес</p>
         <form action={addLocation} className="mt-3 flex flex-col gap-3 sm:flex-row">
           <input type="hidden" name="restaurantId" value={id} />
           <div className="flex-1">
@@ -73,7 +73,7 @@ export default async function AdminRestaurantLocationsPage({ params, searchParam
         </form>
       </Card>
 
-      <h2 className="mb-3 text-sm font-medium">Текущие адреса</h2>
+      <h2 className="mb-3 text-xl font-bold sm:text-2xl">Текущие адреса</h2>
 
       {!locations || locations.length === 0 ? (
         <EmptyState title="Адресов пока нет" description="Добавьте первый адрес выше" />
@@ -82,7 +82,7 @@ export default async function AdminRestaurantLocationsPage({ params, searchParam
           {locations.map((loc) => (
             <Card key={loc.id} padding="sm">
               <div className="flex items-center justify-between gap-3">
-                <p className="text-sm">{loc.address}</p>
+                <p className="text-base leading-6">{loc.address}</p>
                 <form action={deleteLocation}>
                   <input type="hidden" name="restaurantId" value={id} />
                   <input type="hidden" name="locationId" value={loc.id} />

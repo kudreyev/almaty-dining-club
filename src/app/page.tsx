@@ -193,16 +193,16 @@ export default async function HomePage({ searchParams }: PageProps) {
       {/* HERO */}
       <section className="relative -mx-5 mb-6 md:mx-0 md:mb-8">
         <div className="bg-gradient-to-b from-stone-400/[0.07] via-orange-50/[0.025] to-background px-5 py-8 md:rounded-3xl md:px-8 md:py-10">
-          <p className="text-xs font-semibold uppercase tracking-widest text-gray-400">
+          <p className="text-sm font-semibold uppercase tracking-widest text-gray-400">
             Алматы
           </p>
-          <h1 className="mt-3 max-w-3xl text-3xl font-semibold tracking-tight text-gray-950 leading-[1.1] md:text-5xl md:font-bold md:leading-[1.05]">
+          <h1 className="mt-3 max-w-3xl text-3xl font-semibold tracking-tight text-gray-950 leading-tight sm:text-4xl sm:font-bold">
             2за1 и подарки в ресторанах по&nbsp;подписке
           </h1>
-          <p className="mt-4 max-w-xl text-base leading-relaxed text-gray-500">
+          <p className="mt-4 max-w-xl text-base leading-6 text-gray-500">
             Выбирай заведение, показывай код персоналу. Без купонов и распечаток.
           </p>
-          <p className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-gray-600">
+          <p className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-base leading-6 text-gray-600">
             <span>
               <span className="font-semibold text-gray-900">{totalVenues}</span>
               {' '}
@@ -233,8 +233,8 @@ export default async function HomePage({ searchParams }: PageProps) {
       {/* Список заведений + быстрые фильтры (чипы → сразу меняют URL) */}
       <div className="mb-6">
         <div className="flex items-baseline justify-between gap-3">
-          <h2 className="text-xl font-bold tracking-tight text-gray-950">Заведения</h2>
-          <p className="shrink-0 text-sm text-gray-400">{filteredRestaurants.length} шт.</p>
+          <h2 className="text-xl font-bold tracking-tight text-gray-950 sm:text-2xl">Заведения</h2>
+          <p className="shrink-0 text-base text-gray-400">{filteredRestaurants.length} шт.</p>
         </div>
         <div className="mt-3 flex flex-wrap gap-2">
           {quickChips.map((chip) => (
@@ -242,7 +242,7 @@ export default async function HomePage({ searchParams }: PageProps) {
               key={`${chip.label}-${chip.href}`}
               href={chip.href}
               scroll={false}
-              className={`rounded-full border px-3.5 py-1.5 text-xs font-medium transition-colors ${
+              className={`rounded-full border px-3.5 py-1.5 text-sm font-medium transition-colors ${
                 chip.isActive
                   ? 'border-gray-900 bg-black text-white'
                   : 'border-gray-200 bg-white text-gray-700 hover:bg-gray-50'
@@ -277,7 +277,7 @@ export default async function HomePage({ searchParams }: PageProps) {
                     className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
                   />
                 ) : (
-                  <div className="flex h-full items-center justify-center text-sm text-gray-300">
+                  <div className="flex h-full items-center justify-center text-base text-gray-300">
                     Нет фото
                   </div>
                 )}
@@ -285,7 +285,7 @@ export default async function HomePage({ searchParams }: PageProps) {
 
               <div className="p-4">
                 {/* NAME + CUISINES */}
-                <h3 className="text-base font-bold tracking-tight leading-tight text-gray-950">{r.restaurant_name}</h3>
+                <h3 className="text-lg font-bold tracking-tight leading-tight text-gray-950 sm:text-xl">{r.restaurant_name}</h3>
                 <div className="mt-1.5 flex flex-wrap gap-1.5">
                   {[r.cuisine, r.cuisine_2, r.cuisine_3]
                     .filter(Boolean)
@@ -301,13 +301,13 @@ export default async function HomePage({ searchParams }: PageProps) {
                     {r.offers.slice(0, 3).map((o, i) => (
                       <span
                         key={`${r.id}-offer-${i}`}
-                        className="inline-flex max-w-full shrink-0 items-center rounded-full bg-black px-3 py-1 text-xs font-medium text-white"
+                        className="inline-flex max-w-full shrink-0 items-center rounded-full bg-black px-3 py-1 text-sm font-medium text-white"
                       >
                         <span className="truncate">{formatOfferHeadline(o.offer_type, o.offer_title)}</span>
                       </span>
                     ))}
                     {r.offers.length > 3 ? (
-                      <span className="text-xs text-gray-400">и ещё {r.offers.length - 3}</span>
+                      <span className="text-sm text-gray-400">и ещё {r.offers.length - 3}</span>
                     ) : null}
                   </div>
                 ) : null}
@@ -323,14 +323,14 @@ export default async function HomePage({ searchParams }: PageProps) {
 
                   if (addresses.length === 0 && r.short_description) {
                     return (
-                      <p className="mt-3 text-sm leading-relaxed text-gray-500 line-clamp-2">
+                      <p className="mt-3 text-base leading-6 text-gray-500 line-clamp-2">
                         {r.short_description}
                       </p>
                     )
                   }
 
                   return addresses.length > 0 ? (
-                    <div className="mt-3 space-y-0.5 text-sm text-gray-500">
+                    <div className="mt-3 space-y-1 text-base leading-6 text-gray-500">
                       {addresses.slice(0, 2).map((a) => (
                         <p key={a} className="truncate">{a}</p>
                       ))}

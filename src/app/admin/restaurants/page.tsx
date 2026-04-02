@@ -17,8 +17,8 @@ export default async function AdminRestaurantsPage() {
     <div className="mx-auto max-w-4xl px-5 py-8">
       <div className="mb-6 flex items-center justify-between gap-4">
         <div>
-          <h1 className="text-xl font-bold">Заведения</h1>
-          <p className="mt-1 text-sm text-gray-500">Управление ресторанами</p>
+          <h1 className="text-3xl font-bold sm:text-4xl">Заведения</h1>
+          <p className="mt-1 text-base leading-6 text-gray-500">Управление ресторанами</p>
         </div>
         <Button href="/admin/restaurants/new" size="sm">
           + Добавить
@@ -36,7 +36,7 @@ export default async function AdminRestaurantsPage() {
                     {listingVisibilityLabel(!!r.is_active)}
                   </Badge>
                 </div>
-                <p className="mt-0.5 truncate text-xs text-gray-400">{r.district} · /{r.slug}</p>
+                <p className="mt-0.5 truncate text-sm text-gray-400">{r.district} · /{r.slug}</p>
               </div>
               <Button href={`/admin/restaurants/${r.id}/edit`} variant="secondary" size="sm">
                 Изменить

@@ -110,8 +110,8 @@ export default async function AdminActivationLinksPage({
   return (
     <div className="mx-auto max-w-6xl px-5 py-8">
       <div className="mb-6">
-        <h1 className="text-xl font-bold">Ссылки активации</h1>
-        <p className="mt-1 text-sm text-gray-500">
+        <h1 className="text-3xl font-bold sm:text-4xl">Ссылки активации</h1>
+        <p className="mt-1 text-base leading-6 text-gray-500">
           Создайте ссылку для клиента после оплаты. Срок — 24 часа.
         </p>
       </div>
@@ -120,19 +120,19 @@ export default async function AdminActivationLinksPage({
       <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-5">
         {metrics.map((m) => (
           <Card key={m.label} padding="sm">
-            <p className="text-xs text-gray-400">{m.label} (7д)</p>
-            <p className="mt-1 text-xl font-bold">{m.value}</p>
+            <p className="text-sm text-gray-400">{m.label} (7д)</p>
+            <p className="mt-1 text-2xl font-bold">{m.value}</p>
           </Card>
         ))}
       </div>
 
-      <p className="mb-6 text-xs text-gray-400">
+      <p className="mb-6 text-sm text-gray-400">
         открыто/создано: {(openedPerCreated * 100).toFixed(1)}% · активаций/открыто: {(activatedPerOpened * 100).toFixed(1)}%
       </p>
 
       {/* ERROR */}
       {errorParam === 'invalid_phone' ? (
-        <div className="mb-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+        <div className="mb-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-base text-red-700">
           Укажите корректный номер телефона.
         </div>
       ) : null}
@@ -141,13 +141,13 @@ export default async function AdminActivationLinksPage({
       <Card className="mb-6">
         <form action={createActivationLink} className="flex flex-col gap-4 sm:flex-row sm:items-end">
           <div className="flex-1">
-            <label htmlFor="phone_target" className="mb-1.5 block text-sm font-medium text-gray-700">
+            <label htmlFor="phone_target" className="mb-1.5 block text-base font-medium text-gray-700">
               Номер клиента
             </label>
-            <PhoneInput id="phone_target" name="phone_target" required className="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm outline-none transition-colors focus:border-accent" />
+            <PhoneInput id="phone_target" name="phone_target" required className="w-full rounded-xl border border-gray-200 px-4 py-3 text-base outline-none transition-colors focus:border-accent" />
           </div>
           <div className="w-full sm:w-32">
-            <label htmlFor="amount" className="mb-1.5 block text-sm font-medium text-gray-700">
+            <label htmlFor="amount" className="mb-1.5 block text-base font-medium text-gray-700">
               Сумма (₸)
             </label>
             <input
@@ -156,7 +156,7 @@ export default async function AdminActivationLinksPage({
               type="number"
               defaultValue={4990}
               min={1}
-              className="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm outline-none transition-colors focus:border-accent"
+              className="w-full rounded-xl border border-gray-200 px-4 py-3 text-base outline-none transition-colors focus:border-accent"
             />
           </div>
           <Button type="submit" size="lg">Создать</Button>
@@ -174,14 +174,14 @@ export default async function AdminActivationLinksPage({
       ) : (
         <Card padding="none" className="overflow-hidden">
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[700px] text-left text-sm">
+            <table className="w-full min-w-[700px] text-left text-base">
               <thead>
                 <tr className="border-b border-gray-100 bg-gray-50/50">
-                  <th className="px-4 py-3 text-xs font-medium text-gray-500">Телефон</th>
-                  <th className="px-4 py-3 text-xs font-medium text-gray-500">Сумма</th>
-                  <th className="px-4 py-3 text-xs font-medium text-gray-500">Статус</th>
-                  <th className="px-4 py-3 text-xs font-medium text-gray-500">Создана</th>
-                  <th className="px-4 py-3 text-xs font-medium text-gray-500">Действия</th>
+                  <th className="px-4 py-3 text-sm font-medium text-gray-500">Телефон</th>
+                  <th className="px-4 py-3 text-sm font-medium text-gray-500">Сумма</th>
+                  <th className="px-4 py-3 text-sm font-medium text-gray-500">Статус</th>
+                  <th className="px-4 py-3 text-sm font-medium text-gray-500">Создана</th>
+                  <th className="px-4 py-3 text-sm font-medium text-gray-500">Действия</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50">
@@ -199,20 +199,20 @@ export default async function AdminActivationLinksPage({
                           {isExpiredByTime && row.status === 'issued' ? ' (истёк)' : ''}
                         </Badge>
                       </td>
-                      <td className="px-4 py-3 text-xs text-gray-500">
+                      <td className="px-4 py-3 text-sm text-gray-500">
                         {new Date(row.created_at).toLocaleString('ru-RU')}
                       </td>
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-2">
                           <CopyLinkButton
                             textToCopy={url}
-                            className="inline-flex rounded-lg border border-gray-200 bg-white px-2.5 py-1.5 text-xs font-medium text-gray-700 transition-colors hover:bg-gray-50"
+                            className="inline-flex rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50"
                           />
                           <a
                             href={waHref}
                             target="_blank"
                             rel="noreferrer"
-                            className="inline-flex rounded-lg border border-gray-200 bg-white px-2.5 py-1.5 text-xs font-medium text-gray-700 transition-colors hover:bg-gray-50"
+                            className="inline-flex rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50"
                           >
                             WhatsApp
                           </a>

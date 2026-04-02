@@ -33,10 +33,10 @@ export default async function AdminOfferEditPage({ params }: PageProps) {
     <div className="mx-auto max-w-2xl px-5 py-8">
       <div className="mb-6 flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-bold">Редактировать оффер</h1>
-          <p className="text-sm text-gray-500">{restaurant?.restaurant_name}</p>
+          <h1 className="text-3xl font-bold sm:text-4xl">Редактировать оффер</h1>
+          <p className="text-base text-gray-500">{restaurant?.restaurant_name}</p>
           {offer.offer_key ? (
-            <p className="font-mono text-xs text-gray-400">{offer.offer_key}</p>
+            <p className="font-mono text-sm text-gray-400">{offer.offer_key}</p>
           ) : null}
         </div>
         <Button href={`/admin/offers/${restaurantId}`} variant="ghost" size="sm">← Назад</Button>
@@ -78,7 +78,7 @@ export default async function AdminOfferEditPage({ params }: PageProps) {
             />
           </div>
 
-          <label className="flex items-center gap-2 text-sm text-gray-600">
+          <label className="flex items-center gap-2 text-base text-gray-600">
             <input type="checkbox" name="is_active" defaultChecked={!!offer.is_active} className="rounded" />
             Активен
           </label>

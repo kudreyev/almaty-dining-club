@@ -14,10 +14,10 @@ type TabsProps = {
 
 export function Tabs({ tabs, active, onChange }: TabsProps) {
   return (
-    <div className="flex flex-wrap gap-1 rounded-xl bg-gray-100 p-1">
+    <div className="flex flex-wrap gap-1 rounded-xl bg-gray-100 p-1.5">
       {tabs.map((tab) => {
         const isActive = active === tab.id
-        const cls = `rounded-lg px-4 py-2 text-sm font-medium transition-all ${
+        const cls = `rounded-lg px-4 py-2.5 text-base font-medium transition-all ${
           isActive
             ? 'bg-white text-accent shadow-sm'
             : 'text-gray-500 hover:text-accent'

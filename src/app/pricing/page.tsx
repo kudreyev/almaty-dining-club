@@ -37,10 +37,10 @@ export default function PricingPage() {
       <div className="mx-auto max-w-3xl px-5 py-10 pb-28 sm:pb-16 md:py-16 md:pb-16">
         {/* HERO */}
         <section className="text-center">
-          <p className="text-xs font-medium uppercase tracking-widest text-gray-400">
+          <p className="text-sm font-medium uppercase tracking-widest text-gray-400">
             Подписка
           </p>
-          <h1 className="mt-3 text-3xl font-bold tracking-tight md:text-4xl">
+          <h1 className="mt-3 text-3xl font-bold tracking-tight sm:text-4xl">
             Все рестораны — одна подписка
           </h1>
           <p className="mx-auto mt-4 max-w-lg text-base leading-relaxed text-gray-500">
@@ -53,7 +53,7 @@ export default function PricingPage() {
           <div className="p-6 md:p-8">
             <div className="flex items-baseline gap-2">
               <span className="text-4xl font-bold tracking-tight">4 990 ₸</span>
-              <span className="text-sm text-gray-400">/ 30 дней</span>
+              <span className="text-base text-gray-400">/ 30 дней</span>
             </div>
 
             <ul className="mt-6 space-y-3">
@@ -64,7 +64,7 @@ export default function PricingPage() {
                 'Одноразовый код на каждый визит',
                 'Подписка через WhatsApp за 2 минуты',
               ].map((item) => (
-                <li key={item} className="flex items-start gap-3 text-sm text-gray-700">
+                <li key={item} className="flex items-start gap-3 text-base leading-6 text-gray-700">
                   <svg className="mt-0.5 h-4 w-4 shrink-0 text-emerald-500" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
                   </svg>
@@ -83,7 +83,7 @@ export default function PricingPage() {
               Оформить в WhatsApp
             </Button>
 
-            <p className="mt-3 text-center text-xs text-gray-400">
+            <p className="mt-3 text-center text-sm text-gray-400">
               Ответим за 5 минут, выставим счёт и активируем подписку.
             </p>
           </div>
@@ -91,7 +91,7 @@ export default function PricingPage() {
 
         {/* HOW IT WORKS */}
         <section className="mt-14">
-          <h2 className="text-center text-xl font-bold">Как это работает</h2>
+          <h2 className="text-center text-xl font-bold sm:text-2xl">Как это работает</h2>
 
           <div className="mt-8 grid gap-4 sm:grid-cols-3">
             {[
@@ -100,11 +100,11 @@ export default function PricingPage() {
               { step: '3', title: 'Покажи код', desc: 'Персонал проверит код — предложение применят к заказу.' },
             ].map((s) => (
               <Card key={s.step} padding="md">
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-accent text-sm font-bold text-white">
+                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-accent text-base font-bold text-white">
                   {s.step}
                 </div>
-                <p className="mt-3 text-sm font-semibold">{s.title}</p>
-                <p className="mt-1 text-sm leading-relaxed text-gray-500">{s.desc}</p>
+                <p className="mt-3 text-base font-semibold">{s.title}</p>
+                <p className="mt-1 text-base leading-6 text-gray-500">{s.desc}</p>
               </Card>
             ))}
           </div>
@@ -112,7 +112,7 @@ export default function PricingPage() {
 
         {/* FAQ */}
         <section className="mt-14">
-          <h2 className="text-center text-xl font-bold">Частые вопросы</h2>
+          <h2 className="text-center text-xl font-bold sm:text-2xl">Частые вопросы</h2>
           <div className="mt-8">
             <FaqAccordion items={FAQ_ITEMS} />
           </div>
@@ -124,13 +124,13 @@ export default function PricingPage() {
         <div className="flex items-center gap-3">
           <div className="min-w-0 flex-1">
             <p className="text-base font-bold leading-tight">4 990 ₸</p>
-            <p className="text-xs text-gray-500">/ 30 дней</p>
+            <p className="text-sm text-gray-500">/ 30 дней</p>
           </div>
           <a
             href={WHATSAPP_SUBSCRIBE_URL}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex shrink-0 items-center justify-center rounded-xl bg-gray-900 px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-black active:scale-[0.98]"
+            className="inline-flex shrink-0 items-center justify-center rounded-xl bg-gray-900 px-5 py-3 text-base font-semibold text-white transition-colors hover:bg-black active:scale-[0.98]"
           >
             Оформить в WhatsApp
           </a>

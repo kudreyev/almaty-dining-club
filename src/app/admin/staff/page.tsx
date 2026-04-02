@@ -39,8 +39,8 @@ export default async function AdminStaffPage() {
   return (
     <div className="mx-auto max-w-4xl px-5 py-8">
       <div className="mb-6">
-        <h1 className="text-xl font-bold">PIN персонала</h1>
-        <p className="mt-1 text-sm text-gray-500">Один PIN на ресторан для входа персонала.</p>
+        <h1 className="text-3xl font-bold sm:text-4xl">PIN персонала</h1>
+        <p className="mt-1 text-base leading-6 text-gray-500">Один PIN на ресторан для входа персонала.</p>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2">
@@ -51,7 +51,7 @@ export default async function AdminStaffPage() {
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <p className="font-semibold">{r.restaurant_name}</p>
-                  <p className="mt-0.5 text-xs text-gray-400">
+                  <p className="mt-0.5 text-sm text-gray-400">
                     {staff ? 'PIN настроен' : 'PIN не задан'}
                   </p>
                 </div>
@@ -73,7 +73,7 @@ export default async function AdminStaffPage() {
                   placeholder="PIN (4 цифры)"
                   required
                 />
-                <label className="flex items-center gap-2 text-sm text-gray-600">
+                <label className="flex items-center gap-2 text-base text-gray-600">
                   <input type="checkbox" name="is_active" defaultChecked={staff ? staff.is_active : true} className="rounded" />
                   Активен
                 </label>

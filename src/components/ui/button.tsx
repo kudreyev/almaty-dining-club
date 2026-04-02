@@ -11,9 +11,9 @@ const variants = {
 } as const
 
 const sizes = {
-  sm: 'rounded-xl px-3.5 py-2 text-xs gap-1.5',
-  md: 'rounded-xl px-5 py-2.5 text-sm gap-2',
-  lg: 'rounded-xl px-6 py-3 text-sm gap-2',
+  sm: 'rounded-xl px-4 py-2.5 text-sm gap-1.5',
+  md: 'rounded-xl px-5 py-3 text-base gap-2',
+  lg: 'rounded-xl px-6 py-3.5 text-base gap-2',
 } as const
 
 type Variant = keyof typeof variants

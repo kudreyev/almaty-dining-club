@@ -58,8 +58,8 @@ export default async function AdminPaymentsPage() {
   if (error) {
     return (
       <div className="mx-auto max-w-5xl px-5 py-10">
-        <h1 className="text-xl font-bold">Заявки на оплату</h1>
-        <p className="mt-4 text-sm text-red-600">Ошибка: {error.message}</p>
+        <h1 className="text-3xl font-bold sm:text-4xl">Заявки на оплату</h1>
+        <p className="mt-4 text-base text-red-600">Ошибка: {error.message}</p>
       </div>
     )
   }
@@ -67,8 +67,8 @@ export default async function AdminPaymentsPage() {
   return (
     <div className="mx-auto max-w-4xl px-5 py-8">
       <div className="mb-6">
-        <h1 className="text-xl font-bold">Заявки на оплату</h1>
-        <p className="mt-1 text-sm text-gray-500">Просмотр и подтверждение заявок.</p>
+        <h1 className="text-3xl font-bold sm:text-4xl">Заявки на оплату</h1>
+        <p className="mt-1 text-base leading-6 text-gray-500">Просмотр и подтверждение заявок.</p>
       </div>
 
       {!paymentRequests || paymentRequests.length === 0 ? (
@@ -78,7 +78,7 @@ export default async function AdminPaymentsPage() {
           {paymentRequests.map((item) => (
             <Card key={item.id}>
               <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-                <div className="space-y-3 text-sm">
+                <div className="space-y-3 text-base leading-6">
                   <div className="flex items-center gap-2">
                     <span className="font-semibold">{item.payment_code}</span>
                     <Badge color={statusColor(item.status)}>
@@ -91,16 +91,16 @@ export default async function AdminPaymentsPage() {
                     <p>Отправлено: {new Date(item.submitted_at).toLocaleString('ru-RU')}</p>
                   </div>
 
-                  <p className="text-xs text-gray-400 break-all">ID: {item.user_id}</p>
+                  <p className="text-sm text-gray-400 break-all">ID: {item.user_id}</p>
 
                   {item.comment_from_user ? (
-                    <div className="rounded-lg bg-gray-50 p-3 text-sm text-gray-600">
+                    <div className="rounded-lg bg-gray-50 p-3 text-base leading-6 text-gray-600">
                       {item.comment_from_user}
                     </div>
                   ) : null}
 
                   {item.admin_comment ? (
-                    <div className="rounded-lg bg-blue-50 p-3 text-sm text-blue-700">
+                    <div className="rounded-lg bg-blue-50 p-3 text-base leading-6 text-blue-700">
                       Админ: {item.admin_comment}
                     </div>
                   ) : null}
@@ -124,7 +124,7 @@ export default async function AdminPaymentsPage() {
                     </form>
                   </div>
                 ) : (
-                  <p className="shrink-0 text-xs text-gray-400">Обработано</p>
+                  <p className="shrink-0 text-sm text-gray-400">Обработано</p>
                 )}
               </div>
             </Card>

@@ -93,7 +93,7 @@ export default async function RestaurantPage({ params }: PageProps) {
   if (offersError) {
     return (
       <div className="mx-auto max-w-5xl px-5 py-10">
-        <h1 className="text-2xl font-bold">{restaurant.restaurant_name}</h1>
+        <h1 className="text-3xl font-bold sm:text-4xl">{restaurant.restaurant_name}</h1>
         <p className="mt-4 text-sm text-red-600">
           Ошибка загрузки офферов: {offersError.message}
         </p>
@@ -125,20 +125,20 @@ export default async function RestaurantPage({ params }: PageProps) {
               ))}
             </div>
 
-            <h1 className="mt-4 text-2xl font-bold tracking-tight md:text-3xl">
+            <h1 className="mt-4 text-3xl font-bold tracking-tight sm:text-4xl">
               {restaurant.restaurant_name}
             </h1>
 
-            <p className="mt-3 text-sm leading-relaxed text-gray-600">
+            <p className="mt-3 text-base leading-6 text-gray-600">
               {restaurant.short_description}
             </p>
 
             {/* ADDRESS */}
             {(activeLocations.length > 0 || restaurant.address) ? (
               <div className="mt-6 rounded-xl bg-gray-50 p-4">
-                <p className="text-xs font-medium uppercase tracking-wider text-gray-400">Адрес</p>
+                <p className="text-sm font-medium uppercase tracking-wider text-gray-400">Адрес</p>
                 {activeLocations.length > 1 ? (
-                  <ul className="mt-2 space-y-1 text-sm text-gray-700">
+                  <ul className="mt-2 space-y-1 text-base leading-6 text-gray-700">
                     {activeLocations.map((loc) => (
                       <li key={loc.id} className="flex items-start gap-2">
                         <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-gray-300" />
@@ -147,7 +147,7 @@ export default async function RestaurantPage({ params }: PageProps) {
                     ))}
                   </ul>
                 ) : (
-                  <p className="mt-1.5 text-sm text-gray-700">
+                  <p className="mt-1.5 text-base leading-6 text-gray-700">
                     {activeLocations[0]?.address ?? restaurant.address}
                   </p>
                 )}

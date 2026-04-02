@@ -97,14 +97,14 @@ export function LoginForm({
   return (
     <div className="flex min-h-[60vh] items-center justify-center px-5 py-12">
       <Card className="w-full max-w-sm" padding="lg">
-        <h1 className="text-xl font-bold">Вход через WhatsApp</h1>
-        <p className="mt-2 text-sm text-gray-500">
+        <h1 className="text-3xl font-bold sm:text-4xl">Вход через WhatsApp</h1>
+        <p className="mt-2 text-base leading-6 text-gray-500">
           Введите номер и подтвердите код из WhatsApp.
         </p>
 
         <form onSubmit={handleWhatsAppLogin} className="mt-6 space-y-4">
           <div>
-            <label htmlFor="phone" className="mb-1.5 block text-sm font-medium text-gray-700">
+            <label htmlFor="phone" className="mb-1.5 block text-base font-medium text-gray-700">
               Номер телефона
             </label>
             <PhoneInput
@@ -113,14 +113,14 @@ export function LoginForm({
               onSubscriberChange={setSubscriber}
               readOnly={isPhoneLocked}
               placeholder="Например: +77001234567"
-              className="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm outline-none transition-colors focus:border-accent"
+              className="w-full rounded-xl border border-gray-200 px-4 py-3 text-base outline-none transition-colors placeholder:text-gray-500 focus:border-accent"
             />
             {isPhoneLocked ? (
-              <p className="mt-1 text-xs text-gray-400">
+              <p className="mt-1 text-sm text-gray-400">
                 Войдите с номера {formatPhoneForDisplay(subscriber)}
               </p>
             ) : (
-              <p className="mt-1 text-xs text-gray-400">
+              <p className="mt-1 text-sm leading-6 text-gray-400">
                 Для Казахстана можно +7…, 8… или 7… (11 цифр). Для других стран — с «+» и кодом.
               </p>
             )}
@@ -138,7 +138,7 @@ export function LoginForm({
         {codeRequested ? (
           <form onSubmit={handleVerifyWhatsAppCode} className="mt-4 space-y-4">
             <div>
-              <label htmlFor="otp" className="mb-1.5 block text-sm font-medium text-gray-700">
+              <label htmlFor="otp" className="mb-1.5 block text-base font-medium text-gray-700">
                 Код из WhatsApp
               </label>
               <input
@@ -164,7 +164,7 @@ export function LoginForm({
                   if (!otpLoading && next.length === 6) await submitWhatsAppCode(next)
                 }}
                 placeholder="123456"
-                className="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-center text-sm tracking-[0.3em] outline-none transition-colors focus:border-accent"
+                className="w-full rounded-xl border border-gray-200 px-4 py-3 text-center text-base tracking-[0.3em] outline-none transition-colors placeholder:text-gray-500 focus:border-accent"
               />
             </div>
 
@@ -180,12 +180,12 @@ export function LoginForm({
         ) : null}
 
         {message ? (
-          <div className="mt-4 rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-700">
+          <div className="mt-4 rounded-lg bg-emerald-50 px-3 py-2.5 text-base leading-6 text-emerald-700">
             {message}
           </div>
         ) : null}
         {error ? (
-          <div className="mt-4 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">
+          <div className="mt-4 rounded-lg bg-red-50 px-3 py-2.5 text-base leading-6 text-red-700">
             {error}
           </div>
         ) : null}

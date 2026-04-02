@@ -49,8 +49,8 @@ export default function TransferSubscriptionPage() {
   return (
     <div className="mx-auto max-w-2xl px-5 py-8">
       <div className="mb-6">
-        <h1 className="text-xl font-bold">Перенос подписки</h1>
-        <p className="mt-1 text-sm text-gray-500">
+        <h1 className="text-3xl font-bold sm:text-4xl">Перенос подписки</h1>
+        <p className="mt-1 text-base leading-6 text-gray-500">
           Перенесите активную подписку с одного номера на другой.
         </p>
       </div>
@@ -58,25 +58,25 @@ export default function TransferSubscriptionPage() {
       <Card className="mb-6">
         <div className="grid gap-4 sm:grid-cols-2">
           <div>
-            <label htmlFor="from_phone" className="mb-1.5 block text-sm font-medium text-gray-700">
+            <label htmlFor="from_phone" className="mb-1.5 block text-base font-medium text-gray-700">
               С номера
             </label>
             <PhoneInput
               id="from_phone"
               subscriber={fromSub}
               onSubscriberChange={(s) => { setFromSub(s); setPreview(null); setResult(null) }}
-              className="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm outline-none transition-colors focus:border-accent"
+              className="w-full rounded-xl border border-gray-200 px-4 py-3 text-base outline-none transition-colors focus:border-accent"
             />
           </div>
           <div>
-            <label htmlFor="to_phone" className="mb-1.5 block text-sm font-medium text-gray-700">
+            <label htmlFor="to_phone" className="mb-1.5 block text-base font-medium text-gray-700">
               На номер
             </label>
             <PhoneInput
               id="to_phone"
               subscriber={toSub}
               onSubscriberChange={(s) => { setToSub(s); setPreview(null); setResult(null) }}
-              className="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm outline-none transition-colors focus:border-accent"
+              className="w-full rounded-xl border border-gray-200 px-4 py-3 text-base outline-none transition-colors focus:border-accent"
             />
           </div>
         </div>
@@ -94,7 +94,7 @@ export default function TransferSubscriptionPage() {
       </Card>
 
       {preview && !preview.ok ? (
-        <div className="mb-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+        <div className="mb-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-base text-red-700">
           {preview.error}
         </div>
       ) : null}
@@ -102,25 +102,25 @@ export default function TransferSubscriptionPage() {
       {preview?.ok ? (
         <Card className="mb-6">
           <h2 className="font-semibold">Предпросмотр</h2>
-          <div className="mt-4 grid gap-3 text-sm sm:grid-cols-2">
+          <div className="mt-4 grid gap-3 text-base leading-6 sm:grid-cols-2">
             <div>
-              <p className="text-xs text-gray-400">С номера</p>
+              <p className="text-sm text-gray-400">С номера</p>
               <p className="mt-0.5 font-medium">{preview.fromPhone}</p>
             </div>
             <div>
-              <p className="text-xs text-gray-400">На номер</p>
+              <p className="text-sm text-gray-400">На номер</p>
               <p className="mt-0.5 font-medium">{preview.toPhone}</p>
             </div>
             <div>
-              <p className="text-xs text-gray-400">План</p>
+              <p className="text-sm text-gray-400">План</p>
               <p className="mt-0.5 font-medium">{preview.plan}</p>
             </div>
             <div>
-              <p className="text-xs text-gray-400">Срок</p>
+              <p className="text-sm text-gray-400">Срок</p>
               <p className="mt-0.5 font-medium">{preview.startDate} → {preview.endDate}</p>
             </div>
             <div>
-              <p className="text-xs text-gray-400">Получатель</p>
+              <p className="text-sm text-gray-400">Получатель</p>
               <Badge color={preview.toUserExists ? 'green' : 'red'}>
                 {preview.toUserExists ? 'Найден' : 'Не найден'}
               </Badge>
@@ -137,7 +137,7 @@ export default function TransferSubscriptionPage() {
               </Button>
             </div>
           ) : (
-            <p className="mt-4 text-xs text-gray-500">
+            <p className="mt-4 text-sm text-gray-500">
               Получатель должен сначала войти через WhatsApp.
             </p>
           )}
@@ -145,13 +145,13 @@ export default function TransferSubscriptionPage() {
       ) : null}
 
       {result?.ok ? (
-        <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+        <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-base text-emerald-700">
           {result.details}
         </div>
       ) : null}
 
       {result && !result.ok ? (
-        <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+        <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-base text-red-700">
           {result.error}
         </div>
       ) : null}

@@ -52,7 +52,7 @@ export function OfferKeyField(props: {
   return (
     <div className="space-y-4">
       <div>
-        <label className="mb-2 block text-sm font-medium text-gray-700">
+        <label className="mb-2 block text-base font-medium text-gray-700">
           Название предложения
         </label>
         <input
@@ -61,12 +61,12 @@ export function OfferKeyField(props: {
           onChange={(e) => setTitle(e.target.value)}
           placeholder="Например: Паста"
           required
-          className="w-full rounded-2xl border border-gray-300 px-4 py-3 text-sm outline-none"
+          className="w-full rounded-2xl border border-gray-300 px-4 py-3 text-base outline-none placeholder:text-gray-500"
         />
       </div>
 
       <div>
-        <label className="mb-2 block text-sm font-medium text-gray-700">
+        <label className="mb-2 block text-base font-medium text-gray-700">
           Ключ оффера (уникален в заведении)
         </label>
 
@@ -78,7 +78,7 @@ export function OfferKeyField(props: {
             onBlur={() => setTouched(true)}
             placeholder="Например: pasta_2for1"
             required
-            className={`w-full rounded-2xl border px-4 py-3 text-sm font-mono outline-none ${
+            className={`w-full rounded-2xl border px-4 py-3 text-base font-mono outline-none placeholder:text-gray-500 ${
               showError ? 'border-red-300' : 'border-gray-300'
             }`}
             aria-invalid={showError}
@@ -90,7 +90,7 @@ export function OfferKeyField(props: {
               setKey(slugify(title))
               setTouched(true)
             }}
-            className="shrink-0 rounded-2xl border border-gray-300 bg-white px-4 py-3 text-sm font-medium text-black"
+            className="shrink-0 rounded-2xl border border-gray-300 bg-white px-4 py-3 text-base font-medium text-black"
           >
             Сгенерировать
           </button>
@@ -99,7 +99,7 @@ export function OfferKeyField(props: {
         {showError ? (
           <p className="mt-2 text-sm text-red-600">{error}</p>
         ) : (
-          <p className="mt-2 text-xs text-gray-500">
+          <p className="mt-2 text-sm text-gray-500">
             Разрешено: <span className="font-mono">a-z</span>, <span className="font-mono">0-9</span>, <span className="font-mono">_</span>.
             Пример: <span className="font-mono">dessert_compliment</span>
           </p>

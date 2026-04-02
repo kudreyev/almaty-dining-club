@@ -23,7 +23,7 @@ export default async function AdminRestaurantEditPage({ params }: PageProps) {
   return (
     <div className="mx-auto max-w-2xl px-5 py-8">
       <div className="mb-6 flex items-center justify-between gap-3">
-        <h1 className="text-xl font-bold">Редактировать</h1>
+        <h1 className="text-3xl font-bold sm:text-4xl">Редактировать</h1>
         <div className="flex gap-2">
           <Button href={`/admin/restaurants/${r.id}/locations`} variant="secondary" size="sm">
             Адреса
@@ -47,12 +47,12 @@ export default async function AdminRestaurantEditPage({ params }: PageProps) {
           <Input name="instagram_url" label="Instagram" defaultValue={r.instagram_url ?? ''} />
           <Input name="two_gis_url" label="2GIS" defaultValue={r.two_gis_url ?? ''} placeholder="Ссылка 2GIS" />
           <div>
-            <label className="mb-1.5 block text-sm font-medium text-gray-700">Телефон</label>
-            <PhoneInput name="phone" defaultValue={r.phone ?? ''} className="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm outline-none transition-colors focus:border-accent" />
+            <label className="mb-1.5 block text-base font-medium text-gray-700">Телефон</label>
+            <PhoneInput name="phone" defaultValue={r.phone ?? ''} className="w-full rounded-xl border border-gray-200 px-4 py-3 text-base outline-none transition-colors focus:border-accent" />
           </div>
           <Input name="photo_1_url" label="Фото (URL)" defaultValue={r.photo_1_url ?? ''} />
 
-          <label className="flex items-center gap-2 text-sm text-gray-600">
+          <label className="flex items-center gap-2 text-base text-gray-600">
             <input type="checkbox" name="is_active" defaultChecked={!!r.is_active} className="rounded" />
             Активен
           </label>

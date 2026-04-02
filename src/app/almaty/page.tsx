@@ -57,8 +57,8 @@ export default async function AlmatyPage({ searchParams }: PageProps) {
   if (error) {
     return (
       <div className="mx-auto max-w-5xl px-5 py-10">
-        <h1 className="text-xl font-bold">Заведения Алматы</h1>
-        <p className="mt-4 text-sm text-red-600">Ошибка: {error.message}</p>
+        <h1 className="text-3xl font-bold sm:text-4xl">Заведения Алматы</h1>
+        <p className="mt-4 text-base text-red-600">Ошибка: {error.message}</p>
       </div>
     )
   }
@@ -82,29 +82,29 @@ export default async function AlmatyPage({ searchParams }: PageProps) {
   return (
     <div className="mx-auto max-w-6xl px-5 py-8">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold">Заведения Алматы</h1>
-        <p className="mt-1 text-sm text-gray-500">Партнёры с офферами 2за1 и в подарок.</p>
+        <h1 className="text-3xl font-bold sm:text-4xl">Заведения Алматы</h1>
+        <p className="mt-1 text-base leading-6 text-gray-500">Партнёры с офферами 2за1 и в подарок.</p>
       </div>
 
       <Card padding="sm" className="mb-8">
         <form className="flex flex-col gap-3 sm:flex-row sm:items-end">
           <div className="flex-1">
-            <label htmlFor="q" className="mb-1.5 block text-xs font-medium text-gray-500">Поиск</label>
+            <label htmlFor="q" className="mb-1.5 block text-sm font-medium text-gray-500">Поиск</label>
             <input
               id="q"
               name="q"
               defaultValue={q}
               placeholder="Название или кухня"
-              className="w-full rounded-xl border border-gray-200 bg-white px-3.5 py-2.5 text-sm outline-none transition-colors placeholder:text-gray-400 focus:border-accent"
+              className="w-full rounded-xl border border-gray-200 bg-white px-3.5 py-3 text-base outline-none transition-colors placeholder:text-gray-500 focus:border-accent"
             />
           </div>
           <div className="w-full sm:w-48">
-            <label htmlFor="offer" className="mb-1.5 block text-xs font-medium text-gray-500">Тип</label>
+            <label htmlFor="offer" className="mb-1.5 block text-sm font-medium text-gray-500">Тип</label>
             <select
               id="offer"
               name="offer"
               defaultValue={offer}
-              className="w-full rounded-xl border border-gray-200 bg-white px-3.5 py-2.5 text-sm outline-none transition-colors focus:border-accent"
+              className="w-full rounded-xl border border-gray-200 bg-white px-3.5 py-3 text-base outline-none transition-colors focus:border-accent"
             >
               <option value="all">Все</option>
               <option value="2for1">2за1</option>
@@ -116,7 +116,7 @@ export default async function AlmatyPage({ searchParams }: PageProps) {
       </Card>
 
       <div className="mb-6 flex items-baseline justify-between">
-        <p className="text-sm text-gray-400">{filteredRestaurants.length} шт.</p>
+        <p className="text-base text-gray-400">{filteredRestaurants.length} шт.</p>
       </div>
 
       {filteredRestaurants.length === 0 ? (
@@ -141,14 +141,14 @@ export default async function AlmatyPage({ searchParams }: PageProps) {
                       className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
                     />
                   ) : (
-                    <div className="flex h-full items-center justify-center text-sm text-gray-300">
+                    <div className="flex h-full items-center justify-center text-base text-gray-300">
                       Нет фото
                     </div>
                   )}
                 </div>
 
                 <div className="p-4">
-                  <h2 className="text-base font-semibold leading-snug">{restaurant.restaurant_name}</h2>
+                  <h2 className="text-lg font-semibold leading-snug sm:text-xl">{restaurant.restaurant_name}</h2>
                   <div className="mt-1.5 flex flex-wrap gap-1.5">
                     {[restaurant.cuisine, restaurant.cuisine_2, restaurant.cuisine_3]
                       .filter(Boolean)
@@ -163,22 +163,22 @@ export default async function AlmatyPage({ searchParams }: PageProps) {
                       {activeOffers.slice(0, 3).map((o, i) => (
                         <span
                           key={`${restaurant.id}-offer-${i}`}
-                          className="inline-flex max-w-full shrink-0 items-center rounded-full bg-black px-3 py-1 text-xs font-medium text-white"
+                          className="inline-flex max-w-full shrink-0 items-center rounded-full bg-black px-3 py-1 text-sm font-medium text-white"
                         >
                           <span className="truncate">{formatOfferHeadline(o.offer_type, o.offer_title)}</span>
                         </span>
                       ))}
                       {activeOffers.length > 3 ? (
-                        <span className="text-xs text-gray-400">и ещё {activeOffers.length - 3}</span>
+                        <span className="text-sm text-gray-400">и ещё {activeOffers.length - 3}</span>
                       ) : null}
                     </div>
                   ) : null}
 
-                  <p className="mt-3 text-sm leading-relaxed text-gray-500 line-clamp-2">
+                  <p className="mt-3 text-base leading-6 text-gray-500 line-clamp-2">
                     {restaurant.short_description}
                   </p>
 
-                  <p className="mt-2 truncate text-xs text-gray-400">{restaurant.address}</p>
+                  <p className="mt-2 truncate text-sm text-gray-400">{restaurant.address}</p>
                 </div>
               </Link>
             )

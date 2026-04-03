@@ -49,20 +49,31 @@ export function OffersPanel({ offers, restaurantId, hasSubscription }: OffersPan
         ) : (
           visibleOffers.map((offer) => {
             const benefitLabel = formatEstimatedValue(offer.estimated_value)
+            const cooldownLabel = formatOfferCooldownText(offer.cooldown_days)
             return (
             <div key={offer.id} className="rounded-xl border border-gray-100 bg-white p-4">
               <h3 className="text-lg font-semibold leading-6 text-gray-900 sm:text-xl">
                 {formatOfferHeadline(offer.offer_type, offer.offer_title)}
               </h3>
 
-              <div className="mt-2 flex flex-wrap gap-2">
+              <div className="mt-2 flex min-w-0 flex-nowrap items-center gap-1 sm:gap-2">
                 {benefitLabel ? (
-                  <span className="inline-flex rounded-full bg-gray-100 px-3 py-1 text-sm font-medium text-gray-800">
+                  <span
+                    className="inline-flex shrink-0 whitespace-nowrap rounded-full bg-gray-100 px-2 py-1 text-xs font-medium text-gray-800 sm:px-3 sm:text-sm"
+                    title={benefitLabel}
+                  >
                     {benefitLabel}
                   </span>
                 ) : null}
-                <span className="inline-flex rounded-full bg-gray-100 px-3 py-1 text-sm font-medium text-gray-800">
-                  {formatOfferCooldownText(offer.cooldown_days)}
+                <span
+                  className={`inline-flex whitespace-nowrap rounded-full bg-gray-100 px-2 py-1 text-xs font-medium text-gray-800 sm:px-3 sm:text-sm ${
+                    benefitLabel ? 'min-w-0 flex-1' : 'shrink-0'
+                  }`}
+                  title={cooldownLabel}
+                >
+                  <span className={benefitLabel ? 'block truncate' : 'block'}>
+                    {cooldownLabel}
+                  </span>
                 </span>
               </div>
 

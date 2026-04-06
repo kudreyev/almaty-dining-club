@@ -6,6 +6,7 @@ import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { EmptyState } from '@/components/ui/empty-state'
 import { formatOfferHeadline } from '@/lib/offers'
+import { DEFAULT_TZ, computeOpenStatus, type RestaurantHour } from '@/lib/opening-hours'
 
 type Offer = {
   id: string
@@ -26,29 +27,33 @@ type Restaurant = {
   cuisine_2: string | null
   cuisine_3: string | null
   short_description: string
-  working_hours: string
   photo_1_url: string | null
   offers: Offer[]
+  restaurant_hours?: RestaurantHour[]
 }
 
 type PageProps = {
   searchParams: Promise<{
     q?: string
     offer?: string
+    openNow?: string
   }>
 }
 
 export default async function AlmatyPage({ searchParams }: PageProps) {
-  const { q = '', offer = 'all' } = await searchParams
+  const { q = '', offer = 'all', openNow: openNowRaw = '0' } = await searchParams
+  const openNow = openNowRaw === '1'
   const supabase = await createSupabaseServerClient()
+  const now = new Date()
 
   const { data: restaurants, error } = await supabase
     .from('restaurants')
     .select(`
       id, restaurant_name, slug, address,
       cuisine, cuisine_2, cuisine_3,
-      short_description, working_hours, photo_1_url,
-      offers ( id, offer_type, offer_title, offer_terms_short, estimated_value, cooldown_days, is_active )
+      short_description, photo_1_url,
+      offers ( id, offer_type, offer_title, offer_terms_short, estimated_value, cooldown_days, is_active ),
+      restaurant_hours ( day_of_week, is_closed, open_time, close_time )
     `)
     .eq('city', 'almaty')
     .eq('is_active', true)
@@ -65,7 +70,12 @@ export default async function AlmatyPage({ searchParams }: PageProps) {
 
   const normalizedQuery = q.trim().toLowerCase()
 
-  const filteredRestaurants = (restaurants as Restaurant[]).filter((restaurant) => {
+  const restaurantsWithStatus = (restaurants as Restaurant[]).map((restaurant) => ({
+    ...restaurant,
+    openStatus: computeOpenStatus(restaurant.restaurant_hours ?? [], now, DEFAULT_TZ),
+  }))
+
+  const filteredRestaurants = restaurantsWithStatus.filter((restaurant) => {
     const matchesQuery =
       !normalizedQuery ||
       restaurant.restaurant_name.toLowerCase().includes(normalizedQuery) ||
@@ -75,8 +85,9 @@ export default async function AlmatyPage({ searchParams }: PageProps) {
 
     const activeOffers = (restaurant.offers || []).filter((item) => item.is_active)
     const matchesOffer = offer === 'all' || activeOffers.some((item) => item.offer_type === offer)
+    const matchesOpenNow = !openNow || restaurant.openStatus.isOpen
 
-    return matchesQuery && matchesOffer
+    return matchesQuery && matchesOffer && matchesOpenNow
   })
 
   return (
@@ -111,6 +122,10 @@ export default async function AlmatyPage({ searchParams }: PageProps) {
               <option value="compliment">в подарок</option>
             </select>
           </div>
+          <label className="inline-flex h-[52px] items-center gap-2 rounded-xl border border-gray-200 px-3 text-sm text-gray-700">
+            <input type="checkbox" name="openNow" value="1" defaultChecked={openNow} className="rounded" />
+            Открыто сейчас
+          </label>
           <Button type="submit" size="lg" className="sm:w-auto">Найти</Button>
         </form>
       </Card>
@@ -157,6 +172,10 @@ export default async function AlmatyPage({ searchParams }: PageProps) {
                         <Badge key={c as string}>{c as string}</Badge>
                       ))}
                   </div>
+
+                  <p className={`mt-2 text-sm ${restaurant.openStatus.isOpen ? 'text-emerald-700' : 'text-gray-500'}`}>
+                    {restaurant.openStatus.labelDetail ?? restaurant.openStatus.labelShort}
+                  </p>
 
                   {activeOffers.length > 0 ? (
                     <div className="mt-3 flex flex-wrap items-center gap-1.5">

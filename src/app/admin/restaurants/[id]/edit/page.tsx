@@ -5,6 +5,8 @@ import { updateRestaurant } from '../../actions'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { RestaurantHoursFields } from '@/components/admin/restaurant-hours-fields'
+import type { RestaurantHour } from '@/lib/opening-hours'
 
 type PageProps = { params: Promise<{ id: string }> }
 
@@ -12,11 +14,19 @@ export default async function AdminRestaurantEditPage({ params }: PageProps) {
   const { id } = await params
   const { supabase } = await requireAdmin()
 
-  const { data: r } = await supabase
-    .from('restaurants')
-    .select('*')
-    .eq('id', id)
-    .single()
+  const [{ data: r }, { data: restaurantHours }] = await Promise.all([
+    supabase
+      .from('restaurants')
+      .select('*')
+      .eq('id', id)
+      .single(),
+    supabase
+      .from('restaurant_hours')
+      .select('day_of_week, is_closed, open_time, close_time')
+      .eq('restaurant_id', id)
+      .order('day_of_week', { ascending: true })
+      .returns<RestaurantHour[]>(),
+  ])
 
   if (!r) notFound()
 
@@ -51,6 +61,7 @@ export default async function AdminRestaurantEditPage({ params }: PageProps) {
             <PhoneInput name="phone" defaultValue={r.phone ?? ''} className="w-full rounded-xl border border-gray-200 px-4 py-3 text-base outline-none transition-colors focus:border-accent" />
           </div>
           <Input name="photo_1_url" label="Фото (URL)" defaultValue={r.photo_1_url ?? ''} />
+          <RestaurantHoursFields initialHours={restaurantHours ?? []} />
 
           <label className="flex items-center gap-2 text-base text-gray-600">
             <input type="checkbox" name="is_active" defaultChecked={!!r.is_active} className="rounded" />

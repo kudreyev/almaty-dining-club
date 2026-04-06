@@ -6,6 +6,13 @@ import { OffersPanel } from '@/components/offers-panel'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card } from '@/components/ui/card'
+import {
+  DEFAULT_TZ,
+  WEEKDAY_LABELS_RU,
+  computeOpenStatus,
+  formatHoursRange,
+  type RestaurantHour,
+} from '@/lib/opening-hours'
 
 type Restaurant = {
   id: string
@@ -25,16 +32,7 @@ type Restaurant = {
   photo_2_url: string | null
   photo_3_url: string | null
   is_active: boolean
-}
-
-type Offer = {
-  id: string
-  offer_type: '2for1' | 'compliment'
-  offer_title: string
-  offer_terms_short: string
-  estimated_value?: number | null
-  cooldown_days?: number | null
-  is_active: boolean
+  restaurant_hours?: RestaurantHour[]
 }
 
 type PageProps = {
@@ -51,7 +49,8 @@ export default async function RestaurantPage({ params }: PageProps) {
       id, restaurant_name, slug, city, address, phone,
       instagram_url, website_url, two_gis_url,
       cuisine, cuisine_2, cuisine_3, short_description,
-      photo_1_url, photo_2_url, photo_3_url, is_active
+      photo_1_url, photo_2_url, photo_3_url, is_active,
+      restaurant_hours ( day_of_week, is_closed, open_time, close_time )
     `)
     .eq('slug', slug)
     .eq('is_active', true)
@@ -106,6 +105,9 @@ export default async function RestaurantPage({ params }: PageProps) {
   )
 
   const cuisines = [restaurant.cuisine, restaurant.cuisine_2, restaurant.cuisine_3].filter(Boolean) as string[]
+  const hoursForWeek = restaurant.restaurant_hours ?? []
+  const openStatus = computeOpenStatus(hoursForWeek, new Date(), DEFAULT_TZ)
+  const hoursByDay = new Map(hoursForWeek.map((item) => [item.day_of_week, item]))
 
   return (
     <div className="mx-auto max-w-6xl px-5 py-8">
@@ -132,6 +134,24 @@ export default async function RestaurantPage({ params }: PageProps) {
             <p className="mt-3 text-base leading-6 text-gray-600">
               {restaurant.short_description}
             </p>
+
+            <div className="mt-6 rounded-xl bg-gray-50 p-4">
+              <p className="text-sm font-medium uppercase tracking-wider text-gray-400">Режим работы</p>
+              <p className={`mt-2 text-base font-medium ${openStatus.isOpen ? 'text-emerald-700' : 'text-gray-700'}`}>
+                {openStatus.labelShort}
+              </p>
+              {openStatus.labelDetail ? (
+                <p className="mt-1 text-sm text-gray-500">{openStatus.labelDetail}</p>
+              ) : null}
+              <div className="mt-3 space-y-1 text-sm text-gray-600">
+                {Array.from({ length: 7 }, (_, idx) => idx + 1).map((day) => (
+                  <p key={day}>
+                    <span className="font-medium text-gray-700">{WEEKDAY_LABELS_RU[day]}:</span>{' '}
+                    {formatHoursRange(hoursByDay.get(day))}
+                  </p>
+                ))}
+              </div>
+            </div>
 
             {/* ADDRESS */}
             {(activeLocations.length > 0 || restaurant.address) ? (

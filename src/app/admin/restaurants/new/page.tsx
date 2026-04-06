@@ -4,6 +4,7 @@ import { createRestaurant } from '../actions'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { RestaurantHoursFields } from '@/components/admin/restaurant-hours-fields'
 
 export default async function AdminRestaurantNewPage() {
   await requireAdmin()
@@ -33,6 +34,7 @@ export default async function AdminRestaurantNewPage() {
             <PhoneInput name="phone" className="w-full rounded-xl border border-gray-200 px-4 py-3 text-base outline-none transition-colors focus:border-accent" />
           </div>
           <Input name="photo_1_url" label="Фото (URL)" placeholder="Ссылка на фото" />
+          <RestaurantHoursFields />
 
           <label className="flex items-center gap-2 text-base text-gray-600">
             <input type="checkbox" name="is_active" defaultChecked className="rounded" />

@@ -3,8 +3,8 @@ import { createSupabasePublicClient } from '@/lib/supabase/public'
 import { formatOfferHeadline } from '@/lib/offers'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Card } from '@/components/ui/card'
 import { EmptyState } from '@/components/ui/empty-state'
+import { DEFAULT_TZ, computeOpenStatus, type RestaurantHour } from '@/lib/opening-hours'
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 300
@@ -35,12 +35,14 @@ type Restaurant = {
   }[]
 
   offers: Offer[]
+  restaurant_hours?: RestaurantHour[]
 }
 
 type PageProps = {
   searchParams: Promise<{
     cuisine?: string
     offer?: string
+    openNow?: string
   }>
 }
 
@@ -71,8 +73,10 @@ function ruCountWord(n: number, forms: [one: string, few: string, many: string])
 }
 
 export default async function HomePage({ searchParams }: PageProps) {
-  const { cuisine = 'all', offer = 'all' } = await searchParams
+  const { cuisine = 'all', offer = 'all', openNow: openNowRaw = '0' } = await searchParams
+  const openNow = openNowRaw === '1'
   const supabase = createSupabasePublicClient()
+  const now = new Date()
 
   const { data: restaurants } = await supabase
     .from('restaurants')
@@ -97,6 +101,12 @@ export default async function HomePage({ searchParams }: PageProps) {
         address,
         is_active,
         sort_order
+      ),
+      restaurant_hours (
+        day_of_week,
+        is_closed,
+        open_time,
+        close_time
       )
     `)
     .eq('city', 'almaty')
@@ -107,6 +117,12 @@ export default async function HomePage({ searchParams }: PageProps) {
   const safeRestaurants: Restaurant[] = (restaurants ?? []).map((r) => ({
     ...r,
     offers: (r.offers ?? []).filter((o) => o.is_active),
+    restaurant_hours: r.restaurant_hours ?? [],
+  }))
+
+  const restaurantsWithStatus = safeRestaurants.map((restaurant) => ({
+    ...restaurant,
+    openStatus: computeOpenStatus(restaurant.restaurant_hours ?? [], now, DEFAULT_TZ),
   }))
 
   const cuisines = Array.from(
@@ -118,7 +134,7 @@ export default async function HomePage({ searchParams }: PageProps) {
     )
   ).sort((a, b) => a.localeCompare(b, 'ru'))
 
-  const filteredRestaurants = safeRestaurants.filter((r) => {
+  const filteredRestaurants = restaurantsWithStatus.filter((r) => {
     const cuisineOk =
       cuisine === 'all'
         ? true
@@ -131,11 +147,13 @@ export default async function HomePage({ searchParams }: PageProps) {
         ? true
         : r.offers.some((o) => o.offer_type === offer)
 
-    return cuisineOk && offerOk
+    const openNowOk = !openNow || r.openStatus.isOpen
+
+    return cuisineOk && offerOk && openNowOk
   })
 
-  const totalVenues = safeRestaurants.length
-  const totalActiveOffers = safeRestaurants.reduce((sum, r) => sum + r.offers.length, 0)
+  const totalVenues = restaurantsWithStatus.length
+  const totalActiveOffers = restaurantsWithStatus.reduce((sum, r) => sum + r.offers.length, 0)
 
   const coffeeCuisine = matchCuisine(cuisines, /кофе/, /кафе/, /coffee/)
   const brunchCuisine = matchCuisine(cuisines, /бранч/, /brunch/)
@@ -146,15 +164,24 @@ export default async function HomePage({ searchParams }: PageProps) {
 
   const quickChips: QuickChip[] = [
     {
+      label: 'Открыто сейчас',
+      href: homeQuery({
+        cuisine,
+        offer,
+        openNow: openNow ? '' : '1',
+      }),
+      isActive: openNow,
+    },
+    {
       label: '2за1',
-      href: homeQuery({ offer: '2for1' }),
+      href: homeQuery({ offer: '2for1', openNow: openNow ? '1' : '' }),
       isActive: offer === '2for1' && cuisine === 'all',
     },
     ...(coffeeCuisine
       ? [
           {
             label: 'Кофе',
-            href: homeQuery({ cuisine: coffeeCuisine }),
+            href: homeQuery({ cuisine: coffeeCuisine, openNow: openNow ? '1' : '' }),
             isActive: cuisine === coffeeCuisine && offer === 'all',
           },
         ]
@@ -163,7 +190,7 @@ export default async function HomePage({ searchParams }: PageProps) {
       ? [
           {
             label: 'Бранч',
-            href: homeQuery({ cuisine: brunchCuisine }),
+            href: homeQuery({ cuisine: brunchCuisine, openNow: openNow ? '1' : '' }),
             isActive: cuisine === brunchCuisine && offer === 'all',
           },
         ]
@@ -172,7 +199,7 @@ export default async function HomePage({ searchParams }: PageProps) {
       ? [
           {
             label: 'Суши',
-            href: homeQuery({ cuisine: sushiCuisine }),
+            href: homeQuery({ cuisine: sushiCuisine, openNow: openNow ? '1' : '' }),
             isActive: cuisine === sushiCuisine && offer === 'all',
           },
         ]
@@ -181,7 +208,7 @@ export default async function HomePage({ searchParams }: PageProps) {
       ? [
           {
             label: 'Веган',
-            href: homeQuery({ cuisine: veganCuisine }),
+            href: homeQuery({ cuisine: veganCuisine, openNow: openNow ? '1' : '' }),
             isActive: cuisine === veganCuisine && offer === 'all',
           },
         ]
@@ -294,6 +321,10 @@ export default async function HomePage({ searchParams }: PageProps) {
                       <Badge key={c as string}>{c as string}</Badge>
                     ))}
                 </div>
+
+                <p className={`mt-2 text-sm ${r.openStatus.isOpen ? 'text-emerald-700' : 'text-gray-500'}`}>
+                  {r.openStatus.labelDetail ?? r.openStatus.labelShort}
+                </p>
 
                 {/* OFFERS */}
                 {r.offers.length > 0 ? (

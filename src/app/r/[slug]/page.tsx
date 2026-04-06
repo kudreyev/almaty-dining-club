@@ -50,7 +50,7 @@ export default async function RestaurantPage({ params }: PageProps) {
       instagram_url, website_url, two_gis_url,
       cuisine, cuisine_2, cuisine_3, short_description,
       photo_1_url, photo_2_url, photo_3_url, is_active,
-      restaurant_hours ( day_of_week, is_closed, open_time, close_time )
+      restaurant_hours ( day_of_week, is_closed, open_time, close_time, close_next_day )
     `)
     .eq('slug', slug)
     .eq('is_active', true)
@@ -148,6 +148,9 @@ export default async function RestaurantPage({ params }: PageProps) {
                   <p key={day}>
                     <span className="font-medium text-gray-700">{WEEKDAY_LABELS_RU[day]}:</span>{' '}
                     {formatHoursRange(hoursByDay.get(day))}
+                    {hoursByDay.get(day)?.close_next_day ? (
+                      <span className="text-xs text-gray-400"> (на следующий день)</span>
+                    ) : null}
                   </p>
                 ))}
               </div>

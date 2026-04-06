@@ -22,7 +22,7 @@ export default async function AdminRestaurantEditPage({ params }: PageProps) {
       .single(),
     supabase
       .from('restaurant_hours')
-      .select('day_of_week, is_closed, open_time, close_time')
+      .select('day_of_week, is_closed, open_time, close_time, close_next_day')
       .eq('restaurant_id', id)
       .order('day_of_week', { ascending: true })
       .returns<RestaurantHour[]>(),

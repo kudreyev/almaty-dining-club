@@ -106,7 +106,8 @@ export default async function HomePage({ searchParams }: PageProps) {
         day_of_week,
         is_closed,
         open_time,
-        close_time
+        close_time,
+        close_next_day
       )
     `)
     .eq('city', 'almaty')
@@ -336,7 +337,13 @@ export default async function HomePage({ searchParams }: PageProps) {
                 </div>
 
                 <p className={`mt-2 text-sm ${r.openStatus.isOpen ? 'text-emerald-700' : 'text-gray-500'}`}>
-                  {r.openStatus.labelDetail ?? r.openStatus.labelShort}
+                  {r.openStatus.isOpen
+                    ? (r.openStatus.labelDetail
+                        ? `Открыто · ${r.openStatus.labelDetail.replace('Работает до ', 'до ')}`
+                        : 'Открыто')
+                    : (r.openStatus.labelDetail
+                        ? `Закрыто · ${r.openStatus.labelDetail.charAt(0).toLowerCase()}${r.openStatus.labelDetail.slice(1)}`
+                        : 'Закрыто')}
                 </p>
 
                 {/* OFFERS */}

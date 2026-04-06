@@ -60,7 +60,7 @@ export default async function AlmatyPage({ searchParams }: PageProps) {
       cuisine, cuisine_2, cuisine_3,
       short_description, photo_1_url,
       offers ( id, offer_type, offer_title, offer_terms_short, estimated_value, cooldown_days, is_active ),
-      restaurant_hours ( day_of_week, is_closed, open_time, close_time )
+      restaurant_hours ( day_of_week, is_closed, open_time, close_time, close_next_day )
     `)
     .eq('city', 'almaty')
     .eq('is_active', true)
@@ -194,7 +194,13 @@ export default async function AlmatyPage({ searchParams }: PageProps) {
                   </div>
 
                   <p className={`mt-2 text-sm ${restaurant.openStatus.isOpen ? 'text-emerald-700' : 'text-gray-500'}`}>
-                    {restaurant.openStatus.labelDetail ?? restaurant.openStatus.labelShort}
+                    {restaurant.openStatus.isOpen
+                      ? (restaurant.openStatus.labelDetail
+                          ? `Открыто · ${restaurant.openStatus.labelDetail.replace('Работает до ', 'до ')}`
+                          : 'Открыто')
+                      : (restaurant.openStatus.labelDetail
+                          ? `Закрыто · ${restaurant.openStatus.labelDetail.charAt(0).toLowerCase()}${restaurant.openStatus.labelDetail.slice(1)}`
+                          : 'Закрыто')}
                   </p>
 
                   {activeOffers.length > 0 ? (

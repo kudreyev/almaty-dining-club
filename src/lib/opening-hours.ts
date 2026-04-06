@@ -3,6 +3,7 @@ export type RestaurantHour = {
   is_closed: boolean
   open_time: string | null
   close_time: string | null
+  close_next_day?: boolean
 }
 
 export type OpenStatus = {
@@ -78,8 +79,7 @@ function findOpenRow(hoursForWeek: RestaurantHour[], dayOfWeek: number): Restaur
   const openMinutes = timeToMinutes(row.open_time)
   const closeMinutes = timeToMinutes(row.close_time)
   if (openMinutes == null || closeMinutes == null) return null
-  if (closeMinutes <= openMinutes) {
-    // TODO: ночные интервалы (пример 18:00-02:00) пока не поддерживаем на MVP.
+  if (!row.close_next_day && closeMinutes <= openMinutes) {
     return null
   }
   return row
@@ -107,16 +107,40 @@ export function formatHoursRange(hour: RestaurantHour | null | undefined): strin
 
 export function computeOpenStatus(hoursForWeek: RestaurantHour[], now: Date, tz: string): OpenStatus {
   const todayDow = getTodayDow(now, tz)
+  const yesterdayDow = ((todayDow + 5) % 7) + 1
   const nowMinutes = nowMinutesInTimezone(now, tz)
 
-  const todayOpenRow = findOpenRow(hoursForWeek, todayDow)
-  if (todayOpenRow) {
-    const openMinutes = timeToMinutes(todayOpenRow.open_time)!
-    const closeMinutes = timeToMinutes(todayOpenRow.close_time)!
-    const closeTime = normalizeTime(todayOpenRow.close_time)
-    const openTime = normalizeTime(todayOpenRow.open_time)
+  // 1) Вчерашний spillover после полуночи: 18:00-02:00 + close_next_day=true.
+  const yesterdayRow = findOpenRow(hoursForWeek, yesterdayDow)
+  if (yesterdayRow?.close_next_day) {
+    const yesterdayCloseMinutes = timeToMinutes(yesterdayRow.close_time)
+    const yesterdayCloseTime = normalizeTime(yesterdayRow.close_time)
+    if (
+      yesterdayCloseMinutes != null &&
+      yesterdayCloseTime &&
+      nowMinutes < yesterdayCloseMinutes
+    ) {
+      return {
+        isOpen: true,
+        labelShort: 'Открыто',
+        labelDetail: `Работает до ${yesterdayCloseTime}`,
+      }
+    }
+  }
 
-    if (nowMinutes >= openMinutes && nowMinutes < closeMinutes) {
+  // 2) Сегодняшний интервал.
+  const todayRow = findOpenRow(hoursForWeek, todayDow)
+  if (todayRow) {
+    const openMinutes = timeToMinutes(todayRow.open_time)!
+    const closeMinutes = timeToMinutes(todayRow.close_time)!
+    const closeTime = normalizeTime(todayRow.close_time)
+    const openTime = normalizeTime(todayRow.open_time)
+
+    const isOpenToday = todayRow.close_next_day
+      ? nowMinutes >= openMinutes
+      : nowMinutes >= openMinutes && nowMinutes < closeMinutes
+
+    if (isOpenToday) {
       return {
         isOpen: true,
         labelShort: 'Открыто',
@@ -124,11 +148,11 @@ export function computeOpenStatus(hoursForWeek: RestaurantHour[], now: Date, tz:
       }
     }
 
-    if (nowMinutes < openMinutes) {
+    if (nowMinutes < openMinutes && openTime) {
       return {
         isOpen: false,
         labelShort: 'Закрыто',
-        labelDetail: openTime ? `Откроется в ${openTime}` : null,
+        labelDetail: `Откроется в ${openTime}`,
       }
     }
   }

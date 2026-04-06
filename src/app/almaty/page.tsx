@@ -2,8 +2,6 @@ export const revalidate = 300
 import Link from 'next/link'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { Badge } from '@/components/ui/badge'
-import { Card } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
 import { EmptyState } from '@/components/ui/empty-state'
 import { formatOfferHeadline } from '@/lib/offers'
 import { DEFAULT_TZ, computeOpenStatus, type RestaurantHour } from '@/lib/opening-hours'
@@ -38,6 +36,15 @@ type PageProps = {
     offer?: string
     openNow?: string
   }>
+}
+
+function almatyQuery(params: Record<string, string>) {
+  const u = new URLSearchParams()
+  for (const [k, v] of Object.entries(params)) {
+    if (v && v !== 'all') u.set(k, v)
+  }
+  const qs = u.toString()
+  return qs ? `/almaty?${qs}` : '/almaty'
 }
 
 export default async function AlmatyPage({ searchParams }: PageProps) {
@@ -90,6 +97,36 @@ export default async function AlmatyPage({ searchParams }: PageProps) {
     return matchesQuery && matchesOffer && matchesOpenNow
   })
 
+  const chips = [
+    {
+      label: '2за1',
+      href: almatyQuery({
+        q,
+        offer: offer === '2for1' ? '' : '2for1',
+        openNow: openNow ? '1' : '',
+      }),
+      isActive: offer === '2for1',
+    },
+    {
+      label: 'В подарок',
+      href: almatyQuery({
+        q,
+        offer: offer === 'compliment' ? '' : 'compliment',
+        openNow: openNow ? '1' : '',
+      }),
+      isActive: offer === 'compliment',
+    },
+    {
+      label: 'Открыто сейчас',
+      href: almatyQuery({
+        q,
+        offer,
+        openNow: openNow ? '' : '1',
+      }),
+      isActive: openNow,
+    },
+  ]
+
   return (
     <div className="mx-auto max-w-6xl px-5 py-8">
       <div className="mb-6">
@@ -97,41 +134,24 @@ export default async function AlmatyPage({ searchParams }: PageProps) {
         <p className="mt-1 text-base leading-6 text-gray-500">Партнёры с офферами 2за1 и в подарок.</p>
       </div>
 
-      <Card padding="sm" className="mb-8">
-        <form className="flex flex-col gap-3 sm:flex-row sm:items-end">
-          <div className="flex-1">
-            <label htmlFor="q" className="mb-1.5 block text-sm font-medium text-gray-500">Поиск</label>
-            <input
-              id="q"
-              name="q"
-              defaultValue={q}
-              placeholder="Название или кухня"
-              className="w-full rounded-xl border border-gray-200 bg-white px-3.5 py-3 text-base outline-none transition-colors placeholder:text-gray-500 focus:border-accent"
-            />
-          </div>
-          <div className="w-full sm:w-48">
-            <label htmlFor="offer" className="mb-1.5 block text-sm font-medium text-gray-500">Тип</label>
-            <select
-              id="offer"
-              name="offer"
-              defaultValue={offer}
-              className="w-full rounded-xl border border-gray-200 bg-white px-3.5 py-3 text-base outline-none transition-colors focus:border-accent"
-            >
-              <option value="all">Все</option>
-              <option value="2for1">2за1</option>
-              <option value="compliment">в подарок</option>
-            </select>
-          </div>
-          <label className="inline-flex h-[52px] items-center gap-2 rounded-xl border border-gray-200 px-3 text-sm text-gray-700">
-            <input type="checkbox" name="openNow" value="1" defaultChecked={openNow} className="rounded" />
-            Открыто сейчас
-          </label>
-          <Button type="submit" size="lg" className="sm:w-auto">Найти</Button>
-        </form>
-      </Card>
-
       <div className="mb-6 flex items-baseline justify-between">
         <p className="text-base text-gray-400">{filteredRestaurants.length} шт.</p>
+      </div>
+      <div className="mb-8 flex flex-wrap gap-2">
+        {chips.map((chip) => (
+          <Link
+            key={`${chip.label}-${chip.href}`}
+            href={chip.href}
+            scroll={false}
+            className={`rounded-full px-3 py-1 text-sm font-medium transition-colors ${
+              chip.isActive
+                ? 'bg-black text-white'
+                : 'border border-gray-200 bg-white text-gray-800 hover:bg-gray-50'
+            }`}
+          >
+            {chip.label}
+          </Link>
+        ))}
       </div>
 
       {filteredRestaurants.length === 0 ? (

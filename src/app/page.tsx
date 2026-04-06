@@ -174,8 +174,21 @@ export default async function HomePage({ searchParams }: PageProps) {
     },
     {
       label: '2за1',
-      href: homeQuery({ offer: '2for1', openNow: openNow ? '1' : '' }),
-      isActive: offer === '2for1' && cuisine === 'all',
+      href: homeQuery({
+        cuisine,
+        offer: offer === '2for1' ? '' : '2for1',
+        openNow: openNow ? '1' : '',
+      }),
+      isActive: offer === '2for1',
+    },
+    {
+      label: 'В подарок',
+      href: homeQuery({
+        cuisine,
+        offer: offer === 'compliment' ? '' : 'compliment',
+        openNow: openNow ? '1' : '',
+      }),
+      isActive: offer === 'compliment',
     },
     ...(coffeeCuisine
       ? [

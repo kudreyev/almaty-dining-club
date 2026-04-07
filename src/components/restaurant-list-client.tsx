@@ -116,7 +116,7 @@ export function RestaurantListClient({
         .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0))[0]
 
       const hasCoords = primaryLocation?.lat != null && primaryLocation?.lng != null
-      let distanceKm = Number.POSITIVE_INFINITY
+      let distanceKm = Infinity
       if (useProximity) {
         distanceKm = hasCoords
           ? haversineDistanceKm(
@@ -125,14 +125,18 @@ export function RestaurantListClient({
               primaryLocation!.lat as number,
               primaryLocation!.lng as number
             )
-          : Number.POSITIVE_INFINITY
+          : Infinity
       }
 
       return { restaurant, distanceKm }
     })
 
     if (useProximity) {
-      return enriched.sort((a, b) => a.distanceKm - b.distanceKm)
+      return enriched.sort((a, b) => {
+        const byDist = a.distanceKm - b.distanceKm
+        if (byDist !== 0) return byDist
+        return a.restaurant.restaurant_name.localeCompare(b.restaurant.restaurant_name, 'ru')
+      })
     }
 
     return enriched.sort((a, b) =>

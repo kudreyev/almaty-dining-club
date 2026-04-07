@@ -19,7 +19,7 @@ export default async function AdminOffersForRestaurantPage({ params }: PageProps
 
   const { data: offers } = await supabase
     .from('offers')
-    .select('id, offer_key, offer_type, offer_title, is_active')
+    .select('id, offer_type, offer_title, is_active')
     .eq('restaurant_id', restaurantId)
     .order('created_at', { ascending: true })
 
@@ -52,9 +52,6 @@ export default async function AdminOffersForRestaurantPage({ params }: PageProps
                     {listingVisibilityLabel(!!o.is_active)}
                   </Badge>
                 </div>
-                {o.offer_key ? (
-                  <p className="mt-0.5 font-mono text-sm text-gray-400">{o.offer_key}</p>
-                ) : null}
               </div>
               <Button href={`/admin/offers/${restaurantId}/${o.id}/edit`} variant="secondary" size="sm">
                 Изменить

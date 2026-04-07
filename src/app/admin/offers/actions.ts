@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { requireAdmin } from '@/lib/admin'
 import { DEFAULT_OFFER_COOLDOWN_DAYS } from '@/lib/offers'
+import { buildOfferKeyBase } from '@/lib/offer-key'
 
 function parseOptionalInteger(value: FormDataEntryValue | null): number | null {
   if (value == null) return null
@@ -27,17 +28,49 @@ function sanitizeCooldownDays(value: FormDataEntryValue | null): number {
   return parsed
 }
 
+async function generateUniqueOfferKey(
+  supabase: Awaited<ReturnType<typeof requireAdmin>>['supabase'],
+  restaurantId: string,
+  offerTitle: string,
+  offerType: string
+): Promise<string> {
+  const baseKey = buildOfferKeyBase(offerTitle, offerType)
+  let candidate = baseKey
+  let index = 2
+
+  while (true) {
+    const { data: existing, error } = await supabase
+      .from('offers')
+      .select('id')
+      .eq('restaurant_id', restaurantId)
+      .eq('offer_key', candidate)
+      .limit(1)
+      .maybeSingle<{ id: string }>()
+
+    if (error) throw new Error(error.message)
+    if (!existing) return candidate
+
+    candidate = `${baseKey}_${index}`
+    index += 1
+  }
+}
+
 export async function createOffer(formData: FormData) {
   const { supabase } = await requireAdmin()
 
   const restaurantId = String(formData.get('restaurant_id') || '')
   if (!restaurantId) throw new Error('Missing restaurant_id')
+  const offerType = String(formData.get('offer_type') || '2for1')
+  const offerTitle = String(formData.get('offer_title') || '').trim()
+  if (!offerTitle) throw new Error('Название предложения обязательно')
+  const providedOfferKey = String(formData.get('offer_key') || '').trim()
+  const offerKey = providedOfferKey || await generateUniqueOfferKey(supabase, restaurantId, offerTitle, offerType)
 
   const payload = {
     restaurant_id: restaurantId,
-    offer_type: String(formData.get('offer_type') || '2for1'),
-    offer_key: String(formData.get('offer_key') || ''),
-    offer_title: String(formData.get('offer_title') || ''),
+    offer_type: offerType,
+    offer_key: offerKey,
+    offer_title: offerTitle,
     offer_terms_short: String(formData.get('offer_terms_short') || ''),
     offer_terms_full: '',
     estimated_value: sanitizeEstimatedValue(formData.get('estimated_value')),
@@ -59,11 +92,29 @@ export async function updateOffer(formData: FormData) {
   const id = String(formData.get('id') || '')
   const restaurantId = String(formData.get('restaurant_id') || '')
   if (!id || !restaurantId) throw new Error('Missing id or restaurant_id')
+  const offerType = String(formData.get('offer_type') || '2for1')
+  const offerTitle = String(formData.get('offer_title') || '').trim()
+  if (!offerTitle) throw new Error('Название предложения обязательно')
+
+  const { data: existingOffer, error: existingOfferError } = await supabase
+    .from('offers')
+    .select('offer_key')
+    .eq('id', id)
+    .eq('restaurant_id', restaurantId)
+    .single<{ offer_key: string | null }>()
+
+  if (existingOfferError) throw new Error(existingOfferError.message)
+
+  const incomingOfferKey = String(formData.get('offer_key') || '').trim()
+  const offerKey =
+    existingOffer?.offer_key?.trim()
+      || incomingOfferKey
+      || await generateUniqueOfferKey(supabase, restaurantId, offerTitle, offerType)
 
   const payload = {
-    offer_type: String(formData.get('offer_type') || '2for1'),
-    offer_key: String(formData.get('offer_key') || ''),
-    offer_title: String(formData.get('offer_title') || ''),
+    offer_type: offerType,
+    offer_key: offerKey,
+    offer_title: offerTitle,
     offer_terms_short: String(formData.get('offer_terms_short') || ''),
     offer_terms_full: '',
     estimated_value: sanitizeEstimatedValue(formData.get('estimated_value')),

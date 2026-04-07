@@ -1,6 +1,5 @@
 import { requireAdmin } from '@/lib/admin'
 import { createOffer } from '../../actions'
-import { OfferKeyField } from '@/components/offer-key-field'
 import { FormSubmitGuard } from '@/components/form-submit-guard'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -38,7 +37,7 @@ export default async function AdminOfferNewPage({ params }: PageProps) {
             <option value="compliment">в подарок</option>
           </Select>
 
-          <OfferKeyField />
+          <Input name="offer_title" label="Название предложения" placeholder="Например: Паста" required />
           <Input name="offer_terms_short" label="Краткие условия" placeholder="1 строка" required />
 
           <div className="grid gap-4 sm:grid-cols-2">

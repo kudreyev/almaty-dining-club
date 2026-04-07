@@ -1,7 +1,6 @@
 import { notFound } from 'next/navigation'
 import { requireAdmin } from '@/lib/admin'
 import { updateOffer } from '../../../actions'
-import { OfferKeyField } from '@/components/offer-key-field'
 import { FormSubmitGuard } from '@/components/form-submit-guard'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -35,9 +34,6 @@ export default async function AdminOfferEditPage({ params }: PageProps) {
         <div>
           <h1 className="text-3xl font-bold sm:text-4xl">Редактировать оффер</h1>
           <p className="text-base text-gray-500">{restaurant?.restaurant_name}</p>
-          {offer.offer_key ? (
-            <p className="font-mono text-sm text-gray-400">{offer.offer_key}</p>
-          ) : null}
         </div>
         <Button href={`/admin/offers/${restaurantId}`} variant="ghost" size="sm">← Назад</Button>
       </div>
@@ -52,10 +48,7 @@ export default async function AdminOfferEditPage({ params }: PageProps) {
             <option value="compliment">в подарок</option>
           </Select>
 
-          <OfferKeyField
-            defaultKey={offer.offer_key ?? ''}
-            defaultTitle={offer.offer_title ?? ''}
-          />
+          <Input name="offer_title" label="Название предложения" defaultValue={offer.offer_title ?? ''} required />
           <Input name="offer_terms_short" label="Краткие условия" defaultValue={offer.offer_terms_short} required />
 
           <div className="grid gap-4 sm:grid-cols-2">

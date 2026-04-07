@@ -50,8 +50,6 @@ export function RestaurantPhotoUpload({ restaurantId }: RestaurantPhotoUploadPro
     setStatus('Подготавливаем изображения...')
 
     try {
-      const formData = new FormData()
-
       for (let index = 0; index < files.length; index += 1) {
         const file = files[index]
         setStatus(`Обрабатываем файл ${index + 1} из ${files.length}...`)
@@ -59,19 +57,33 @@ export function RestaurantPhotoUpload({ restaurantId }: RestaurantPhotoUploadPro
         const prepared = await prepareRestaurantPhotoVariants(file)
         const cleanName = baseName(file.name, `photo-${index + 1}`)
 
+        const formData = new FormData()
         formData.append('thumbs', prepared.thumb.blob, `${cleanName}-thumb.webp`)
         formData.append('fulls', prepared.full.blob, `${cleanName}-full.webp`)
-      }
 
-      setStatus('Загружаем в хранилище...')
-      const response = await fetch(`/api/admin/restaurants/${restaurantId}/photos`, {
-        method: 'POST',
-        body: formData,
-      })
+        setStatus(`Загружаем файл ${index + 1} из ${files.length}...`)
+        const response = await fetch(`/api/admin/restaurants/${restaurantId}/photos`, {
+          method: 'POST',
+          body: formData,
+        })
 
-      const result = (await response.json().catch(() => ({}))) as { error?: string; ok?: boolean }
-      if (!response.ok || !result.ok) {
-        throw new Error(result.error || 'Не удалось загрузить фотографии.')
+        let errorMessage = ''
+        let isOk = false
+
+        const responseText = await response.text()
+        if (responseText) {
+          try {
+            const json = JSON.parse(responseText) as { error?: string; ok?: boolean }
+            isOk = Boolean(json.ok)
+            errorMessage = json.error || ''
+          } catch {
+            errorMessage = responseText
+          }
+        }
+
+        if (!response.ok || !isOk) {
+          throw new Error(errorMessage || `Не удалось загрузить файл ${index + 1}.`)
+        }
       }
 
       setStatus(null)

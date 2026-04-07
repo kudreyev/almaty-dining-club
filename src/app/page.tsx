@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import Image from 'next/image'
 import { createSupabasePublicClient } from '@/lib/supabase/public'
 import { formatOfferHeadline } from '@/lib/offers'
 import { Button } from '@/components/ui/button'
@@ -125,7 +126,7 @@ export default async function HomePage({ searchParams }: PageProps) {
     const restaurantIds = safeRestaurants.map((item) => item.id)
     const { data: photos } = await supabase
       .from('restaurant_photos')
-      .select('restaurant_id, public_url, sort_order')
+      .select('restaurant_id, thumb_url, sort_order')
       .in('restaurant_id', restaurantIds)
       .eq('is_active', true)
       .order('restaurant_id', { ascending: true })
@@ -133,7 +134,7 @@ export default async function HomePage({ searchParams }: PageProps) {
 
     for (const photo of photos ?? []) {
       if (!photoByRestaurantId.has(photo.restaurant_id)) {
-        photoByRestaurantId.set(photo.restaurant_id, photo.public_url)
+        photoByRestaurantId.set(photo.restaurant_id, photo.thumb_url)
       }
     }
   }
@@ -335,13 +336,15 @@ export default async function HomePage({ searchParams }: PageProps) {
               className="group block overflow-hidden rounded-2xl border border-gray-300/90 bg-white shadow-[0_1px_2px_rgba(0,0,0,0.04),0_4px_14px_-2px_rgba(0,0,0,0.08)] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_2px_6px_rgba(0,0,0,0.05),0_12px_28px_-6px_rgba(0,0,0,0.12)]"
             >
               {/* PHOTO */}
-              <div className="aspect-[4/3] overflow-hidden bg-gray-100">
+              <div className="relative aspect-[4/3] overflow-hidden bg-gray-100">
                 {r.cover_photo_url ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
+                  <Image
                     src={r.cover_photo_url}
                     alt={r.restaurant_name}
-                    className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                    fill
+                    loading="lazy"
+                    sizes="(max-width: 640px) 100vw, 400px"
+                    className="object-cover transition-transform duration-300 group-hover:scale-105"
                   />
                 ) : (
                   <div className="flex h-full items-center justify-center text-base text-gray-300">

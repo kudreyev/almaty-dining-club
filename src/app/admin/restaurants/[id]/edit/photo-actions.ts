@@ -6,7 +6,6 @@ import { requireAdmin } from '@/lib/admin'
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 
 const RESTAURANT_PHOTO_BUCKET = 'restaurant-photos'
-const MAX_FILES_PER_UPLOAD = 10
 
 type RestaurantLite = {
   id: string
@@ -35,22 +34,6 @@ function toMessage(error: unknown): string {
   return 'Не удалось выполнить операцию с фотографиями.'
 }
 
-function fileExtension(file: File): string {
-  const fromName = file.name.split('.').pop()?.toLowerCase()
-  if (fromName && /^[a-z0-9]+$/.test(fromName)) return fromName
-  if (file.type === 'image/jpeg') return 'jpg'
-  if (file.type === 'image/png') return 'png'
-  if (file.type === 'image/webp') return 'webp'
-  if (file.type === 'image/gif') return 'gif'
-  return 'bin'
-}
-
-function buildStoragePath(restaurantId: string, file: File): string {
-  const timestamp = Date.now()
-  const random = crypto.randomUUID()
-  return `restaurants/${restaurantId}/${timestamp}-${random}.${fileExtension(file)}`
-}
-
 async function getRestaurantOrThrow(admin: ReturnType<typeof createSupabaseAdminClient>, restaurantId: string) {
   const { data: restaurant, error } = await admin
     .from('restaurants')
@@ -71,81 +54,6 @@ async function revalidateRestaurantPhotoPages(restaurant: RestaurantLite) {
   revalidatePath(`/admin/restaurants/${restaurant.id}/edit`)
 }
 
-export async function uploadRestaurantPhotos(formData: FormData) {
-  await requireAdmin()
-
-  const restaurantId = String(formData.get('restaurantId') || '').trim()
-  if (!restaurantId) {
-    redirect('/admin/restaurants?error=missing_restaurant_id')
-  }
-
-  const files = formData
-    .getAll('photos')
-    .filter((entry): entry is File => entry instanceof File && entry.size > 0)
-
-  if (files.length === 0) {
-    redirectToEditWithError(restaurantId, 'Выберите хотя бы один файл.')
-  }
-  if (files.length > MAX_FILES_PER_UPLOAD) {
-    redirectToEditWithError(restaurantId, `За один раз можно загрузить не более ${MAX_FILES_PER_UPLOAD} файлов.`)
-  }
-
-  const admin = createSupabaseAdminClient()
-
-  try {
-    const restaurant = await getRestaurantOrThrow(admin, restaurantId)
-
-    const { data: lastPhoto, error: lastPhotoError } = await admin
-      .from('restaurant_photos')
-      .select('sort_order')
-      .eq('restaurant_id', restaurantId)
-      .eq('is_active', true)
-      .order('sort_order', { ascending: false })
-      .limit(1)
-      .maybeSingle<{ sort_order: number }>()
-
-    if (lastPhotoError) throw new Error(`Не удалось определить порядок фото: ${lastPhotoError.message}`)
-
-    let nextSortOrder = (lastPhoto?.sort_order ?? -1) + 1
-
-    for (const file of files) {
-      const storagePath = buildStoragePath(restaurantId, file)
-      const content = await file.arrayBuffer()
-
-      const { error: uploadError } = await admin.storage
-        .from(RESTAURANT_PHOTO_BUCKET)
-        .upload(storagePath, content, {
-          upsert: false,
-          contentType: file.type || undefined,
-        })
-
-      if (uploadError) throw new Error(`Ошибка загрузки "${file.name}": ${uploadError.message}`)
-
-      const { data: publicUrlData } = admin.storage.from(RESTAURANT_PHOTO_BUCKET).getPublicUrl(storagePath)
-
-      const { error: insertError } = await admin.from('restaurant_photos').insert({
-        restaurant_id: restaurantId,
-        storage_path: storagePath,
-        public_url: publicUrlData.publicUrl,
-        sort_order: nextSortOrder,
-        is_active: true,
-      })
-
-      if (insertError) {
-        await admin.storage.from(RESTAURANT_PHOTO_BUCKET).remove([storagePath])
-        throw new Error(`Ошибка сохранения фото "${file.name}": ${insertError.message}`)
-      }
-
-      nextSortOrder += 1
-    }
-
-    await revalidateRestaurantPhotoPages(restaurant)
-    redirectToEditWithOk(restaurantId)
-  } catch (error) {
-    redirectToEditWithError(restaurantId, toMessage(error))
-  }
-}
-
 export async function deleteRestaurantPhoto(formData: FormData) {
   await requireAdmin()
 
@@ -163,10 +71,10 @@ export async function deleteRestaurantPhoto(formData: FormData) {
 
     const { data: photo, error: photoError } = await admin
       .from('restaurant_photos')
-      .select('id, storage_path')
+      .select('id, thumb_path, full_path')
       .eq('id', photoId)
       .eq('restaurant_id', restaurantId)
-      .maybeSingle<{ id: string; storage_path: string }>()
+      .maybeSingle<{ id: string; thumb_path: string; full_path: string }>()
 
     if (photoError) throw new Error(`Не удалось получить фото: ${photoError.message}`)
     if (!photo) throw new Error('Фото не найдено.')
@@ -174,7 +82,7 @@ export async function deleteRestaurantPhoto(formData: FormData) {
     const { error: storageError } = await admin
       .storage
       .from(RESTAURANT_PHOTO_BUCKET)
-      .remove([photo.storage_path])
+      .remove([photo.thumb_path, photo.full_path])
 
     if (storageError) throw new Error(`Не удалось удалить файл из хранилища: ${storageError.message}`)
 

@@ -2,11 +2,12 @@ import { notFound } from 'next/navigation'
 import { requireAdmin } from '@/lib/admin'
 import { PhoneInput } from '@/components/phone-input'
 import { updateRestaurant } from '../../actions'
-import { deleteRestaurantPhoto, reorderRestaurantPhoto, uploadRestaurantPhotos } from './photo-actions'
+import { deleteRestaurantPhoto, reorderRestaurantPhoto } from './photo-actions'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { EmptyState } from '@/components/ui/empty-state'
+import { RestaurantPhotoUpload } from '@/components/admin/restaurant-photo-upload'
 import { RestaurantHoursFields } from '@/components/admin/restaurant-hours-fields'
 import type { RestaurantHour } from '@/lib/opening-hours'
 
@@ -22,7 +23,8 @@ type RestaurantLocationCoords = {
 
 type RestaurantPhoto = {
   id: string
-  public_url: string
+  thumb_url: string
+  full_url: string
   sort_order: number
 }
 
@@ -53,7 +55,7 @@ export default async function AdminRestaurantEditPage({ params, searchParams }: 
       .maybeSingle<RestaurantLocationCoords>(),
     supabase
       .from('restaurant_photos')
-      .select('id, public_url, sort_order')
+      .select('id, thumb_url, full_url, sort_order')
       .eq('restaurant_id', id)
       .eq('is_active', true)
       .order('sort_order', { ascending: true })
@@ -137,20 +139,7 @@ export default async function AdminRestaurantEditPage({ params, searchParams }: 
           <p className="mt-1 text-base text-gray-500">Загрузка до 10 изображений за раз.</p>
         </div>
 
-        <form action={uploadRestaurantPhotos} className="flex flex-col gap-3 sm:flex-row sm:items-end">
-          <input type="hidden" name="restaurantId" value={r.id} />
-          <div className="flex-1">
-            <label className="mb-1.5 block text-base font-medium text-gray-700">Выберите файлы</label>
-            <input
-              type="file"
-              name="photos"
-              accept="image/*"
-              multiple
-              className="block w-full rounded-xl border border-gray-200 px-3 py-2 text-sm text-gray-700 file:mr-3 file:rounded-lg file:border-0 file:bg-gray-100 file:px-3 file:py-2 file:text-sm file:font-medium hover:file:bg-gray-200"
-            />
-          </div>
-          <Button type="submit" size="md">Загрузить</Button>
-        </form>
+        <RestaurantPhotoUpload restaurantId={r.id} />
 
         {!photos || photos.length === 0 ? (
           <EmptyState title="Фотографий пока нет" description="Загрузите первое фото заведения" />
@@ -160,7 +149,7 @@ export default async function AdminRestaurantEditPage({ params, searchParams }: 
               <div key={photo.id} className="overflow-hidden rounded-xl border border-gray-200 bg-white">
                 <div className="aspect-[4/3] overflow-hidden bg-gray-100">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={photo.public_url} alt={`Фото ${index + 1}`} className="h-full w-full object-cover" />
+                  <img src={photo.thumb_url || photo.full_url} alt={`Фото ${index + 1}`} className="h-full w-full object-cover" />
                 </div>
                 <div className="flex items-center justify-between gap-2 p-3">
                   <p className="text-sm text-gray-500">Позиция: {photo.sort_order}</p>

@@ -81,7 +81,7 @@ export default async function RestaurantPage({ params }: PageProps) {
       .order('created_at', { ascending: true }),
     supabase
       .from('restaurant_photos')
-      .select('public_url')
+      .select('full_url')
       .eq('restaurant_id', restaurant.id)
       .eq('is_active', true)
       .order('sort_order', { ascending: true }),
@@ -104,7 +104,7 @@ export default async function RestaurantPage({ params }: PageProps) {
   }
 
   const photoUrls = (photosResult.data ?? [])
-    .map((item) => item.public_url)
+    .map((item) => item.full_url)
     .filter((u): u is string => Boolean(u))
 
   const cuisines = [restaurant.cuisine, restaurant.cuisine_2, restaurant.cuisine_3].filter(Boolean) as string[]

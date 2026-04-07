@@ -70,7 +70,7 @@ export function RestaurantPhotoGallery({ photoUrls, restaurantName }: Restaurant
             alt={restaurantName}
             fill
             className="object-cover"
-            sizes="(min-width: 1024px) 720px, 100vw"
+            sizes="(max-width: 640px) 100vw, 900px"
             priority
           />
         ) : (
@@ -95,7 +95,7 @@ export function RestaurantPhotoGallery({ photoUrls, restaurantName }: Restaurant
                 alt={`${restaurantName}, фото ${idx + 1}`}
                 fill
                 className="object-cover"
-                sizes="(min-width: 1024px) 720px, 100vw"
+                sizes="(max-width: 640px) 100vw, 900px"
                 priority={idx === 0}
               />
             ) : (

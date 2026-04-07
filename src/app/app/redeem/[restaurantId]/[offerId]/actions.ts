@@ -9,8 +9,96 @@ import {
 } from '@/lib/subscription'
 import { resolveOfferCooldownDays } from '@/lib/offers'
 
+export type ExtendRedeemState =
+  | { error?: string; ok?: boolean; expiresAt?: string }
+  | null
+
 function generateTokenCode() {
   return String(Math.floor(100000 + Math.random() * 900000))
+}
+
+export async function extendRedeemToken(
+  _prev: ExtendRedeemState,
+  formData: FormData
+): Promise<ExtendRedeemState> {
+  const tokenId = String(formData.get('tokenId') || '').trim()
+  const restaurantId = String(formData.get('restaurantId') || '').trim()
+  const offerId = String(formData.get('offerId') || '').trim()
+  if (!tokenId) {
+    return { error: 'Некорректный запрос.' }
+  }
+
+  const { user, subscription } = await getCurrentUserSubscription()
+  if (!user) {
+    return { error: 'Войдите в аккаунт.' }
+  }
+  if (!isSubscriptionCurrentlyActive(subscription)) {
+    return { error: 'Нужна активная подписка.' }
+  }
+
+  const supabase = await createSupabaseServerClient()
+  const nowIso = new Date().toISOString()
+
+  const { data: row, error: fetchError } = await supabase
+    .from('redeem_tokens')
+    .select(
+      'id, used_at, extended_once, extend_deadline_at, restaurant_id, offer_id'
+    )
+    .eq('id', tokenId)
+    .eq('user_id', user.id)
+    .eq('status', 'active')
+    .maybeSingle<{
+      id: string
+      used_at: string | null
+      extended_once: boolean
+      extend_deadline_at: string
+      restaurant_id: string
+      offer_id: string
+    }>()
+
+  if (fetchError || !row) {
+    return { error: 'Код не найден.' }
+  }
+  if (
+    restaurantId &&
+    offerId &&
+    (row.restaurant_id !== restaurantId || row.offer_id !== offerId)
+  ) {
+    return { error: 'Некорректный запрос.' }
+  }
+  if (row.used_at != null) {
+    return { error: 'Код уже использован.' }
+  }
+  if (row.extended_once) {
+    return { error: 'Продление уже применялось.' }
+  }
+  if (nowIso > row.extend_deadline_at) {
+    return { error: 'Время для продления истекло (прошёл час с выдачи).' }
+  }
+
+  const newExpires = new Date()
+  newExpires.setMinutes(newExpires.getMinutes() + 10)
+
+  const { error: updateError } = await supabase
+    .from('redeem_tokens')
+    .update({
+      expires_at: newExpires.toISOString(),
+      extended_once: true,
+    })
+    .eq('id', tokenId)
+    .eq('user_id', user.id)
+    .is('used_at', null)
+    .eq('extended_once', false)
+
+  if (updateError) {
+    return { error: 'Не удалось продлить. Попробуйте снова.' }
+  }
+
+  if (restaurantId && offerId) {
+    revalidatePath(`/app/redeem/${restaurantId}/${offerId}`)
+  }
+
+  return { ok: true, expiresAt: newExpires.toISOString() }
 }
 
 export async function generateRedeemToken(formData: FormData) {
@@ -42,6 +130,7 @@ export async function generateRedeemToken(formData: FormData) {
     .select('id')
     .eq('user_id', user.id)
     .eq('status', 'active')
+    .is('used_at', null)
     .gt('expires_at', nowIso)
     .order('created_at', { ascending: false })
     .limit(1)
@@ -89,9 +178,9 @@ export async function generateRedeemToken(formData: FormData) {
     redirect(`${backUrl}?error=cooldown_offer`)
   }
 
-  // 3) Создаём токен на 10 минут
-  const expiresAt = new Date()
-  expiresAt.setMinutes(expiresAt.getMinutes() + 10)
+  const issuedAt = new Date()
+  const expiresAt = new Date(issuedAt.getTime() + 10 * 60 * 1000)
+  const extendDeadlineAt = new Date(issuedAt.getTime() + 60 * 60 * 1000)
 
   const tokenCode = generateTokenCode()
 
@@ -101,7 +190,11 @@ export async function generateRedeemToken(formData: FormData) {
     offer_id: offerId,
     token_code: tokenCode,
     status: 'active',
+    issued_at: issuedAt.toISOString(),
     expires_at: expiresAt.toISOString(),
+    extend_deadline_at: extendDeadlineAt.toISOString(),
+    extended_once: false,
+    used_at: null,
   })
 
   if (insertError) {

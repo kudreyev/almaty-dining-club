@@ -2,7 +2,7 @@
 
 import { redirect } from 'next/navigation'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
-import { setStaffSession, clearStaffSession } from '@/lib/staff-session'
+import { establishStaffBrowserSession, clearStaffSession } from '@/lib/staff-session'
 
 function toQuery(value: string) {
   return encodeURIComponent(value)
@@ -39,7 +39,11 @@ export async function loginStaff(formData: FormData) {
     redirect('/staff/login?error=invalid_pin')
   }
 
-  await setStaffSession(restaurantId)
+  const session = await establishStaffBrowserSession(matchedStaffUser.restaurant_id)
+  if (!session.ok) {
+    redirect('/staff/login?error=session_error')
+  }
+
   redirect('/staff/redeem')
 }
 

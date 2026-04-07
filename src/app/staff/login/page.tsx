@@ -20,6 +20,7 @@ function getErrorMessage(error?: string, message?: string) {
   if (error === 'invalid_pin') return 'Неверный PIN для выбранного ресторана.'
   if (error === 'missing_fields') return 'Заполните все поля.'
   if (error === 'no_staff_for_restaurant') return 'Для этого ресторана не найдена учётная запись персонала.'
+  if (error === 'session_error') return 'Не удалось сохранить сессию. Попробуйте ещё раз.'
   if (error === 'db_error') return `Ошибка базы данных: ${message || 'неизвестно'}`
   return null
 }

@@ -32,7 +32,15 @@ type Offer = {
   offer_type: '2for1' | 'compliment'
   cooldown_days?: number | null
 }
-type RedeemToken = { id: string; token_code: string; status: string; expires_at: string; created_at: string }
+type RedeemToken = {
+  id: string
+  token_code: string
+  status: string
+  expires_at: string
+  created_at: string
+  extend_deadline_at: string
+  extended_once: boolean
+}
 
 function getRedeemErrorMessage(code: string | undefined, cooldownDays: number) {
   switch (code) {
@@ -75,15 +83,16 @@ export default async function RedeemPage({ params, searchParams }: PageProps) {
   const offerCooldownDays = resolveOfferCooldownDays(offer.cooldown_days)
   const errorMessage = getRedeemErrorMessage(error, offerCooldownDays)
 
-  const nowIso = new Date().toISOString()
   const { data: activeTokens } = await supabase
     .from('redeem_tokens')
-    .select('id, token_code, status, expires_at, created_at')
+    .select(
+      'id, token_code, status, expires_at, created_at, extend_deadline_at, extended_once'
+    )
     .eq('user_id', user.id)
     .eq('restaurant_id', restaurantId)
     .eq('offer_id', offerId)
     .eq('status', 'active')
-    .gt('expires_at', nowIso)
+    .is('used_at', null)
     .order('created_at', { ascending: false })
     .limit(1)
     .returns<RedeemToken[]>()
@@ -118,8 +127,13 @@ export default async function RedeemPage({ params, searchParams }: PageProps) {
 
         {activeToken ? (
           <RedeemTokenCard
+            tokenId={activeToken.id}
             tokenCode={activeToken.token_code}
             expiresAt={activeToken.expires_at}
+            extendDeadlineAt={activeToken.extend_deadline_at}
+            extendedOnce={activeToken.extended_once}
+            restaurantId={restaurant.id}
+            offerId={offer.id}
           />
         ) : (
           <div className="mt-6 rounded-xl bg-gray-50 p-4">

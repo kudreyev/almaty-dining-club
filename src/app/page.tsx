@@ -1,10 +1,6 @@
-import Link from 'next/link'
-import Image from 'next/image'
 import { createSupabasePublicClient } from '@/lib/supabase/public'
-import { formatOfferHeadline } from '@/lib/offers'
 import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
-import { EmptyState } from '@/components/ui/empty-state'
+import { RestaurantListClient } from '@/components/restaurant-list-client'
 import { DEFAULT_TZ, computeOpenStatus, type RestaurantHour } from '@/lib/opening-hours'
 
 export const dynamic = 'force-dynamic'
@@ -32,6 +28,12 @@ type Restaurant = {
 
   offers: Offer[]
   restaurant_hours?: RestaurantHour[]
+  restaurant_locations?: {
+    lat: number | null
+    lng: number | null
+    is_active: boolean
+    sort_order: number
+  }[]
 }
 
 type PageProps = {
@@ -99,6 +101,12 @@ export default async function HomePage({ searchParams }: PageProps) {
         open_time,
         close_time,
         close_next_day
+      ),
+      restaurant_locations (
+        lat,
+        lng,
+        is_active,
+        sort_order
       )
     `)
     .eq('city', 'almaty')
@@ -281,120 +289,7 @@ export default async function HomePage({ searchParams }: PageProps) {
         </div>
       </section>
 
-      {/* Список заведений + быстрые фильтры (чипы → сразу меняют URL) */}
-      <div className="mb-6">
-        <div className="flex items-baseline justify-between gap-3">
-          <h2 className="text-xl font-bold tracking-tight text-gray-950 sm:text-2xl">Заведения</h2>
-          <div className="flex items-center gap-3">
-            <Link
-              href="/map"
-              className="rounded-full border border-gray-200 bg-white px-3 py-1 text-sm font-medium text-gray-800 transition-colors hover:bg-gray-50"
-            >
-              Карта
-            </Link>
-            <p className="shrink-0 text-base text-gray-400">{filteredRestaurants.length} шт.</p>
-          </div>
-        </div>
-        <div className="mt-3 flex flex-wrap gap-2">
-          {quickChips.map((chip) => (
-            <Link
-              key={`${chip.label}-${chip.href}`}
-              href={chip.href}
-              scroll={false}
-              className={`rounded-full border px-3.5 py-1.5 text-sm font-medium transition-colors ${
-                chip.isActive
-                  ? 'border-gray-900 bg-black text-white'
-                  : 'border-gray-200 bg-white text-gray-700 hover:bg-gray-50'
-              }`}
-            >
-              {chip.label}
-            </Link>
-          ))}
-        </div>
-      </div>
-
-      {filteredRestaurants.length === 0 ? (
-        <EmptyState
-          title="Ничего не найдено"
-          description="Попробуйте изменить фильтры"
-        />
-      ) : (
-        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-          {filteredRestaurants.map((r) => (
-            <Link
-              key={r.id}
-              href={`/r/${r.slug}`}
-              className="group block overflow-hidden rounded-2xl border border-gray-300/90 bg-white shadow-[0_1px_2px_rgba(0,0,0,0.04),0_4px_14px_-2px_rgba(0,0,0,0.08)] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_2px_6px_rgba(0,0,0,0.05),0_12px_28px_-6px_rgba(0,0,0,0.12)]"
-            >
-              {/* PHOTO */}
-              <div className="relative aspect-[4/3] overflow-hidden bg-gray-100">
-                {r.cover_photo_url ? (
-                  <Image
-                    src={r.cover_photo_url}
-                    alt={r.restaurant_name}
-                    fill
-                    loading="lazy"
-                    sizes="(max-width: 640px) 100vw, 400px"
-                    className="object-cover transition-transform duration-300 group-hover:scale-105"
-                  />
-                ) : (
-                  <div className="flex h-full items-center justify-center text-base text-gray-300">
-                    Нет фото
-                  </div>
-                )}
-              </div>
-
-              <div className="p-4">
-                {/* NAME + CUISINES */}
-                <h3 className="text-lg font-bold tracking-tight leading-tight text-gray-950 sm:text-xl">{r.restaurant_name}</h3>
-                <div className="mt-1.5 flex flex-wrap gap-1.5">
-                  {[r.cuisine, r.cuisine_2, r.cuisine_3]
-                    .filter(Boolean)
-                    .slice(0, 3)
-                    .map((c) => (
-                      <Badge key={c as string}>{c as string}</Badge>
-                    ))}
-                </div>
-
-                <p className={`mt-2 text-sm ${r.openStatus.isOpen ? 'text-emerald-700' : 'text-gray-500'}`}>
-                  {r.openStatus.isOpen
-                    ? (r.openStatus.labelDetail
-                        ? `Открыто · ${r.openStatus.labelDetail.replace('Работает до ', 'до ')}`
-                        : 'Открыто')
-                    : (r.openStatus.labelDetail
-                        ? `Закрыто · ${r.openStatus.labelDetail.charAt(0).toLowerCase()}${r.openStatus.labelDetail.slice(1)}`
-                        : 'Закрыто')}
-                </p>
-
-                {/* OFFERS */}
-                {r.offers.length > 0 ? (
-                  <div className="mt-3 flex flex-wrap items-center gap-1.5">
-                    {r.offers.slice(0, 3).map((o, i) => (
-                      <span
-                        key={`${r.id}-offer-${i}`}
-                        className="inline-flex max-w-full shrink-0 items-center rounded-full bg-black px-3 py-1 text-sm font-medium text-white"
-                      >
-                        <span className="truncate">{formatOfferHeadline(o.offer_type, o.offer_title)}</span>
-                      </span>
-                    ))}
-                    {r.offers.length > 3 ? (
-                      <span className="text-sm text-gray-400">и ещё {r.offers.length - 3}</span>
-                    ) : null}
-                  </div>
-                ) : null}
-
-                {r.address ? (
-                  <p className="mt-3 truncate text-base leading-6 text-gray-500">{r.address}</p>
-                ) : (
-                  <p className="mt-3 text-base leading-6 text-gray-500 line-clamp-2">
-                    {r.short_description}
-                  </p>
-                )}
-              </div>
-            </Link>
-          ))}
-        </div>
-      )}
+      <RestaurantListClient restaurants={filteredRestaurants} quickChips={quickChips} />
     </div>
   )
 }

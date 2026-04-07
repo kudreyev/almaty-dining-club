@@ -10,11 +10,16 @@ import type { RestaurantHour } from '@/lib/opening-hours'
 
 type PageProps = { params: Promise<{ id: string }> }
 
+type RestaurantLocationCoords = {
+  lat: number | null
+  lng: number | null
+}
+
 export default async function AdminRestaurantEditPage({ params }: PageProps) {
   const { id } = await params
   const { supabase } = await requireAdmin()
 
-  const [{ data: r }, { data: restaurantHours }] = await Promise.all([
+  const [{ data: r }, { data: restaurantHours }, { data: primaryLocation }] = await Promise.all([
     supabase
       .from('restaurants')
       .select('*')
@@ -26,6 +31,14 @@ export default async function AdminRestaurantEditPage({ params }: PageProps) {
       .eq('restaurant_id', id)
       .order('day_of_week', { ascending: true })
       .returns<RestaurantHour[]>(),
+    supabase
+      .from('restaurant_locations')
+      .select('lat, lng')
+      .eq('restaurant_id', id)
+      .eq('is_active', true)
+      .order('sort_order', { ascending: true })
+      .limit(1)
+      .maybeSingle<RestaurantLocationCoords>(),
   ])
 
   if (!r) notFound()
@@ -61,6 +74,20 @@ export default async function AdminRestaurantEditPage({ params }: PageProps) {
             <PhoneInput name="phone" defaultValue={r.phone ?? ''} className="w-full rounded-xl border border-gray-200 px-4 py-3 text-base outline-none transition-colors focus:border-accent" />
           </div>
           <Input name="photo_1_url" label="Фото (URL)" defaultValue={r.photo_1_url ?? ''} />
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Input
+              name="lat"
+              label="Широта (lat)"
+              defaultValue={primaryLocation?.lat != null ? String(primaryLocation.lat) : ''}
+              placeholder="43.238949"
+            />
+            <Input
+              name="lng"
+              label="Долгота (lng)"
+              defaultValue={primaryLocation?.lng != null ? String(primaryLocation.lng) : ''}
+              placeholder="76.889709"
+            />
+          </div>
           <RestaurantHoursFields initialHours={restaurantHours ?? []} />
 
           <label className="flex items-center gap-2 text-base text-gray-600">

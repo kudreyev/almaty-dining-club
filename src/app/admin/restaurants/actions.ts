@@ -79,6 +79,60 @@ async function replaceRestaurantHours(
   if (insertError) throw new Error(insertError.message)
 }
 
+function parseOptionalCoordinate(value: FormDataEntryValue | null): number | null {
+  const raw = String(value || '').trim()
+  if (!raw) return null
+  const parsed = Number(raw.replace(',', '.'))
+  if (!Number.isFinite(parsed)) {
+    throw new Error('Координаты должны быть числом.')
+  }
+  return parsed
+}
+
+async function syncPrimaryLocationCoords(
+  supabase: Awaited<ReturnType<typeof requireAdmin>>['supabase'],
+  restaurantId: string,
+  address: string,
+  lat: number | null,
+  lng: number | null
+) {
+  const { data: activeLocation, error: activeLocationError } = await supabase
+    .from('restaurant_locations')
+    .select('id, sort_order')
+    .eq('restaurant_id', restaurantId)
+    .eq('is_active', true)
+    .order('sort_order', { ascending: true })
+    .limit(1)
+    .maybeSingle<{ id: string; sort_order: number }>()
+
+  if (activeLocationError) throw new Error(activeLocationError.message)
+
+  if (activeLocation?.id) {
+    const { error: updateLocationError } = await supabase
+      .from('restaurant_locations')
+      .update({ lat, lng })
+      .eq('id', activeLocation.id)
+
+    if (updateLocationError) throw new Error(updateLocationError.message)
+    return
+  }
+
+  if (lat == null || lng == null) return
+
+  const { error: insertLocationError } = await supabase
+    .from('restaurant_locations')
+    .insert({
+      restaurant_id: restaurantId,
+      address,
+      is_active: true,
+      sort_order: 0,
+      lat,
+      lng,
+    })
+
+  if (insertLocationError) throw new Error(insertLocationError.message)
+}
+
 export async function createRestaurant(formData: FormData) {
   const { supabase } = await requireAdmin()
   const restaurantHours = parseRestaurantHoursFromFormData(formData)
@@ -131,6 +185,19 @@ export async function updateRestaurant(formData: FormData) {
 
   const phoneRaw = String(formData.get('phone') || '').trim()
   const phoneNormalized = phoneRaw ? normalizeKZPhone(phoneRaw) : null
+  const lat = parseOptionalCoordinate(formData.get('lat'))
+  const lng = parseOptionalCoordinate(formData.get('lng'))
+
+  if ((lat == null) !== (lng == null)) {
+    throw new Error('Заполните одновременно широту и долготу или оставьте оба поля пустыми.')
+  }
+
+  if (lat != null && (lat < -90 || lat > 90)) {
+    throw new Error('Широта должна быть в диапазоне от -90 до 90.')
+  }
+  if (lng != null && (lng < -180 || lng > 180)) {
+    throw new Error('Долгота должна быть в диапазоне от -180 до 180.')
+  }
 
   const payload = {
     restaurant_name: String(formData.get('restaurant_name') || ''),
@@ -154,9 +221,11 @@ export async function updateRestaurant(formData: FormData) {
   if (error) throw new Error(error.message)
 
   await replaceRestaurantHours(supabase, id, restaurantHours)
+  await syncPrimaryLocationCoords(supabase, id, payload.address, lat, lng)
 
   revalidatePath('/')
   revalidatePath('/almaty')
+  revalidatePath('/map')
   revalidatePath(`/r/${payload.slug}`)
   revalidatePath('/admin/restaurants')
   revalidatePath(`/r/`)

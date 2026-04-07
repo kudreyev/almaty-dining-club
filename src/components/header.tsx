@@ -24,6 +24,7 @@ export async function Header() {
 
   const navLinks = [
     { href: '/', label: 'Заведения' },
+    { href: '/map', label: 'Карта' },
     { href: '/pricing', label: 'Подписка' },
   ]
 

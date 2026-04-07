@@ -275,7 +275,15 @@ export default async function HomePage({ searchParams }: PageProps) {
       <div className="mb-6">
         <div className="flex items-baseline justify-between gap-3">
           <h2 className="text-xl font-bold tracking-tight text-gray-950 sm:text-2xl">Заведения</h2>
-          <p className="shrink-0 text-base text-gray-400">{filteredRestaurants.length} шт.</p>
+          <div className="flex items-center gap-3">
+            <Link
+              href="/map"
+              className="rounded-full border border-gray-200 bg-white px-3 py-1 text-sm font-medium text-gray-800 transition-colors hover:bg-gray-50"
+            >
+              Карта
+            </Link>
+            <p className="shrink-0 text-base text-gray-400">{filteredRestaurants.length} шт.</p>
+          </div>
         </div>
         <div className="mt-3 flex flex-wrap gap-2">
           {quickChips.map((chip) => (

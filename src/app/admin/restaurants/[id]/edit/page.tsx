@@ -2,24 +2,36 @@ import { notFound } from 'next/navigation'
 import { requireAdmin } from '@/lib/admin'
 import { PhoneInput } from '@/components/phone-input'
 import { updateRestaurant } from '../../actions'
+import { deleteRestaurantPhoto, reorderRestaurantPhoto, uploadRestaurantPhotos } from './photo-actions'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { EmptyState } from '@/components/ui/empty-state'
 import { RestaurantHoursFields } from '@/components/admin/restaurant-hours-fields'
 import type { RestaurantHour } from '@/lib/opening-hours'
 
-type PageProps = { params: Promise<{ id: string }> }
+type PageProps = {
+  params: Promise<{ id: string }>
+  searchParams: Promise<{ photoOk?: string; photoError?: string }>
+}
 
 type RestaurantLocationCoords = {
   lat: number | null
   lng: number | null
 }
 
-export default async function AdminRestaurantEditPage({ params }: PageProps) {
+type RestaurantPhoto = {
+  id: string
+  public_url: string
+  sort_order: number
+}
+
+export default async function AdminRestaurantEditPage({ params, searchParams }: PageProps) {
   const { id } = await params
+  const { photoOk, photoError } = await searchParams
   const { supabase } = await requireAdmin()
 
-  const [{ data: r }, { data: restaurantHours }, { data: primaryLocation }] = await Promise.all([
+  const [{ data: r }, { data: restaurantHours }, { data: primaryLocation }, { data: photos }] = await Promise.all([
     supabase
       .from('restaurants')
       .select('*')
@@ -39,6 +51,13 @@ export default async function AdminRestaurantEditPage({ params }: PageProps) {
       .order('sort_order', { ascending: true })
       .limit(1)
       .maybeSingle<RestaurantLocationCoords>(),
+    supabase
+      .from('restaurant_photos')
+      .select('id, public_url, sort_order')
+      .eq('restaurant_id', id)
+      .eq('is_active', true)
+      .order('sort_order', { ascending: true })
+      .returns<RestaurantPhoto[]>(),
   ])
 
   if (!r) notFound()
@@ -73,7 +92,6 @@ export default async function AdminRestaurantEditPage({ params }: PageProps) {
             <label className="mb-1.5 block text-base font-medium text-gray-700">Телефон</label>
             <PhoneInput name="phone" defaultValue={r.phone ?? ''} className="w-full rounded-xl border border-gray-200 px-4 py-3 text-base outline-none transition-colors focus:border-accent" />
           </div>
-          <Input name="photo_1_url" label="Фото (URL)" defaultValue={r.photo_1_url ?? ''} />
           <div className="grid gap-4 sm:grid-cols-2">
             <Input
               name="lat"
@@ -99,6 +117,77 @@ export default async function AdminRestaurantEditPage({ params }: PageProps) {
             Сохранить
           </Button>
         </form>
+      </Card>
+
+      {photoOk ? (
+        <div className="mt-6 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-base text-emerald-700">
+          Фотографии обновлены.
+        </div>
+      ) : null}
+
+      {photoError ? (
+        <div className="mt-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-base text-red-700">
+          Ошибка: {photoError}
+        </div>
+      ) : null}
+
+      <Card className="mt-6 space-y-4">
+        <div>
+          <h2 className="text-xl font-bold sm:text-2xl">Фотографии</h2>
+          <p className="mt-1 text-base text-gray-500">Загрузка до 10 изображений за раз.</p>
+        </div>
+
+        <form action={uploadRestaurantPhotos} className="flex flex-col gap-3 sm:flex-row sm:items-end">
+          <input type="hidden" name="restaurantId" value={r.id} />
+          <div className="flex-1">
+            <label className="mb-1.5 block text-base font-medium text-gray-700">Выберите файлы</label>
+            <input
+              type="file"
+              name="photos"
+              accept="image/*"
+              multiple
+              className="block w-full rounded-xl border border-gray-200 px-3 py-2 text-sm text-gray-700 file:mr-3 file:rounded-lg file:border-0 file:bg-gray-100 file:px-3 file:py-2 file:text-sm file:font-medium hover:file:bg-gray-200"
+            />
+          </div>
+          <Button type="submit" size="md">Загрузить</Button>
+        </form>
+
+        {!photos || photos.length === 0 ? (
+          <EmptyState title="Фотографий пока нет" description="Загрузите первое фото заведения" />
+        ) : (
+          <div className="grid gap-4 sm:grid-cols-2">
+            {photos.map((photo, index) => (
+              <div key={photo.id} className="overflow-hidden rounded-xl border border-gray-200 bg-white">
+                <div className="aspect-[4/3] overflow-hidden bg-gray-100">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={photo.public_url} alt={`Фото ${index + 1}`} className="h-full w-full object-cover" />
+                </div>
+                <div className="flex items-center justify-between gap-2 p-3">
+                  <p className="text-sm text-gray-500">Позиция: {photo.sort_order}</p>
+                  <div className="flex items-center gap-2">
+                    <form action={reorderRestaurantPhoto}>
+                      <input type="hidden" name="restaurantId" value={r.id} />
+                      <input type="hidden" name="photoId" value={photo.id} />
+                      <input type="hidden" name="direction" value="up" />
+                      <Button type="submit" variant="secondary" size="sm" disabled={index === 0}>Вверх</Button>
+                    </form>
+                    <form action={reorderRestaurantPhoto}>
+                      <input type="hidden" name="restaurantId" value={r.id} />
+                      <input type="hidden" name="photoId" value={photo.id} />
+                      <input type="hidden" name="direction" value="down" />
+                      <Button type="submit" variant="secondary" size="sm" disabled={index === photos.length - 1}>Вниз</Button>
+                    </form>
+                    <form action={deleteRestaurantPhoto}>
+                      <input type="hidden" name="restaurantId" value={r.id} />
+                      <input type="hidden" name="photoId" value={photo.id} />
+                      <Button type="submit" variant="ghost" size="sm">Удалить</Button>
+                    </form>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </Card>
     </div>
   )

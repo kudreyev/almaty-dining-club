@@ -26,7 +26,7 @@ type Restaurant = {
   cuisine_2: string | null
   cuisine_3: string | null
   short_description: string
-  photo_1_url: string | null
+  cover_photo_url?: string | null
 
   restaurant_locations?: {
     address: string
@@ -88,7 +88,6 @@ export default async function HomePage({ searchParams }: PageProps) {
       cuisine_2,
       cuisine_3,
       short_description,
-      photo_1_url,
       offers (
         offer_type,
         offer_title,
@@ -121,8 +120,27 @@ export default async function HomePage({ searchParams }: PageProps) {
     restaurant_hours: r.restaurant_hours ?? [],
   }))
 
+  const photoByRestaurantId = new Map<string, string>()
+  if (safeRestaurants.length > 0) {
+    const restaurantIds = safeRestaurants.map((item) => item.id)
+    const { data: photos } = await supabase
+      .from('restaurant_photos')
+      .select('restaurant_id, public_url, sort_order')
+      .in('restaurant_id', restaurantIds)
+      .eq('is_active', true)
+      .order('restaurant_id', { ascending: true })
+      .order('sort_order', { ascending: true })
+
+    for (const photo of photos ?? []) {
+      if (!photoByRestaurantId.has(photo.restaurant_id)) {
+        photoByRestaurantId.set(photo.restaurant_id, photo.public_url)
+      }
+    }
+  }
+
   const restaurantsWithStatus = safeRestaurants.map((restaurant) => ({
     ...restaurant,
+    cover_photo_url: photoByRestaurantId.get(restaurant.id) ?? null,
     openStatus: computeOpenStatus(restaurant.restaurant_hours ?? [], now, DEFAULT_TZ),
   }))
 
@@ -318,10 +336,10 @@ export default async function HomePage({ searchParams }: PageProps) {
             >
               {/* PHOTO */}
               <div className="aspect-[4/3] overflow-hidden bg-gray-100">
-                {r.photo_1_url ? (
+                {r.cover_photo_url ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
-                    src={r.photo_1_url}
+                    src={r.cover_photo_url}
                     alt={r.restaurant_name}
                     className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
                   />

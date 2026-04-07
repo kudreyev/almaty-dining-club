@@ -28,9 +28,6 @@ type Restaurant = {
   cuisine_2: string | null
   cuisine_3: string | null
   short_description: string
-  photo_1_url: string | null
-  photo_2_url: string | null
-  photo_3_url: string | null
   is_active: boolean
   restaurant_hours?: RestaurantHour[]
 }
@@ -49,7 +46,7 @@ export default async function RestaurantPage({ params }: PageProps) {
       id, restaurant_name, slug, city, address, phone,
       instagram_url, website_url, two_gis_url,
       cuisine, cuisine_2, cuisine_3, short_description,
-      photo_1_url, photo_2_url, photo_3_url, is_active,
+      is_active,
       restaurant_hours ( day_of_week, is_closed, open_time, close_time, close_next_day )
     `)
     .eq('slug', slug)
@@ -65,7 +62,7 @@ export default async function RestaurantPage({ params }: PageProps) {
     sort_order: number
   }
 
-  const [locationsResult, offersResult, { subscription }] = await Promise.all([
+  const [locationsResult, offersResult, photosResult, { subscription }] = await Promise.all([
     supabase
       .from('restaurant_locations')
       .select('id, address, phone, sort_order')
@@ -82,6 +79,12 @@ export default async function RestaurantPage({ params }: PageProps) {
       .eq('restaurant_id', restaurant.id)
       .eq('is_active', true)
       .order('created_at', { ascending: true }),
+    supabase
+      .from('restaurant_photos')
+      .select('public_url')
+      .eq('restaurant_id', restaurant.id)
+      .eq('is_active', true)
+      .order('sort_order', { ascending: true }),
     getCurrentUserSubscription(),
   ])
 
@@ -100,9 +103,9 @@ export default async function RestaurantPage({ params }: PageProps) {
     )
   }
 
-  const photoUrls = [restaurant.photo_1_url, restaurant.photo_2_url, restaurant.photo_3_url].filter(
-    (u): u is string => Boolean(u)
-  )
+  const photoUrls = (photosResult.data ?? [])
+    .map((item) => item.public_url)
+    .filter((u): u is string => Boolean(u))
 
   const cuisines = [restaurant.cuisine, restaurant.cuisine_2, restaurant.cuisine_3].filter(Boolean) as string[]
   const hoursForWeek = restaurant.restaurant_hours ?? []

@@ -25,7 +25,7 @@ type Restaurant = {
   cuisine_2: string | null
   cuisine_3: string | null
   short_description: string
-  photo_1_url: string | null
+  cover_photo_url?: string | null
   offers: Offer[]
   restaurant_hours?: RestaurantHour[]
 }
@@ -58,7 +58,7 @@ export default async function AlmatyPage({ searchParams }: PageProps) {
     .select(`
       id, restaurant_name, slug, address,
       cuisine, cuisine_2, cuisine_3,
-      short_description, photo_1_url,
+      short_description,
       offers ( id, offer_type, offer_title, offer_terms_short, estimated_value, cooldown_days, is_active ),
       restaurant_hours ( day_of_week, is_closed, open_time, close_time, close_next_day )
     `)
@@ -76,9 +76,29 @@ export default async function AlmatyPage({ searchParams }: PageProps) {
   }
 
   const normalizedQuery = q.trim().toLowerCase()
+  const safeRestaurants = (restaurants as Restaurant[]) ?? []
+  const photoByRestaurantId = new Map<string, string>()
 
-  const restaurantsWithStatus = (restaurants as Restaurant[]).map((restaurant) => ({
+  if (safeRestaurants.length > 0) {
+    const restaurantIds = safeRestaurants.map((item) => item.id)
+    const { data: photos } = await supabase
+      .from('restaurant_photos')
+      .select('restaurant_id, public_url, sort_order')
+      .in('restaurant_id', restaurantIds)
+      .eq('is_active', true)
+      .order('restaurant_id', { ascending: true })
+      .order('sort_order', { ascending: true })
+
+    for (const photo of photos ?? []) {
+      if (!photoByRestaurantId.has(photo.restaurant_id)) {
+        photoByRestaurantId.set(photo.restaurant_id, photo.public_url)
+      }
+    }
+  }
+
+  const restaurantsWithStatus = safeRestaurants.map((restaurant) => ({
     ...restaurant,
+    cover_photo_url: photoByRestaurantId.get(restaurant.id) ?? null,
     openStatus: computeOpenStatus(restaurant.restaurant_hours ?? [], now, DEFAULT_TZ),
   }))
 
@@ -168,10 +188,10 @@ export default async function AlmatyPage({ searchParams }: PageProps) {
                 className="group block overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm transition-all duration-200 hover:shadow-md hover:-translate-y-0.5"
               >
                 <div className="aspect-[4/3] overflow-hidden bg-gray-100">
-                  {restaurant.photo_1_url ? (
+                  {restaurant.cover_photo_url ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
-                      src={restaurant.photo_1_url}
+                      src={restaurant.cover_photo_url}
                       alt={restaurant.restaurant_name}
                       className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
                     />

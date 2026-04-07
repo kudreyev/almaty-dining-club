@@ -164,6 +164,9 @@ export async function POST(request: Request, { params }: RouteParams) {
 
       const { error: insertError } = await admin.from('restaurant_photos').insert({
         restaurant_id: restaurantId,
+        // Backward compatibility: some DBs still keep legacy NOT NULL columns.
+        public_url: fullUrlData.publicUrl,
+        storage_path: fullPath,
         thumb_url: thumbUrlData.publicUrl,
         full_url: fullUrlData.publicUrl,
         thumb_path: thumbPath,

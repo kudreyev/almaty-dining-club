@@ -173,7 +173,6 @@ export async function importCsvText(formData: FormData) {
         if (value > 365) return 365
         return value
       })(),
-      requires_main_course: false,
       is_active: parseBoolean(row.is_active, true),
     }
 

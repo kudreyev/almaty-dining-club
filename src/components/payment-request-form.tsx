@@ -10,7 +10,7 @@ function generatePaymentCode() {
 
 export function PaymentRequestForm({ userId }: { userId: string }) {
   const router = useRouter()
-  const [amount, setAmount] = useState('4990')
+  const [amount, setAmount] = useState('1990')
   const [comment, setComment] = useState('')
   const [paymentCode] = useState(generatePaymentCode())
   const [loading, setLoading] = useState(false)

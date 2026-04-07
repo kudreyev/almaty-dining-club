@@ -52,7 +52,7 @@ export default function PricingPage() {
         <Card className="mt-10" padding="none">
           <div className="p-6 md:p-8">
             <div className="flex items-baseline gap-2">
-              <span className="text-4xl font-bold tracking-tight">4 990 ₸</span>
+              <span className="text-4xl font-bold tracking-tight">1 990 ₸</span>
               <span className="text-base text-gray-400">/ 30 дней</span>
             </div>
 
@@ -123,7 +123,7 @@ export default function PricingPage() {
       <div className="fixed bottom-0 left-0 right-0 z-40 border-t border-gray-200 bg-white/95 px-4 py-3 backdrop-blur-sm sm:hidden">
         <div className="flex items-center gap-3">
           <div className="min-w-0 flex-1">
-            <p className="text-base font-bold leading-tight">4 990 ₸</p>
+            <p className="text-base font-bold leading-tight">1 990 ₸</p>
             <p className="text-sm text-gray-500">/ 30 дней</p>
           </div>
           <a

@@ -154,7 +154,7 @@ export default async function AdminActivationLinksPage({
               id="amount"
               name="amount"
               type="number"
-              defaultValue={4990}
+              defaultValue={1990}
               min={1}
               className="w-full rounded-xl border border-gray-200 px-4 py-3 text-base outline-none transition-colors focus:border-accent"
             />

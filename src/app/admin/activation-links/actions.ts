@@ -12,7 +12,7 @@ export async function createActivationLink(formData: FormData) {
 
   const phoneRaw = String(formData.get('phone_target') ?? '').trim()
   const amountRaw = Number(formData.get('amount'))
-  const amount = Number.isFinite(amountRaw) && amountRaw > 0 ? Math.floor(amountRaw) : 4990
+  const amount = Number.isFinite(amountRaw) && amountRaw > 0 ? Math.floor(amountRaw) : 1990
 
   const phoneTarget = normalizeToE164Like(phoneRaw)
   if (!phoneTarget) {

@@ -7,7 +7,7 @@ create table if not exists public.activation_links (
   phone_target text not null,
   status text not null default 'issued'
     check (status in ('issued', 'activated', 'revoked', 'expired')),
-  amount int not null default 4990,
+  amount int not null default 1990,
   currency text not null default 'KZT',
   activated_user_id uuid references auth.users (id) on delete set null,
   activated_at timestamptz,

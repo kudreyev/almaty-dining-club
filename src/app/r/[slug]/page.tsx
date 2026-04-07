@@ -32,6 +32,11 @@ type Restaurant = {
   restaurant_hours?: RestaurantHour[]
 }
 
+type PrimaryLocation = {
+  lat: number | null
+  lng: number | null
+}
+
 type PageProps = {
   params: Promise<{ slug: string }>
 }
@@ -55,7 +60,7 @@ export default async function RestaurantPage({ params }: PageProps) {
 
   if (restaurantError || !restaurant) notFound()
 
-  const [offersResult, photosResult, { subscription }] = await Promise.all([
+  const [offersResult, photosResult, primaryLocationResult, { subscription }] = await Promise.all([
     supabase
       .from('offers')
       .select(`
@@ -71,10 +76,19 @@ export default async function RestaurantPage({ params }: PageProps) {
       .eq('restaurant_id', restaurant.id)
       .eq('is_active', true)
       .order('sort_order', { ascending: true }),
+    supabase
+      .from('restaurant_locations')
+      .select('lat, lng')
+      .eq('restaurant_id', restaurant.id)
+      .eq('is_active', true)
+      .order('sort_order', { ascending: true })
+      .limit(1)
+      .maybeSingle<PrimaryLocation>(),
     getCurrentUserSubscription(),
   ])
 
   const { data: offers, error: offersError } = offersResult
+  const primaryLocation = primaryLocationResult.data
   const hasSubscription = isSubscriptionCurrentlyActive(subscription)
 
   if (offersError) {
@@ -96,6 +110,16 @@ export default async function RestaurantPage({ params }: PageProps) {
   const hoursForWeek = restaurant.restaurant_hours ?? []
   const openStatus = computeOpenStatus(hoursForWeek, new Date(), DEFAULT_TZ)
   const hoursByDay = new Map(hoursForWeek.map((item) => [item.day_of_week, item]))
+  const addressLine = restaurant.address?.trim() || `${restaurant.restaurant_name}, Алматы`
+  const hasCoordinates = primaryLocation?.lat != null && primaryLocation?.lng != null
+  const yandexSearchUrl = `https://yandex.kz/maps/?text=${encodeURIComponent(addressLine)}`
+  const yandexMapUrl = hasCoordinates
+    ? `https://yandex.kz/maps/?pt=${primaryLocation.lng},${primaryLocation.lat}&z=16&l=map`
+    : yandexSearchUrl
+  const mapTargetUrl = restaurant.two_gis_url || yandexMapUrl
+  const staticMapUrl = hasCoordinates
+    ? `https://staticmap.openstreetmap.de/staticmap.php?center=${primaryLocation.lat},${primaryLocation.lng}&zoom=16&size=800x360&markers=${primaryLocation.lat},${primaryLocation.lng},red-pushpin`
+    : null
 
   return (
     <div className="mx-auto max-w-6xl px-5 py-8">
@@ -152,13 +176,47 @@ export default async function RestaurantPage({ params }: PageProps) {
               </div>
             ) : null}
 
+            {/* MAP */}
+            <div className="mt-6 rounded-3xl border border-gray-200 bg-white p-5">
+              <h2 className="text-xl font-bold tracking-tight text-gray-950">Карта</h2>
+
+              <a
+                href={mapTargetUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="mt-3 block overflow-hidden rounded-2xl border border-gray-200 h-44 sm:h-56"
+              >
+                {staticMapUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={staticMapUrl}
+                    alt={`Карта: ${addressLine}`}
+                    className="h-full w-full object-cover"
+                  />
+                ) : (
+                  <div className="flex h-full w-full items-center justify-center bg-gray-50 px-4 text-center text-sm text-gray-500">
+                    Добавьте координаты в админке, чтобы появилась карта
+                  </div>
+                )}
+              </a>
+
+              <p className="mt-3 truncate text-sm text-gray-500">{addressLine}</p>
+
+              <div className="mt-3 flex flex-wrap gap-2">
+                {restaurant.two_gis_url ? (
+                  <Button href={restaurant.two_gis_url} variant="secondary" size="sm" target="_blank" rel="noreferrer">
+                    Открыть в 2GIS
+                  </Button>
+                ) : (
+                  <Button href={yandexSearchUrl} variant="secondary" size="sm" target="_blank" rel="noreferrer">
+                    Открыть по адресу
+                  </Button>
+                )}
+              </div>
+            </div>
+
             {/* LINKS */}
             <div className="mt-4 flex flex-wrap gap-2">
-              {restaurant.two_gis_url ? (
-                <Button href={restaurant.two_gis_url} variant="secondary" size="sm" target="_blank" rel="noreferrer">
-                  Открыть в 2GIS
-                </Button>
-              ) : null}
               {restaurant.instagram_url ? (
                 <Button href={restaurant.instagram_url} variant="secondary" size="sm" target="_blank" rel="noreferrer">
                   Instagram

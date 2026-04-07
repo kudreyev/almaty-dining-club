@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState, useCallback } from 'react'
+import { useMemo, useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { Badge } from '@/components/ui/badge'
@@ -54,20 +54,44 @@ type Props = {
   showMapLink?: boolean
 }
 
-function requestUserPosition(): Promise<{ lat: number; lng: number } | null> {
+const GEO_HINT_MAIN =
+  'Нужно разрешить геолокацию, чтобы сортировать по близости.'
+const GEO_HINT_DENIED_EXTRA = 'Включите в настройках браузера для kudapass.kz.'
+
+type GeoRequestResult =
+  | { ok: true; lat: number; lng: number }
+  | { ok: false; permissionDenied: boolean }
+
+async function getStoredGeolocationPermissionState(): Promise<'granted' | 'denied' | 'prompt' | 'unknown'> {
+  if (typeof navigator === 'undefined' || !navigator.permissions?.query) {
+    return 'unknown'
+  }
+  try {
+    const status = await navigator.permissions.query({ name: 'geolocation' as PermissionName })
+    return status.state === 'denied' ? 'denied' : status.state === 'granted' ? 'granted' : 'prompt'
+  } catch {
+    return 'unknown'
+  }
+}
+
+function requestUserPosition(): Promise<GeoRequestResult> {
   if (typeof navigator === 'undefined' || !navigator.geolocation) {
-    return Promise.resolve(null)
+    return Promise.resolve({ ok: false, permissionDenied: false })
   }
 
   return new Promise((resolve) => {
     navigator.geolocation.getCurrentPosition(
       (position) => {
         resolve({
+          ok: true,
           lat: position.coords.latitude,
           lng: position.coords.longitude,
         })
       },
-      () => resolve(null),
+      (err) => {
+        const permissionDenied = err?.code === 1
+        resolve({ ok: false, permissionDenied })
+      },
       { enableHighAccuracy: true, timeout: 10000, maximumAge: 120000 }
     )
   })
@@ -81,32 +105,7 @@ export function RestaurantListClient({
 }: Props) {
   const [proximityOn, setProximityOn] = useState(false)
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null)
-  const [geoMessage, setGeoMessage] = useState<string | null>(null)
-
-  const fetchLocation = useCallback(async (): Promise<boolean> => {
-    const pos = await requestUserPosition()
-    if (pos) {
-      setUserLocation(pos)
-      setGeoMessage(null)
-      return true
-    }
-    setGeoMessage('Геолокация недоступна — сортируем по алфавиту.')
-    return false
-  }, [])
-
-  useEffect(() => {
-    let cancelled = false
-
-    void (async () => {
-      const ok = await fetchLocation()
-      if (cancelled) return
-      if (ok) setProximityOn(true)
-    })()
-
-    return () => {
-      cancelled = true
-    }
-  }, [fetchLocation])
+  const [geoMessage, setGeoMessage] = useState<{ main: string; extra?: string } | null>(null)
 
   const sortedRestaurants = useMemo(() => {
     const useProximity = proximityOn && userLocation !== null
@@ -117,15 +116,17 @@ export function RestaurantListClient({
         .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0))[0]
 
       const hasCoords = primaryLocation?.lat != null && primaryLocation?.lng != null
-      const distanceKm =
-        useProximity && hasCoords
+      let distanceKm = Number.POSITIVE_INFINITY
+      if (useProximity) {
+        distanceKm = hasCoords
           ? haversineDistanceKm(
               userLocation.lat,
               userLocation.lng,
-              primaryLocation.lat as number,
-              primaryLocation.lng as number
+              primaryLocation!.lat as number,
+              primaryLocation!.lng as number
             )
           : Number.POSITIVE_INFINITY
+      }
 
       return { restaurant, distanceKm }
     })
@@ -154,10 +155,26 @@ export function RestaurantListClient({
       return
     }
 
-    const ok = await fetchLocation()
-    if (ok) {
-      setProximityOn(true)
+    const stored = await getStoredGeolocationPermissionState()
+    if (stored === 'denied') {
+      setGeoMessage({ main: GEO_HINT_MAIN, extra: GEO_HINT_DENIED_EXTRA })
+      return
     }
+
+    const result = await requestUserPosition()
+    if (result.ok) {
+      setUserLocation({ lat: result.lat, lng: result.lng })
+      setProximityOn(true)
+      setGeoMessage(null)
+      return
+    }
+
+    if (result.permissionDenied) {
+      setGeoMessage({ main: GEO_HINT_MAIN, extra: GEO_HINT_DENIED_EXTRA })
+      return
+    }
+
+    setGeoMessage({ main: GEO_HINT_MAIN })
   }
 
   return (
@@ -207,7 +224,10 @@ export function RestaurantListClient({
         </div>
 
         {geoMessage ? (
-          <p className="mt-2 text-xs text-gray-500">{geoMessage}</p>
+          <div className="mt-2 space-y-0.5 text-xs text-gray-500" role="status">
+            <p>{geoMessage.main}</p>
+            {geoMessage.extra ? <p>{geoMessage.extra}</p> : null}
+          </div>
         ) : null}
 
       </div>

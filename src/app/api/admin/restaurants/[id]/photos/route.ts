@@ -62,6 +62,29 @@ async function getRestaurantOrThrow(admin: ReturnType<typeof createSupabaseAdmin
   return restaurant
 }
 
+async function ensurePhotoBucket(admin: ReturnType<typeof createSupabaseAdminClient>) {
+  const { data: existingBucket, error: getBucketError } = await admin.storage.getBucket(RESTAURANT_PHOTO_BUCKET)
+
+  if (existingBucket) return
+
+  const bucketMissing =
+    !!getBucketError && /not found|does not exist|bucket/i.test(getBucketError.message || '')
+
+  if (!bucketMissing && getBucketError) {
+    throw new Error(`Не удалось проверить bucket: ${getBucketError.message}`)
+  }
+
+  const { error: createBucketError } = await admin.storage.createBucket(RESTAURANT_PHOTO_BUCKET, {
+    public: true,
+    fileSizeLimit: `${10 * 1024 * 1024}`,
+    allowedMimeTypes: ['image/webp'],
+  })
+
+  if (createBucketError) {
+    throw new Error(`Не удалось создать bucket для фото: ${createBucketError.message}`)
+  }
+}
+
 export async function POST(request: Request, { params }: RouteParams) {
   const adminCheck = await ensureAdmin()
   if (!adminCheck.ok) return adminCheck.response
@@ -89,6 +112,7 @@ export async function POST(request: Request, { params }: RouteParams) {
   const uploadedPaths: string[] = []
 
   try {
+    await ensurePhotoBucket(admin)
     const restaurant = await getRestaurantOrThrow(admin, restaurantId)
     const { data: lastPhoto, error: lastPhotoError } = await admin
       .from('restaurant_photos')

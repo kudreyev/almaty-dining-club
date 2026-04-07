@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, useCallback } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { Badge } from '@/components/ui/badge'
@@ -45,86 +45,72 @@ type QuickChip = {
   isActive: boolean
 }
 
-type SortMode = 'proximity' | 'alphabet'
-type PermissionState = 'granted' | 'denied' | 'prompt' | 'unknown'
-
 type Props = {
   restaurants: RestaurantWithStatus[]
   quickChips: QuickChip[]
+  /** Заголовок блока (по умолчанию «Заведения») */
+  title?: string
+  /** Показывать ссылку «Карта» в шапке блока */
+  showMapLink?: boolean
 }
 
-export function RestaurantListClient({ restaurants, quickChips }: Props) {
-  const [sortMode, setSortMode] = useState<SortMode>('alphabet')
+function requestUserPosition(): Promise<{ lat: number; lng: number } | null> {
+  if (typeof navigator === 'undefined' || !navigator.geolocation) {
+    return Promise.resolve(null)
+  }
+
+  return new Promise((resolve) => {
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        resolve({
+          lat: position.coords.latitude,
+          lng: position.coords.longitude,
+        })
+      },
+      () => resolve(null),
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 120000 }
+    )
+  })
+}
+
+export function RestaurantListClient({
+  restaurants,
+  quickChips,
+  title = 'Заведения',
+  showMapLink = true,
+}: Props) {
+  const [proximityOn, setProximityOn] = useState(false)
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null)
-  const [permissionState, setPermissionState] = useState<PermissionState>('unknown')
   const [geoMessage, setGeoMessage] = useState<string | null>(null)
 
-  const requestGeolocation = async (): Promise<boolean> => {
-    if (typeof navigator === 'undefined' || !navigator.geolocation) {
-      setGeoMessage('Геолокация не поддерживается в этом браузере.')
-      return false
+  const fetchLocation = useCallback(async (): Promise<boolean> => {
+    const pos = await requestUserPosition()
+    if (pos) {
+      setUserLocation(pos)
+      setGeoMessage(null)
+      return true
     }
-
-    return new Promise((resolve) => {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          setUserLocation({
-            lat: position.coords.latitude,
-            lng: position.coords.longitude,
-          })
-          setGeoMessage(null)
-          resolve(true)
-        },
-        () => {
-          setGeoMessage('Не удалось получить геолокацию — сортируем по алфавиту.')
-          setSortMode('alphabet')
-          resolve(false)
-        },
-        { enableHighAccuracy: true, timeout: 10000, maximumAge: 120000 }
-      )
-    })
-  }
+    setGeoMessage('Геолокация недоступна — сортируем по алфавиту.')
+    return false
+  }, [])
 
   useEffect(() => {
     let cancelled = false
 
-    const setup = async () => {
-      if (typeof navigator === 'undefined') return
-
-      if (!('permissions' in navigator) || typeof navigator.permissions.query !== 'function') {
-        setPermissionState('unknown')
-        return
-      }
-
-      try {
-        const status = await navigator.permissions.query({ name: 'geolocation' })
-        if (cancelled) return
-
-        const nextState = status.state as PermissionState
-        setPermissionState(nextState)
-
-        if (nextState === 'granted') {
-          setSortMode('proximity')
-          await requestGeolocation()
-        }
-
-        status.onchange = () => {
-          const changedState = status.state as PermissionState
-          setPermissionState(changedState)
-        }
-      } catch {
-        setPermissionState('unknown')
-      }
-    }
-
-    void setup()
+    void (async () => {
+      const ok = await fetchLocation()
+      if (cancelled) return
+      if (ok) setProximityOn(true)
+    })()
 
     return () => {
       cancelled = true
     }
-  }, [])
+  }, [fetchLocation])
 
   const sortedRestaurants = useMemo(() => {
+    const useProximity = proximityOn && userLocation !== null
+
     const enriched = restaurants.map((restaurant) => {
       const primaryLocation = (restaurant.restaurant_locations ?? [])
         .filter((location) => location.is_active)
@@ -132,7 +118,7 @@ export function RestaurantListClient({ restaurants, quickChips }: Props) {
 
       const hasCoords = primaryLocation?.lat != null && primaryLocation?.lng != null
       const distanceKm =
-        sortMode === 'proximity' && userLocation && hasCoords
+        useProximity && hasCoords
           ? haversineDistanceKm(
               userLocation.lat,
               userLocation.lng,
@@ -144,20 +130,33 @@ export function RestaurantListClient({ restaurants, quickChips }: Props) {
       return { restaurant, distanceKm }
     })
 
-    if (sortMode === 'proximity' && userLocation) {
+    if (useProximity) {
       return enriched.sort((a, b) => a.distanceKm - b.distanceKm)
     }
 
     return enriched.sort((a, b) =>
       a.restaurant.restaurant_name.localeCompare(b.restaurant.restaurant_name, 'ru')
     )
-  }, [restaurants, sortMode, userLocation])
+  }, [restaurants, proximityOn, userLocation])
 
-  const onSelectProximity = async () => {
-    setSortMode('proximity')
-    const ok = await requestGeolocation()
-    if (!ok) {
-      setSortMode('alphabet')
+  const proximityChipActive = proximityOn && userLocation !== null
+
+  const onProximityChipClick = async () => {
+    if (proximityOn) {
+      setProximityOn(false)
+      setGeoMessage(null)
+      return
+    }
+
+    if (userLocation) {
+      setProximityOn(true)
+      setGeoMessage(null)
+      return
+    }
+
+    const ok = await fetchLocation()
+    if (ok) {
+      setProximityOn(true)
     }
   }
 
@@ -165,14 +164,16 @@ export function RestaurantListClient({ restaurants, quickChips }: Props) {
     <>
       <div className="mb-6">
         <div className="flex items-baseline justify-between gap-3">
-          <h2 className="text-xl font-bold tracking-tight text-gray-950 sm:text-2xl">Заведения</h2>
+          <h2 className="text-xl font-bold tracking-tight text-gray-950 sm:text-2xl">{title}</h2>
           <div className="flex items-center gap-3">
-            <Link
-              href="/map"
-              className="rounded-full border border-gray-200 bg-white px-3 py-1 text-sm font-medium text-gray-800 transition-colors hover:bg-gray-50"
-            >
-              Карта
-            </Link>
+            {showMapLink ? (
+              <Link
+                href="/map"
+                className="rounded-full border border-gray-200 bg-white px-3 py-1 text-sm font-medium text-gray-800 transition-colors hover:bg-gray-50"
+              >
+                Карта
+              </Link>
+            ) : null}
             <p className="shrink-0 text-base text-gray-400">{sortedRestaurants.length} шт.</p>
           </div>
         </div>
@@ -180,40 +181,15 @@ export function RestaurantListClient({ restaurants, quickChips }: Props) {
         <div className="mt-3 flex flex-wrap gap-2">
           <button
             type="button"
-            onClick={onSelectProximity}
+            onClick={onProximityChipClick}
             className={`rounded-full border px-3.5 py-1.5 text-sm font-medium transition-colors ${
-              sortMode === 'proximity'
+              proximityChipActive
                 ? 'border-gray-900 bg-black text-white'
                 : 'border-gray-200 bg-white text-gray-700 hover:bg-gray-50'
             }`}
           >
             По близости
           </button>
-          <button
-            type="button"
-            onClick={() => setSortMode('alphabet')}
-            className={`rounded-full border px-3.5 py-1.5 text-sm font-medium transition-colors ${
-              sortMode === 'alphabet'
-                ? 'border-gray-900 bg-black text-white'
-                : 'border-gray-200 bg-white text-gray-700 hover:bg-gray-50'
-            }`}
-          >
-            По алфавиту
-          </button>
-          {sortMode === 'alphabet' && permissionState !== 'granted' ? (
-            <button
-              type="button"
-              onClick={onSelectProximity}
-              className="rounded-full border border-gray-200 bg-white px-3.5 py-1.5 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50"
-            >
-              Включить геолокацию
-            </button>
-          ) : null}
-        </div>
-
-        {geoMessage ? <p className="mt-2 text-sm text-gray-500">{geoMessage}</p> : null}
-
-        <div className="mt-3 flex flex-wrap gap-2">
           {quickChips.map((chip) => (
             <Link
               key={`${chip.label}-${chip.href}`}
@@ -229,6 +205,11 @@ export function RestaurantListClient({ restaurants, quickChips }: Props) {
             </Link>
           ))}
         </div>
+
+        {geoMessage ? (
+          <p className="mt-2 text-xs text-gray-500">{geoMessage}</p>
+        ) : null}
+
       </div>
 
       {sortedRestaurants.length === 0 ? (
@@ -279,7 +260,7 @@ export function RestaurantListClient({ restaurants, quickChips }: Props) {
                         : 'Закрыто')}
                 </p>
 
-                {sortMode === 'proximity' && Number.isFinite(distanceKm) ? (
+                {proximityChipActive && Number.isFinite(distanceKm) ? (
                   <p className="mt-1 text-sm text-gray-500">{distanceKm.toFixed(1)} км</p>
                 ) : null}
 

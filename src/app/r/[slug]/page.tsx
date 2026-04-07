@@ -42,14 +42,6 @@ type PageProps = {
   params: Promise<{ slug: string }>
 }
 
-function coordsToOsmTile(lat: number, lng: number, zoom: number) {
-  const latRad = (lat * Math.PI) / 180
-  const n = 2 ** zoom
-  const x = Math.floor(((lng + 180) / 360) * n)
-  const y = Math.floor((1 - Math.log(Math.tan(latRad) + 1 / Math.cos(latRad)) / Math.PI) / 2 * n)
-  return { x, y }
-}
-
 export default async function RestaurantPage({ params }: PageProps) {
   const { slug } = await params
   const supabase = await createSupabaseServerClient()
@@ -127,18 +119,13 @@ export default async function RestaurantPage({ params }: PageProps) {
     : yandexSearchUrl
   const mapTargetUrl = restaurant.two_gis_url || yandexMapUrl
   const staticMapUrl = hasCoordinates
-    ? `https://staticmap.openstreetmap.de/staticmap.php?center=${primaryLocation.lat},${primaryLocation.lng}&zoom=14&size=800x360&markers=${primaryLocation.lat},${primaryLocation.lng},red-pushpin`
+    ? `https://static-maps.yandex.ru/1.x/?lang=ru_RU&ll=${primaryLocation.lng},${primaryLocation.lat}&z=14&l=map&size=650,360&pt=${primaryLocation.lng},${primaryLocation.lat},pm2rdm`
     : null
-  const backupMapUrl = hasCoordinates
-    ? (() => {
-        const { x, y } = coordsToOsmTile(primaryLocation.lat!, primaryLocation.lng!, 14)
-        return `https://tile.openstreetmap.org/14/${x}/${y}.png`
-      })()
-    : null
+  const backupMapUrl = null
   const noCoords = !hasCoordinates
 
   console.warn(
-    `[restaurant-map] slug=${restaurant.slug} staticMapUrl=${staticMapUrl ?? 'none'} backupMapUrl=${backupMapUrl ?? 'none'}`
+    `[restaurant-map] slug=${restaurant.slug} previewMapUrl=${staticMapUrl ?? 'none'} backupMapUrl=none`
   )
 
   return (

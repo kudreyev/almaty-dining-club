@@ -2,6 +2,7 @@ import { notFound } from 'next/navigation'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { getCurrentUserSubscription, isSubscriptionCurrentlyActive } from '@/lib/subscription'
 import { RestaurantPhotoGallery } from '@/components/restaurant-photo-gallery'
+import { RestaurantMapCard } from '@/components/restaurant-map-card'
 import { OffersPanel } from '@/components/offers-panel'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -120,6 +121,9 @@ export default async function RestaurantPage({ params }: PageProps) {
   const staticMapUrl = hasCoordinates
     ? `https://staticmap.openstreetmap.de/staticmap.php?center=${primaryLocation.lat},${primaryLocation.lng}&zoom=16&size=800x360&markers=${primaryLocation.lat},${primaryLocation.lng},red-pushpin`
     : null
+  const noCoords = !hasCoordinates
+
+  console.warn(`[restaurant-map] slug=${restaurant.slug} staticMapUrl=${staticMapUrl ?? 'none'}`)
 
   return (
     <div className="mx-auto max-w-6xl px-5 py-8">
@@ -176,44 +180,14 @@ export default async function RestaurantPage({ params }: PageProps) {
               </div>
             ) : null}
 
-            {/* MAP */}
-            <div className="mt-6 rounded-3xl border border-gray-200 bg-white p-5">
-              <h2 className="text-xl font-bold tracking-tight text-gray-950">Карта</h2>
-
-              <a
-                href={mapTargetUrl}
-                target="_blank"
-                rel="noreferrer"
-                className="mt-3 block overflow-hidden rounded-2xl border border-gray-200 h-44 sm:h-56"
-              >
-                {staticMapUrl ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={staticMapUrl}
-                    alt={`Карта: ${addressLine}`}
-                    className="h-full w-full object-cover"
-                  />
-                ) : (
-                  <div className="flex h-full w-full items-center justify-center bg-gray-50 px-4 text-center text-sm text-gray-500">
-                    Добавьте координаты в админке, чтобы появилась карта
-                  </div>
-                )}
-              </a>
-
-              <p className="mt-3 truncate text-sm text-gray-500">{addressLine}</p>
-
-              <div className="mt-3 flex flex-wrap gap-2">
-                {restaurant.two_gis_url ? (
-                  <Button href={restaurant.two_gis_url} variant="secondary" size="sm" target="_blank" rel="noreferrer">
-                    Открыть в 2GIS
-                  </Button>
-                ) : (
-                  <Button href={yandexSearchUrl} variant="secondary" size="sm" target="_blank" rel="noreferrer">
-                    Открыть по адресу
-                  </Button>
-                )}
-              </div>
-            </div>
+            <RestaurantMapCard
+              addressLine={addressLine}
+              staticMapUrl={staticMapUrl}
+              twoGisUrl={restaurant.two_gis_url}
+              mapTargetUrl={mapTargetUrl}
+              yandexMapUrl={yandexMapUrl}
+              noCoords={noCoords}
+            />
 
             {/* LINKS */}
             <div className="mt-4 flex flex-wrap gap-2">

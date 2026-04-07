@@ -123,16 +123,16 @@ export default async function RestaurantPage({ params }: PageProps) {
   const hasCoordinates = primaryLocation?.lat != null && primaryLocation?.lng != null
   const yandexSearchUrl = `https://yandex.kz/maps/?text=${encodeURIComponent(addressLine)}`
   const yandexMapUrl = hasCoordinates
-    ? `https://yandex.kz/maps/?pt=${primaryLocation.lng},${primaryLocation.lat}&z=16&l=map`
+    ? `https://yandex.kz/maps/?pt=${primaryLocation.lng},${primaryLocation.lat}&z=14&l=map`
     : yandexSearchUrl
   const mapTargetUrl = restaurant.two_gis_url || yandexMapUrl
   const staticMapUrl = hasCoordinates
-    ? `https://staticmap.openstreetmap.de/staticmap.php?center=${primaryLocation.lat},${primaryLocation.lng}&zoom=16&size=800x360&markers=${primaryLocation.lat},${primaryLocation.lng},red-pushpin`
+    ? `https://staticmap.openstreetmap.de/staticmap.php?center=${primaryLocation.lat},${primaryLocation.lng}&zoom=14&size=800x360&markers=${primaryLocation.lat},${primaryLocation.lng},red-pushpin`
     : null
   const backupMapUrl = hasCoordinates
     ? (() => {
-        const { x, y } = coordsToOsmTile(primaryLocation.lat!, primaryLocation.lng!, 16)
-        return `https://tile.openstreetmap.org/16/${x}/${y}.png`
+        const { x, y } = coordsToOsmTile(primaryLocation.lat!, primaryLocation.lng!, 14)
+        return `https://tile.openstreetmap.org/14/${x}/${y}.png`
       })()
     : null
   const noCoords = !hasCoordinates

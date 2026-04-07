@@ -110,7 +110,7 @@ async function syncPrimaryLocationCoords(
   if (activeLocation?.id) {
     const { error: updateLocationError } = await supabase
       .from('restaurant_locations')
-      .update({ lat, lng })
+      .update({ address, lat, lng })
       .eq('id', activeLocation.id)
 
     if (updateLocationError) throw new Error(updateLocationError.message)

@@ -55,21 +55,7 @@ export default async function RestaurantPage({ params }: PageProps) {
 
   if (restaurantError || !restaurant) notFound()
 
-  type RestaurantLocation = {
-    id: string
-    address: string
-    phone: string | null
-    sort_order: number
-  }
-
-  const [locationsResult, offersResult, photosResult, { subscription }] = await Promise.all([
-    supabase
-      .from('restaurant_locations')
-      .select('id, address, phone, sort_order')
-      .eq('restaurant_id', restaurant.id)
-      .eq('is_active', true)
-      .order('sort_order', { ascending: true })
-      .returns<RestaurantLocation[]>(),
+  const [offersResult, photosResult, { subscription }] = await Promise.all([
     supabase
       .from('offers')
       .select(`
@@ -88,7 +74,6 @@ export default async function RestaurantPage({ params }: PageProps) {
     getCurrentUserSubscription(),
   ])
 
-  const activeLocations = locationsResult.data ?? []
   const { data: offers, error: offersError } = offersResult
   const hasSubscription = isSubscriptionCurrentlyActive(subscription)
 
@@ -160,23 +145,10 @@ export default async function RestaurantPage({ params }: PageProps) {
             </div>
 
             {/* ADDRESS */}
-            {(activeLocations.length > 0 || restaurant.address) ? (
+            {restaurant.address ? (
               <div className="mt-6 rounded-xl bg-gray-50 p-4">
                 <p className="text-sm font-medium uppercase tracking-wider text-gray-400">Адрес</p>
-                {activeLocations.length > 1 ? (
-                  <ul className="mt-2 space-y-1 text-base leading-6 text-gray-700">
-                    {activeLocations.map((loc) => (
-                      <li key={loc.id} className="flex items-start gap-2">
-                        <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-gray-300" />
-                        {loc.address}
-                      </li>
-                    ))}
-                  </ul>
-                ) : (
-                  <p className="mt-1.5 text-base leading-6 text-gray-700">
-                    {activeLocations[0]?.address ?? restaurant.address}
-                  </p>
-                )}
+                <p className="mt-1.5 text-base leading-6 text-gray-700">{restaurant.address}</p>
               </div>
             ) : null}
 
@@ -192,14 +164,11 @@ export default async function RestaurantPage({ params }: PageProps) {
                   Instagram
                 </Button>
               ) : null}
-              {(() => {
-                const phone = activeLocations[0]?.phone ?? restaurant.phone
-                return phone ? (
-                  <Button href={`tel:${phone}`} variant="ghost" size="sm">
-                    {phone}
-                  </Button>
-                ) : null
-              })()}
+              {restaurant.phone ? (
+                <Button href={`tel:${restaurant.phone}`} variant="ghost" size="sm">
+                  {restaurant.phone}
+                </Button>
+              ) : null}
             </div>
           </Card>
         </div>

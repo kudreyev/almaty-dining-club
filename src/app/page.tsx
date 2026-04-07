@@ -23,17 +23,12 @@ type Restaurant = {
   id: string
   restaurant_name: string
   slug: string
+  address: string
   cuisine: string
   cuisine_2: string | null
   cuisine_3: string | null
   short_description: string
   cover_photo_url?: string | null
-
-  restaurant_locations?: {
-    address: string
-    is_active: boolean
-    sort_order: number
-  }[]
 
   offers: Offer[]
   restaurant_hours?: RestaurantHour[]
@@ -85,6 +80,7 @@ export default async function HomePage({ searchParams }: PageProps) {
       id,
       restaurant_name,
       slug,
+      address,
       cuisine,  
       cuisine_2,
       cuisine_3,
@@ -96,11 +92,6 @@ export default async function HomePage({ searchParams }: PageProps) {
         estimated_value,
         cooldown_days,
         is_active
-      ),
-      restaurant_locations (
-        address,
-        is_active,
-        sort_order
       ),
       restaurant_hours (
         day_of_week,
@@ -392,34 +383,13 @@ export default async function HomePage({ searchParams }: PageProps) {
                   </div>
                 ) : null}
 
-                {/* ADDRESSES */}
-                {(() => {
-                  const addresses =
-                    (r.restaurant_locations ?? [])
-                      .filter((l) => l.is_active)
-                      .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0))
-                      .map((l) => l.address)
-                      .filter(Boolean)
-
-                  if (addresses.length === 0 && r.short_description) {
-                    return (
-                      <p className="mt-3 text-base leading-6 text-gray-500 line-clamp-2">
-                        {r.short_description}
-                      </p>
-                    )
-                  }
-
-                  return addresses.length > 0 ? (
-                    <div className="mt-3 space-y-1 text-base leading-6 text-gray-500">
-                      {addresses.slice(0, 2).map((a) => (
-                        <p key={a} className="truncate">{a}</p>
-                      ))}
-                      {addresses.length > 2 ? (
-                        <p className="text-gray-400">и ещё {addresses.length - 2}</p>
-                      ) : null}
-                    </div>
-                  ) : null
-                })()}
+                {r.address ? (
+                  <p className="mt-3 truncate text-base leading-6 text-gray-500">{r.address}</p>
+                ) : (
+                  <p className="mt-3 text-base leading-6 text-gray-500 line-clamp-2">
+                    {r.short_description}
+                  </p>
+                )}
               </div>
             </Link>
           ))}

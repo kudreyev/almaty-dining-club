@@ -69,9 +69,6 @@ export default async function AdminRestaurantEditPage({ params, searchParams }: 
       <div className="mb-6 flex items-center justify-between gap-3">
         <h1 className="text-3xl font-bold sm:text-4xl">Редактировать</h1>
         <div className="flex gap-2">
-          <Button href={`/admin/restaurants/${r.id}/locations`} variant="secondary" size="sm">
-            Адреса
-          </Button>
           <Button href="/admin/restaurants" variant="ghost" size="sm">← Назад</Button>
         </div>
       </div>

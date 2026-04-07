@@ -115,11 +115,11 @@ export default async function RestaurantPage({ params }: PageProps) {
   const hasCoordinates = primaryLocation?.lat != null && primaryLocation?.lng != null
   const yandexSearchUrl = `https://yandex.kz/maps/?text=${encodeURIComponent(addressLine)}`
   const yandexMapUrl = hasCoordinates
-    ? `https://yandex.kz/maps/?pt=${primaryLocation.lng},${primaryLocation.lat}&z=16&l=map`
+    ? `https://yandex.kz/maps/?pt=${primaryLocation.lng},${primaryLocation.lat}&z=17&l=map`
     : yandexSearchUrl
   const mapTargetUrl = restaurant.two_gis_url || yandexMapUrl
   const staticMapUrl = hasCoordinates
-    ? `https://static-maps.yandex.ru/1.x/?lang=ru_RU&ll=${primaryLocation.lng},${primaryLocation.lat}&z=16&l=map&size=650,360&pt=${primaryLocation.lng},${primaryLocation.lat},pm2rdm`
+    ? `https://static-maps.yandex.ru/1.x/?lang=ru_RU&ll=${primaryLocation.lng},${primaryLocation.lat}&z=17&l=map&size=650,400&pt=${primaryLocation.lng},${primaryLocation.lat},pm2rdm`
     : null
   const backupMapUrl = null
   const noCoords = !hasCoordinates

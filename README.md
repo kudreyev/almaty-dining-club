@@ -1,5 +1,31 @@
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
+## Production Docker
+
+Build image:
+
+```bash
+docker build -t kudapass:prod .
+```
+
+Run container:
+
+```bash
+docker run --rm -p 3000:3000 \
+  -e NODE_ENV=production \
+  -e NEXT_PUBLIC_SITE_URL=https://your-domain.com \
+  -e NEXT_PUBLIC_SUPABASE_URL=... \
+  -e NEXT_PUBLIC_SUPABASE_ANON_KEY=... \
+  -e SUPABASE_SERVICE_ROLE_KEY=... \
+  -e TWILIO_ACCOUNT_SID=... \
+  -e TWILIO_AUTH_TOKEN=... \
+  -e TWILIO_PHONE_NUMBER=... \
+  -e TWILIO_CONTENT_SID_VERIFICATION=... \
+  kudapass:prod
+```
+
+`docker-compose.yml` is not required for production if you deploy a single app container to a cloud platform. It only helps if you specifically want local orchestration or a self-managed server setup.
+
 ## Getting Started
 
 First, run the development server:

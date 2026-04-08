@@ -2,10 +2,22 @@ This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-
 
 ## Production Docker
 
+Create local env file:
+
+```bash
+cp .env.example .env
+```
+
 Build image:
 
 ```bash
-docker build -t kudapass:prod .
+docker build \
+  --build-arg NEXT_PUBLIC_SITE_URL=https://your-domain.com \
+  --build-arg NEXT_PUBLIC_SUPABASE_URL=https://YOUR_PROJECT.supabase.co \
+  --build-arg NEXT_PUBLIC_SUPABASE_ANON_KEY=your-supabase-anon-key \
+  --build-arg NEXT_PUBLIC_YANDEX_MAPS_API_KEY=your-yandex-key \
+  --build-arg NEXT_PUBLIC_TZ=Asia/Almaty \
+  -t kudapass:prod .
 ```
 
 Run container:
@@ -25,6 +37,8 @@ docker run --rm -p 3000:3000 \
 ```
 
 `docker-compose.yml` is not required for production if you deploy a single app container to a cloud platform. It only helps if you specifically want local orchestration or a self-managed server setup.
+
+Required environment variables are listed in [.env.example](/Users/meirs/Projects/almaty-dining-club/.env.example). Keep real secrets in `.env` or in your cloud provider's secret manager. Do not commit `.env`.
 
 ## Getting Started
 

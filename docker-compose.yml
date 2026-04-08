@@ -1,4 +1,53 @@
 services:
+  backend:
+    build:
+      context: .
+      dockerfile: apps/backend/Dockerfile
+    container_name: adc-backend
+    restart: unless-stopped
+    env_file:
+      - apps/backend/.env
+    depends_on:
+      postgres:
+        condition: service_healthy
+      minio:
+        condition: service_started
+    expose:
+      - "4000"
+
+  frontend:
+    build:
+      context: .
+      dockerfile: apps/frontend/Dockerfile
+      args:
+        NEXT_PUBLIC_SITE_URL: ${NEXT_PUBLIC_SITE_URL:-http://localhost}
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost/api}
+        NEXT_PUBLIC_YANDEX_MAPS_API_KEY: ${NEXT_PUBLIC_YANDEX_MAPS_API_KEY:-}
+        NEXT_PUBLIC_TZ: ${NEXT_PUBLIC_TZ:-Asia/Almaty}
+    container_name: adc-frontend
+    restart: unless-stopped
+    env_file:
+      - apps/frontend/.env.local
+    depends_on:
+      backend:
+        condition: service_started
+    expose:
+      - "3000"
+
+  nginx:
+    image: nginx:1.27-alpine
+    container_name: adc-nginx
+    restart: unless-stopped
+    depends_on:
+      frontend:
+        condition: service_started
+      backend:
+        condition: service_started
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+
   postgres:
     image: postgres:16-alpine
     container_name: adc-postgres
@@ -9,6 +58,11 @@ services:
       POSTGRES_DB: adc
       POSTGRES_USER: adc
       POSTGRES_PASSWORD: adc
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U adc -d adc"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
     volumes:
       - postgres_data:/var/lib/postgresql/data
 

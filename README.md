@@ -23,7 +23,7 @@ cp .env.example apps/frontend/.env.local
 cp .env.example apps/backend/.env
 ```
 
-3) Start local infrastructure:
+3) Start full local stack (frontend + backend + nginx + infra):
 ```bash
 docker compose up -d
 ```
@@ -33,11 +33,14 @@ docker compose up -d
 docker exec -i adc-postgres psql -U adc -d adc < "apps/backend/sql/init.sql"
 ```
 
-5) Run apps:
+4.1) If you run app containers via compose, open:
+- App via nginx: [http://localhost](http://localhost)
+- Backend health via nginx: [http://localhost/health](http://localhost/health)
+
+5) Optional development mode (without app containers):
 ```bash
 npm run dev
 ```
-
 - Frontend: [http://localhost:3000](http://localhost:3000)
 - Backend: [http://localhost:4000](http://localhost:4000)
 

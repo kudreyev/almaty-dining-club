@@ -36,6 +36,19 @@ docker run --rm -p 3000:3000 \
   kudapass:prod
 ```
 
+Or use the deploy script that reads `.env`, rebuilds the image, replaces the old container, and starts the new one:
+
+```bash
+chmod +x deploy.sh
+./deploy.sh
+```
+
+Optional overrides:
+
+```bash
+CONTAINER_NAME=kudapass-prod PORT_MAPPING=80:3000 ./deploy.sh
+```
+
 `docker-compose.yml` is not required for production if you deploy a single app container to a cloud platform. It only helps if you specifically want local orchestration or a self-managed server setup.
 
 Required environment variables are listed in [.env.example](/Users/meirs/Projects/almaty-dining-club/.env.example). Keep real secrets in `.env` or in your cloud provider's secret manager. Do not commit `.env`.

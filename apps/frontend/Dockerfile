@@ -25,19 +25,17 @@ COPY . .
 RUN npm run build -w @adc/shared && npm run build -w @adc/frontend
 
 FROM node:20-alpine AS runner
-WORKDIR /app
+WORKDIR /app/apps/frontend
 ENV NODE_ENV=production
 ENV PORT=3000
 ENV HOSTNAME=0.0.0.0
 ENV NEXT_TELEMETRY_DISABLED=1
 
-COPY --from=builder /app/node_modules ./node_modules
-COPY --from=builder /app/apps/frontend/.next ./apps/frontend/.next
-COPY --from=builder /app/apps/frontend/public ./apps/frontend/public
-COPY --from=builder /app/apps/frontend/package.json ./apps/frontend/package.json
-COPY --from=builder /app/packages/shared/dist ./packages/shared/dist
-COPY --from=builder /app/packages/shared/package.json ./packages/shared/package.json
-COPY --from=builder /app/apps/frontend/next.config.ts ./apps/frontend/next.config.ts
+COPY --from=builder /app/node_modules /app/node_modules
+COPY --from=builder /app/apps/frontend/.next ./.next
+COPY --from=builder /app/apps/frontend/public ./public
+COPY --from=builder /app/apps/frontend/package.json ./package.json
+COPY --from=builder /app/apps/frontend/next.config.ts ./next.config.ts
 
 EXPOSE 3000
-CMD ["npm", "run", "start", "-w", "@adc/frontend"]
+CMD ["npx", "next", "start", "-p", "3000", "-H", "0.0.0.0"]

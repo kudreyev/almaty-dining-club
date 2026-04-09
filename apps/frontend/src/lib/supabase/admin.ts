@@ -1,5 +1,5 @@
-import { createCompatClient } from '@/lib/supabase/compat'
+import { createCompatServerClient } from '@/lib/supabase/compat-server'
 
 export function createSupabaseAdminClient() {
-  return createCompatClient(true)
+  return createCompatServerClient()
 }

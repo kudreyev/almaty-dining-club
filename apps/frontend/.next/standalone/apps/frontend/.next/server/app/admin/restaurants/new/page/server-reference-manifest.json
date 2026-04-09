@@ -1,0 +1,35 @@
+{
+  "node": {
+    "4023f8e9ba62ac33daced4986b5a928075c19d22dd": {
+      "workers": {
+        "app/admin/restaurants/new/page": {
+          "moduleId": 42211,
+          "async": false,
+          "exportedName": "createRestaurant",
+          "filename": "apps/frontend/src/app/admin/restaurants/actions.ts"
+        }
+      },
+      "layer": {
+        "app/admin/restaurants/new/page": "rsc"
+      },
+      "exportedName": "createRestaurant",
+      "filename": "apps/frontend/src/app/admin/restaurants/actions.ts"
+    },
+    "407693ad1a0ad8843567a2e83d44a208139695d132": {
+      "workers": {
+        "app/admin/restaurants/new/page": {
+          "moduleId": 42211,
+          "async": false,
+          "exportedName": "updateRestaurant",
+          "filename": "apps/frontend/src/app/admin/restaurants/actions.ts"
+        }
+      },
+      "layer": {
+        "app/admin/restaurants/new/page": "rsc"
+      },
+      "exportedName": "updateRestaurant",
+      "filename": "apps/frontend/src/app/admin/restaurants/actions.ts"
+    }
+  },
+  "edge": {}
+}

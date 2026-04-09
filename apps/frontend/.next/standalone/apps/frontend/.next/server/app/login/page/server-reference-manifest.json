@@ -1,0 +1,35 @@
+{
+  "node": {
+    "40da8bfce8c0c4aa99ed40352c03b998fee9093ebf": {
+      "workers": {
+        "app/login/page": {
+          "moduleId": 51235,
+          "async": false,
+          "exportedName": "sendWhatsAppLogin",
+          "filename": "apps/frontend/src/app/login/actions.ts"
+        }
+      },
+      "layer": {
+        "app/login/page": "action-browser"
+      },
+      "exportedName": "sendWhatsAppLogin",
+      "filename": "apps/frontend/src/app/login/actions.ts"
+    },
+    "402010a4b6603d0023344633315f1b34b37f5fef43": {
+      "workers": {
+        "app/login/page": {
+          "moduleId": 51235,
+          "async": false,
+          "exportedName": "verifyWhatsAppLoginCode",
+          "filename": "apps/frontend/src/app/login/actions.ts"
+        }
+      },
+      "layer": {
+        "app/login/page": "action-browser"
+      },
+      "exportedName": "verifyWhatsAppLoginCode",
+      "filename": "apps/frontend/src/app/login/actions.ts"
+    }
+  },
+  "edge": {}
+}

@@ -31,17 +31,3 @@ export async function migrate() {
     await db.execute(statement)
   }
 }
-
-if (import.meta.url === `file://${process.argv[1]}`) {
-  migrate()
-    .then(() => {
-      // eslint-disable-next-line no-console
-      console.log('Base migration complete')
-      process.exit(0)
-    })
-    .catch((error) => {
-      // eslint-disable-next-line no-console
-      console.error(error)
-      process.exit(1)
-    })
-}

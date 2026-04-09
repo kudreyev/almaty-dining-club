@@ -1,4 +1,4 @@
 export async function createSupabaseServerClient() {
-  const { createCompatClient } = await import('@/lib/supabase/compat')
-  return createCompatClient(true)
+  const { createCompatServerClient } = await import('@/lib/supabase/compat-server')
+  return createCompatServerClient()
 }

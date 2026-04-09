@@ -1,0 +1,3 @@
+{
+  "/app/redeem/[restaurantId]/[offerId]/page": "app/app/redeem/[restaurantId]/[offerId]/page.js"
+}

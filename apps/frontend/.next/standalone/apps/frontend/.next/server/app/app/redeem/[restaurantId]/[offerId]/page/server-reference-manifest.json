@@ -1,0 +1,35 @@
+{
+  "node": {
+    "40d77fab2873c4b169609784092cc13b9e6707fbca": {
+      "workers": {
+        "app/app/redeem/[restaurantId]/[offerId]/page": {
+          "moduleId": 70351,
+          "async": false,
+          "exportedName": "generateRedeemToken",
+          "filename": "apps/frontend/src/app/app/redeem/[restaurantId]/[offerId]/actions.ts"
+        }
+      },
+      "layer": {
+        "app/app/redeem/[restaurantId]/[offerId]/page": "action-browser"
+      },
+      "exportedName": "generateRedeemToken",
+      "filename": "apps/frontend/src/app/app/redeem/[restaurantId]/[offerId]/actions.ts"
+    },
+    "60fa73d2e297e893cdd67e0146f20da67c0eeca081": {
+      "workers": {
+        "app/app/redeem/[restaurantId]/[offerId]/page": {
+          "moduleId": 70351,
+          "async": false,
+          "exportedName": "extendRedeemToken",
+          "filename": "apps/frontend/src/app/app/redeem/[restaurantId]/[offerId]/actions.ts"
+        }
+      },
+      "layer": {
+        "app/app/redeem/[restaurantId]/[offerId]/page": "action-browser"
+      },
+      "exportedName": "extendRedeemToken",
+      "filename": "apps/frontend/src/app/app/redeem/[restaurantId]/[offerId]/actions.ts"
+    }
+  },
+  "edge": {}
+}

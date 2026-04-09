@@ -1,0 +1,20 @@
+{
+  "node": {
+    "405bf8d7a7e1a70eb8f1249e033ac6fe90c72c78b4": {
+      "workers": {
+        "app/admin/activation-links/page": {
+          "moduleId": 3300,
+          "async": false,
+          "exportedName": "createActivationLink",
+          "filename": "apps/frontend/src/app/admin/activation-links/actions.ts"
+        }
+      },
+      "layer": {
+        "app/admin/activation-links/page": "rsc"
+      },
+      "exportedName": "createActivationLink",
+      "filename": "apps/frontend/src/app/admin/activation-links/actions.ts"
+    }
+  },
+  "edge": {}
+}

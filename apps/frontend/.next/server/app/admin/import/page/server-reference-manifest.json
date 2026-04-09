@@ -1,0 +1,20 @@
+{
+  "node": {
+    "406f3e2216f7dafdd4aba20dcef482b2987a77f345": {
+      "workers": {
+        "app/admin/import/page": {
+          "moduleId": 80300,
+          "async": false,
+          "exportedName": "importCsvText",
+          "filename": "apps/frontend/src/app/admin/import/actions.ts"
+        }
+      },
+      "layer": {
+        "app/admin/import/page": "rsc"
+      },
+      "exportedName": "importCsvText",
+      "filename": "apps/frontend/src/app/admin/import/actions.ts"
+    }
+  },
+  "edge": {}
+}

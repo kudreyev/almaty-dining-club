@@ -1,0 +1,35 @@
+{
+  "node": {
+    "4029659616adcc338a15ebabad8561125f4707d87a": {
+      "workers": {
+        "app/admin/offers/[restaurantId]/new/page": {
+          "moduleId": 34988,
+          "async": false,
+          "exportedName": "updateOffer",
+          "filename": "apps/frontend/src/app/admin/offers/actions.ts"
+        }
+      },
+      "layer": {
+        "app/admin/offers/[restaurantId]/new/page": "rsc"
+      },
+      "exportedName": "updateOffer",
+      "filename": "apps/frontend/src/app/admin/offers/actions.ts"
+    },
+    "40e45ea3a1af678786b37fe3f04025f2cd5ce6a590": {
+      "workers": {
+        "app/admin/offers/[restaurantId]/new/page": {
+          "moduleId": 34988,
+          "async": false,
+          "exportedName": "createOffer",
+          "filename": "apps/frontend/src/app/admin/offers/actions.ts"
+        }
+      },
+      "layer": {
+        "app/admin/offers/[restaurantId]/new/page": "rsc"
+      },
+      "exportedName": "createOffer",
+      "filename": "apps/frontend/src/app/admin/offers/actions.ts"
+    }
+  },
+  "edge": {}
+}

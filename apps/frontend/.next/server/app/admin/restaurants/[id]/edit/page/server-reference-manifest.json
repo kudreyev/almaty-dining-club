@@ -1,0 +1,65 @@
+{
+  "node": {
+    "4023f8e9ba62ac33daced4986b5a928075c19d22dd": {
+      "workers": {
+        "app/admin/restaurants/[id]/edit/page": {
+          "moduleId": 59692,
+          "async": false,
+          "exportedName": "createRestaurant",
+          "filename": "apps/frontend/src/app/admin/restaurants/actions.ts"
+        }
+      },
+      "layer": {
+        "app/admin/restaurants/[id]/edit/page": "rsc"
+      },
+      "exportedName": "createRestaurant",
+      "filename": "apps/frontend/src/app/admin/restaurants/actions.ts"
+    },
+    "407693ad1a0ad8843567a2e83d44a208139695d132": {
+      "workers": {
+        "app/admin/restaurants/[id]/edit/page": {
+          "moduleId": 59692,
+          "async": false,
+          "exportedName": "updateRestaurant",
+          "filename": "apps/frontend/src/app/admin/restaurants/actions.ts"
+        }
+      },
+      "layer": {
+        "app/admin/restaurants/[id]/edit/page": "rsc"
+      },
+      "exportedName": "updateRestaurant",
+      "filename": "apps/frontend/src/app/admin/restaurants/actions.ts"
+    },
+    "405bdb9c478c33865c0bd74187d17651d6d7f31218": {
+      "workers": {
+        "app/admin/restaurants/[id]/edit/page": {
+          "moduleId": 59692,
+          "async": false,
+          "exportedName": "reorderRestaurantPhoto",
+          "filename": "apps/frontend/src/app/admin/restaurants/[id]/edit/photo-actions.ts"
+        }
+      },
+      "layer": {
+        "app/admin/restaurants/[id]/edit/page": "rsc"
+      },
+      "exportedName": "reorderRestaurantPhoto",
+      "filename": "apps/frontend/src/app/admin/restaurants/[id]/edit/photo-actions.ts"
+    },
+    "40d43d197f9fed8e56fad38fdfab2f7fea52ec213b": {
+      "workers": {
+        "app/admin/restaurants/[id]/edit/page": {
+          "moduleId": 59692,
+          "async": false,
+          "exportedName": "deleteRestaurantPhoto",
+          "filename": "apps/frontend/src/app/admin/restaurants/[id]/edit/photo-actions.ts"
+        }
+      },
+      "layer": {
+        "app/admin/restaurants/[id]/edit/page": "rsc"
+      },
+      "exportedName": "deleteRestaurantPhoto",
+      "filename": "apps/frontend/src/app/admin/restaurants/[id]/edit/photo-actions.ts"
+    }
+  },
+  "edge": {}
+}

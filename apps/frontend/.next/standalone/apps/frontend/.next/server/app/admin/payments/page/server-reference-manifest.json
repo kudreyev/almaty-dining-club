@@ -1,0 +1,35 @@
+{
+  "node": {
+    "409d5c850088158e76a35acfc9bd272dd3e04f4494": {
+      "workers": {
+        "app/admin/payments/page": {
+          "moduleId": 45446,
+          "async": false,
+          "exportedName": "rejectPaymentRequest",
+          "filename": "apps/frontend/src/app/admin/payments/actions.ts"
+        }
+      },
+      "layer": {
+        "app/admin/payments/page": "rsc"
+      },
+      "exportedName": "rejectPaymentRequest",
+      "filename": "apps/frontend/src/app/admin/payments/actions.ts"
+    },
+    "40bfb54434e9ef588632bfe1e5b355bfebc8f94dd2": {
+      "workers": {
+        "app/admin/payments/page": {
+          "moduleId": 45446,
+          "async": false,
+          "exportedName": "approvePaymentRequest",
+          "filename": "apps/frontend/src/app/admin/payments/actions.ts"
+        }
+      },
+      "layer": {
+        "app/admin/payments/page": "rsc"
+      },
+      "exportedName": "approvePaymentRequest",
+      "filename": "apps/frontend/src/app/admin/payments/actions.ts"
+    }
+  },
+  "edge": {}
+}

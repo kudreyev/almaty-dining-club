@@ -1,0 +1,3 @@
+module.exports=[11009,a=>{"use strict";var b=a.i(7997),c=a.i(95936);function d(){return(0,b.jsxs)("main",{className:"mx-auto flex min-h-screen max-w-3xl flex-col items-center justify-center px-6 text-center",children:[(0,b.jsx)("h1",{className:"text-4xl font-semibold",children:"Ресторан не найден"}),(0,b.jsx)("p",{className:"mt-3 text-gray-600",children:"Возможно, страница была удалена или ссылка указана неверно."}),(0,b.jsx)(c.default,{href:"/almaty",className:"mt-8 inline-flex rounded-2xl bg-accent px-5 py-3 text-sm font-medium text-white",children:"Вернуться к списку ресторанов"})]})}a.s(["default",()=>d])}];
+
+//# sourceMappingURL=apps_frontend_src_app_not-found_tsx_68be95e6._.js.map

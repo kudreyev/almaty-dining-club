@@ -1,3 +1,3 @@
-import { createCompatClient } from '@/lib/supabase/compat'
+import { createCompatClient } from '@/lib/supabase/compat-client'
 
-export const supabase = createCompatClient(false)
+export const supabase = createCompatClient()

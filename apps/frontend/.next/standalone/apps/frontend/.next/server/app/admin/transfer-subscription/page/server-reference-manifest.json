@@ -1,0 +1,35 @@
+{
+  "node": {
+    "407a8772fef36029fa5b9376b2d3727474e0380faf": {
+      "workers": {
+        "app/admin/transfer-subscription/page": {
+          "moduleId": 18296,
+          "async": false,
+          "exportedName": "previewTransfer",
+          "filename": "apps/frontend/src/app/admin/transfer-subscription/actions.ts"
+        }
+      },
+      "layer": {
+        "app/admin/transfer-subscription/page": "action-browser"
+      },
+      "exportedName": "previewTransfer",
+      "filename": "apps/frontend/src/app/admin/transfer-subscription/actions.ts"
+    },
+    "4083030a39f158cfd95b7fb18e2b981390034e6cfa": {
+      "workers": {
+        "app/admin/transfer-subscription/page": {
+          "moduleId": 18296,
+          "async": false,
+          "exportedName": "transferSubscription",
+          "filename": "apps/frontend/src/app/admin/transfer-subscription/actions.ts"
+        }
+      },
+      "layer": {
+        "app/admin/transfer-subscription/page": "action-browser"
+      },
+      "exportedName": "transferSubscription",
+      "filename": "apps/frontend/src/app/admin/transfer-subscription/actions.ts"
+    }
+  },
+  "edge": {}
+}

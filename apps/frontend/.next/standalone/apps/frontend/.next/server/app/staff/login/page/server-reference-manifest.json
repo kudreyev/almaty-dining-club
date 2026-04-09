@@ -1,0 +1,35 @@
+{
+  "node": {
+    "00ea37d03be619c6b474f7502cf65db83dbda88afc": {
+      "workers": {
+        "app/staff/login/page": {
+          "moduleId": 73777,
+          "async": false,
+          "exportedName": "logoutStaff",
+          "filename": "apps/frontend/src/app/staff/login/actions.ts"
+        }
+      },
+      "layer": {
+        "app/staff/login/page": "rsc"
+      },
+      "exportedName": "logoutStaff",
+      "filename": "apps/frontend/src/app/staff/login/actions.ts"
+    },
+    "407f980b6bfca0f5a08dc420476dbd252434391bac": {
+      "workers": {
+        "app/staff/login/page": {
+          "moduleId": 73777,
+          "async": false,
+          "exportedName": "loginStaff",
+          "filename": "apps/frontend/src/app/staff/login/actions.ts"
+        }
+      },
+      "layer": {
+        "app/staff/login/page": "rsc"
+      },
+      "exportedName": "loginStaff",
+      "filename": "apps/frontend/src/app/staff/login/actions.ts"
+    }
+  },
+  "edge": {}
+}

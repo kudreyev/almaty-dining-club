@@ -1,0 +1,20 @@
+{
+  "node": {
+    "40217653788e0ed1291eaaccc4e86fa5025c2975ee": {
+      "workers": {
+        "app/admin/staff/page": {
+          "moduleId": 44118,
+          "async": false,
+          "exportedName": "upsertRestaurantStaff",
+          "filename": "apps/frontend/src/app/admin/staff/actions.ts"
+        }
+      },
+      "layer": {
+        "app/admin/staff/page": "rsc"
+      },
+      "exportedName": "upsertRestaurantStaff",
+      "filename": "apps/frontend/src/app/admin/staff/actions.ts"
+    }
+  },
+  "edge": {}
+}

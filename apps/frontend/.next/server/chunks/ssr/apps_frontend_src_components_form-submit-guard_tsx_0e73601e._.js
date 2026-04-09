@@ -1,0 +1,3 @@
+module.exports=[37337,a=>{"use strict";var b=a.i(72131);function c(){let[a,c]=(0,b.useState)(null);return(0,b.useEffect)(()=>{let a=document.querySelector("form");a&&a instanceof HTMLFormElement&&c(a)},[]),(0,b.useEffect)(()=>{if(!a)return;let b=b=>{"0"===a.querySelector('input[name="offer_key_valid"]')?.value&&(b.preventDefault(),b.stopPropagation(),alert("Исправьте ключ оффера перед сохранением."))};return a.addEventListener("submit",b),()=>a.removeEventListener("submit",b)},[a]),null}a.s(["FormSubmitGuard",()=>c])}];
+
+//# sourceMappingURL=apps_frontend_src_components_form-submit-guard_tsx_0e73601e._.js.map

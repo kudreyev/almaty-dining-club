@@ -8,6 +8,14 @@ create table if not exists users (
   created_at timestamptz not null default now()
 );
 
+create table if not exists sessions (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references users(id) on delete cascade,
+  token_hash text not null unique,
+  expires_at timestamptz not null,
+  created_at timestamptz not null default now()
+);
+
 create table if not exists profiles (
   id uuid primary key references users(id) on delete cascade,
   role text not null default 'user',
@@ -19,8 +27,20 @@ create table if not exists profiles (
 create table if not exists restaurants (
   id uuid primary key default gen_random_uuid(),
   name text not null,
+  restaurant_name text,
   slug text not null unique,
+  city text,
+  district text,
+  address text,
+  phone text,
+  instagram_url text,
+  website_url text,
+  two_gis_url text,
+  cuisine text,
+  cuisine_2 text,
+  cuisine_3 text,
   description text,
+  short_description text,
   is_active boolean not null default true,
   created_at timestamptz not null default now()
 );
@@ -29,6 +49,9 @@ create table if not exists offers (
   id uuid primary key default gen_random_uuid(),
   restaurant_id uuid not null references restaurants(id) on delete cascade,
   title text not null,
+  offer_title text,
+  offer_type text,
+  offer_terms_short text,
   description text,
   estimated_value integer,
   cooldown_days integer,
@@ -85,6 +108,8 @@ create table if not exists restaurant_locations (
   id uuid primary key default gen_random_uuid(),
   restaurant_id uuid not null references restaurants(id) on delete cascade,
   address text not null,
+  is_active boolean not null default true,
+  sort_order integer not null default 0,
   lat double precision,
   lng double precision,
   created_at timestamptz not null default now()
@@ -149,3 +174,43 @@ create table if not exists staff_sessions (
   expires_at timestamptz not null,
   created_at timestamptz not null default now()
 );
+
+alter table restaurants add column if not exists restaurant_name text;
+alter table restaurants add column if not exists city text;
+alter table restaurants add column if not exists district text;
+alter table restaurants add column if not exists address text;
+alter table restaurants add column if not exists phone text;
+alter table restaurants add column if not exists instagram_url text;
+alter table restaurants add column if not exists website_url text;
+alter table restaurants add column if not exists two_gis_url text;
+alter table restaurants add column if not exists cuisine text;
+alter table restaurants add column if not exists cuisine_2 text;
+alter table restaurants add column if not exists cuisine_3 text;
+alter table restaurants add column if not exists short_description text;
+
+alter table offers add column if not exists offer_title text;
+alter table offers add column if not exists offer_type text;
+alter table offers add column if not exists offer_terms_short text;
+
+alter table restaurant_locations add column if not exists is_active boolean not null default true;
+alter table restaurant_locations add column if not exists sort_order integer not null default 0;
+
+update restaurants
+set
+  restaurant_name = coalesce(restaurant_name, name),
+  city = coalesce(city, 'almaty'),
+  short_description = coalesce(short_description, description, ''),
+  address = coalesce(address, '')
+where restaurant_name is null
+   or city is null
+   or short_description is null
+   or address is null;
+
+update offers
+set
+  offer_title = coalesce(offer_title, title),
+  offer_type = coalesce(offer_type, '2for1'),
+  offer_terms_short = coalesce(offer_terms_short, description, '')
+where offer_title is null
+   or offer_type is null
+   or offer_terms_short is null;

@@ -9,14 +9,13 @@ services:
       - apps/backend/.env
     environment:
       PORT: 4000
-      APP_URL: ${APP_URL:-http://backend:4000}
-      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:3000}
       DATABASE_URL: ${DATABASE_URL:-postgres://adc:adc@postgres:5432/adc}
       S3_ENDPOINT: ${S3_ENDPOINT:-http://minio:9000}
-      S3_PUBLIC_BASE_URL: ${S3_PUBLIC_BASE_URL:-http://localhost:9000}
     depends_on:
       postgres:
         condition: service_healthy
+      db-init:
+        condition: service_completed_successfully
       minio:
         condition: service_started
     expose:
@@ -38,10 +37,6 @@ services:
     environment:
       NODE_ENV: production
       INTERNAL_API_URL: ${INTERNAL_API_URL:-http://backend:4000}
-      NEXT_PUBLIC_SITE_URL: ${NEXT_PUBLIC_SITE_URL:-http://localhost:3001}
-      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:3001}
-      NEXT_PUBLIC_YANDEX_MAPS_API_KEY: ${NEXT_PUBLIC_YANDEX_MAPS_API_KEY:-}
-      NEXT_PUBLIC_TZ: ${NEXT_PUBLIC_TZ:-Asia/Almaty}
     depends_on:
       backend:
         condition: service_started
@@ -81,6 +76,20 @@ services:
       retries: 10
     volumes:
       - postgres_data:/var/lib/postgresql/data
+
+  db-init:
+    image: postgres:16-alpine
+    container_name: adc-db-init
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "no"
+    volumes:
+      - ./apps/backend/sql/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    entrypoint:
+      - /bin/sh
+      - -lc
+      - PGPASSWORD=adc psql -h postgres -U adc -d adc -f /docker-entrypoint-initdb.d/init.sql
 
   minio:
     image: minio/minio:latest

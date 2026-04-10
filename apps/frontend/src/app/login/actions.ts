@@ -1,6 +1,7 @@
 'use server'
 
 import { cookies } from 'next/headers'
+import { getServerApiBaseUrl } from '@/lib/api-base-url'
 import { normalizeToE164Like } from '@/lib/kz-phone'
 const WA_CHALLENGE_PHONE_COOKIE = 'wa_challenge_phone'
 
@@ -102,7 +103,7 @@ export async function verifyWhatsAppLoginCode(
   }
 
   try {
-    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/auth/login`, {
+    const response = await fetch(`${getServerApiBaseUrl()}/api/auth/login`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

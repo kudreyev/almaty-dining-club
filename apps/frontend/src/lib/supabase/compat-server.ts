@@ -1,8 +1,10 @@
 import { cookies } from 'next/headers'
 import crypto from 'node:crypto'
+import { getPublicApiBaseUrl, getServerApiBaseUrl } from '@/lib/api-base-url'
 
 type Filter = { op: 'eq' | 'gt'; column: string; value: unknown }
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'
+const API_URL = getServerApiBaseUrl()
+const PUBLIC_API_URL = getPublicApiBaseUrl()
 
 class QueryBuilder<T = any> implements PromiseLike<any> {
   private filters: Filter[] = []
@@ -78,7 +80,7 @@ export function createCompatServerClient() {
     storage: {
       from() {
         return {
-          getPublicUrl(path: string) { return { data: { publicUrl: `${process.env.NEXT_PUBLIC_API_URL}/files/${path}` } } },
+          getPublicUrl(path: string) { return { data: { publicUrl: `${PUBLIC_API_URL}/files/${path}` } } },
           async upload(..._args: any[]) { return { error: { message: 'Storage upload moved to backend' } } },
           async remove(..._args: any[]) { return { error: null } },
         }

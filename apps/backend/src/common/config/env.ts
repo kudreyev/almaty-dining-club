@@ -10,6 +10,10 @@ const envSchema = z.object({
   SESSION_SECRET: z.string().min(32),
   SESSION_COOKIE_NAME: z.string().default('adc_session'),
   SESSION_TTL_SECONDS: z.coerce.number().default(60 * 60 * 24 * 30),
+  AUTH_DEBUG: z
+    .string()
+    .optional()
+    .transform((v) => v === 'true'),
   SESSION_COOKIE_SECURE: z
     .string()
     .optional()

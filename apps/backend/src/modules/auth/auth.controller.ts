@@ -1,6 +1,7 @@
 import type { Request, Response } from 'express'
 import { z } from 'zod'
 import { env } from '@/common/config/env'
+import { authDebug } from '@/common/logger/auth-debug'
 import { AuthService } from '@/modules/auth/auth.service'
 
 const loginSchema = z.object({
@@ -12,6 +13,13 @@ const authService = new AuthService()
 export class AuthController {
   async login(req: Request, res: Response) {
     const body = loginSchema.parse(req.body)
+    authDebug('login_request', {
+      requestId: req.requestId,
+      phone: body.phone,
+      origin: req.header('origin') ?? null,
+      host: req.header('host') ?? null,
+      forwardedProto: req.header('x-forwarded-proto') ?? null,
+    })
     const result = await authService.loginByPhone(body.phone)
     const secureCookie =
       typeof env.SESSION_COOKIE_SECURE === 'boolean'
@@ -26,6 +34,14 @@ export class AuthController {
       path: '/',
     })
 
+    authDebug('login_response', {
+      requestId: req.requestId,
+      userId: result.userId,
+      secureCookie,
+      cookieName: env.SESSION_COOKIE_NAME,
+      expiresAt: result.expiresAt.toISOString(),
+    })
+
     return res.status(200).json({
       ok: true,
       userId: result.userId,
@@ -38,11 +54,26 @@ export class AuthController {
 
   async me(req: Request, res: Response) {
     const token = req.cookies[env.SESSION_COOKIE_NAME] as string | undefined
+    authDebug('me_request', {
+      requestId: req.requestId,
+      hasCookie: Boolean(token),
+      cookieName: env.SESSION_COOKIE_NAME,
+      origin: req.header('origin') ?? null,
+      host: req.header('host') ?? null,
+    })
     const session = await authService.resolveSession(token)
     if (!session) {
+      authDebug('me_unauthorized', {
+        requestId: req.requestId,
+      })
       return res.status(401).json({ ok: false, error: 'Unauthorized' })
     }
 
+    authDebug('me_authorized', {
+      requestId: req.requestId,
+      userId: session.userId,
+      expiresAt: session.expiresAt.toISOString(),
+    })
     return res.status(200).json({
       ok: true,
       userId: session.userId,
@@ -51,6 +82,9 @@ export class AuthController {
   }
 
   async logout(_req: Request, res: Response) {
+    authDebug('logout_request', {
+      cookieName: env.SESSION_COOKIE_NAME,
+    })
     res.clearCookie(env.SESSION_COOKIE_NAME, { path: '/' })
     return res.status(200).json({ ok: true })
   }

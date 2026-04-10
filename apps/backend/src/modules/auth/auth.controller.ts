@@ -13,10 +13,14 @@ export class AuthController {
   async login(req: Request, res: Response) {
     const body = loginSchema.parse(req.body)
     const result = await authService.loginByPhone(body.phone)
+    const secureCookie =
+      typeof env.SESSION_COOKIE_SECURE === 'boolean'
+        ? env.SESSION_COOKIE_SECURE
+        : env.FRONTEND_URL.startsWith('https://')
 
     res.cookie(env.SESSION_COOKIE_NAME, result.token, {
       httpOnly: true,
-      secure: env.NODE_ENV === 'production',
+      secure: secureCookie,
       sameSite: 'lax',
       maxAge: env.SESSION_TTL_SECONDS * 1000,
       path: '/',

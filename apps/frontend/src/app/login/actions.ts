@@ -17,10 +17,13 @@ type SendWhatsAppLoginResult = {
 
 async function setWhatsAppChallengeCookies(phoneE164: string) {
   const cookieStore = await cookies()
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? ''
+  const secureCookies = siteUrl.startsWith('https://')
   const commonOptions = {
     httpOnly: true,
     sameSite: 'lax' as const,
-    secure: process.env.NODE_ENV === 'production',
+    // In production over plain HTTP (IP without TLS), Secure cookies are dropped by browser.
+    secure: secureCookies,
     path: '/',
     maxAge: 60 * 10, // 10 minutes
   }

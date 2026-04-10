@@ -10,6 +10,10 @@ const envSchema = z.object({
   SESSION_SECRET: z.string().min(32),
   SESSION_COOKIE_NAME: z.string().default('adc_session'),
   SESSION_TTL_SECONDS: z.coerce.number().default(60 * 60 * 24 * 30),
+  SESSION_COOKIE_SECURE: z
+    .string()
+    .optional()
+    .transform((v) => (v ? v === 'true' : undefined)),
   WHATSAPP_LOGIN_CODE_SECRET: z.string().min(16),
   TWILIO_ACCOUNT_SID: z.string().optional(),
   TWILIO_AUTH_TOKEN: z.string().optional(),

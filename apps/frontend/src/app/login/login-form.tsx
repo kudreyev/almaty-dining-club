@@ -78,6 +78,10 @@ export function LoginForm({
 
     const formData = new FormData()
     formData.set('code', code)
+    const phoneE164 = normalizeToE164Like(subscriber)
+    if (phoneE164) {
+      formData.set('phone', phoneE164)
+    }
     const result = await verifyWhatsAppLoginCode(formData)
 
     if (!result.ok) {

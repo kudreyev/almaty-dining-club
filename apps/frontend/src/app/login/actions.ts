@@ -64,12 +64,14 @@ export async function sendWhatsAppLogin(
 }
 
 export async function verifyWhatsAppLoginCode(
-  _formData: FormData
+  formData: FormData
 ): Promise<VerifyWhatsAppCodeResult> {
   const cookieStore = await cookies()
   const phoneFromCookie = cookieStore.get(WA_CHALLENGE_PHONE_COOKIE)?.value ?? null
+  const phoneFromForm = normalizeToE164Like(String(formData.get('phone') || '').trim())
+  const phoneForLogin = phoneFromCookie ?? phoneFromForm
 
-  if (!phoneFromCookie) {
+  if (!phoneForLogin) {
     return { ok: false, error: 'Сессия логина истекла. Повторите вход.' }
   }
 
@@ -78,7 +80,7 @@ export async function verifyWhatsAppLoginCode(
     headers: {
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({ phone: phoneFromCookie }),
+    body: JSON.stringify({ phone: phoneForLogin }),
   })
   if (!response.ok) {
     await clearWhatsAppChallengeCookies()

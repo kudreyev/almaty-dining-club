@@ -29,6 +29,9 @@ export class AuthController {
     return res.status(200).json({
       ok: true,
       userId: result.userId,
+      token: result.token,
+      cookieName: env.SESSION_COOKIE_NAME,
+      ttlSeconds: env.SESSION_TTL_SECONDS,
       expiresAt: result.expiresAt.toISOString(),
     })
   }

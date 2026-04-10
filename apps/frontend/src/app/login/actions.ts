@@ -9,6 +9,15 @@ type VerifyWhatsAppCodeResult = {
   error?: string
 }
 
+type LoginResponse = {
+  ok: boolean
+  userId: string
+  token: string
+  cookieName: string
+  ttlSeconds: number
+  expiresAt: string
+}
+
 type SendWhatsAppLoginResult = {
   ok: boolean
   message?: string
@@ -34,6 +43,20 @@ async function setWhatsAppChallengeCookies(phoneE164: string) {
 async function clearWhatsAppChallengeCookies() {
   const cookieStore = await cookies()
   cookieStore.delete(WA_CHALLENGE_PHONE_COOKIE)
+}
+
+async function setSessionCookie(cookieName: string, token: string, ttlSeconds: number) {
+  const cookieStore = await cookies()
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? ''
+  const secureCookies = siteUrl.startsWith('https://')
+
+  cookieStore.set(cookieName, token, {
+    httpOnly: true,
+    sameSite: 'lax',
+    secure: secureCookies,
+    path: '/',
+    maxAge: ttlSeconds,
+  })
 }
 
 
@@ -78,17 +101,33 @@ export async function verifyWhatsAppLoginCode(
     return { ok: false, error: 'Сессия логина истекла. Повторите вход.' }
   }
 
-  const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/auth/login`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({ phone: phoneForLogin }),
-  })
-  if (!response.ok) {
+  try {
+    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/auth/login`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ phone: phoneForLogin }),
+      cache: 'no-store',
+    })
+
+    if (!response.ok) {
+      await clearWhatsAppChallengeCookies()
+      return { ok: false, error: 'Не удалось выполнить вход.' }
+    }
+
+    const payload = (await response.json()) as LoginResponse
+    if (!payload.ok || !payload.token || !payload.cookieName || !payload.ttlSeconds) {
+      await clearWhatsAppChallengeCookies()
+      return { ok: false, error: 'Некорректный ответ сервера авторизации.' }
+    }
+
+    await setSessionCookie(payload.cookieName, payload.token, payload.ttlSeconds)
+  } catch {
     await clearWhatsAppChallengeCookies()
-    return { ok: false, error: 'Не удалось выполнить вход.' }
+    return { ok: false, error: 'Не удалось связаться с сервером авторизации.' }
   }
+
   await clearWhatsAppChallengeCookies()
   return { ok: true }
 }

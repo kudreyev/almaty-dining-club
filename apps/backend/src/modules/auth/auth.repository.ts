@@ -1,6 +1,6 @@
-import { and, eq, gt } from 'drizzle-orm'
+import { and, eq, gt, isNull } from 'drizzle-orm'
 import { db } from '@/infrastructure/db/client'
-import { sessions, users } from '@/infrastructure/db/schema'
+import { loginChallenges, sessions, users } from '@/infrastructure/db/schema'
 
 export class AuthRepository {
   async findUserByPhone(phone: string) {
@@ -36,5 +36,64 @@ export class AuthRepository {
     return db.query.sessions.findFirst({
       where: and(eq(sessions.tokenHash, tokenHash), gt(sessions.expiresAt, now)),
     })
+  }
+
+  async revokeActiveChallenges(phone: string) {
+    await db
+      .update(loginChallenges)
+      .set({ revokedAt: new Date() })
+      .where(and(eq(loginChallenges.phone, phone), isNull(loginChallenges.revokedAt), isNull(loginChallenges.consumedAt)))
+  }
+
+  async insertLoginChallenge(args: { phone: string; codeHash: string; expiresAt: Date }) {
+    const [challenge] = await db
+      .insert(loginChallenges)
+      .values({
+        phone: args.phone,
+        codeHash: args.codeHash,
+        expiresAt: args.expiresAt,
+      })
+      .returning()
+    return challenge
+  }
+
+  async getActiveChallenge(phone: string) {
+    const now = new Date()
+    return db.query.loginChallenges.findFirst({
+      where: and(
+        eq(loginChallenges.phone, phone),
+        isNull(loginChallenges.revokedAt),
+        isNull(loginChallenges.consumedAt),
+        gt(loginChallenges.expiresAt, now)
+      ),
+      orderBy: (challenge, { desc }) => [desc(challenge.createdAt)],
+    })
+  }
+
+  async incrementChallengeAttempts(id: string, attempts: number) {
+    const [challenge] = await db
+      .update(loginChallenges)
+      .set({ attempts })
+      .where(eq(loginChallenges.id, id))
+      .returning()
+    return challenge
+  }
+
+  async consumeChallenge(id: string) {
+    const [challenge] = await db
+      .update(loginChallenges)
+      .set({ consumedAt: new Date() })
+      .where(eq(loginChallenges.id, id))
+      .returning()
+    return challenge
+  }
+
+  async revokeChallenge(id: string) {
+    const [challenge] = await db
+      .update(loginChallenges)
+      .set({ revokedAt: new Date() })
+      .where(eq(loginChallenges.id, id))
+      .returning()
+    return challenge
   }
 }

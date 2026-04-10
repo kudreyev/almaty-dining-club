@@ -10,6 +10,8 @@ const envSchema = z.object({
   SESSION_SECRET: z.string().min(32),
   SESSION_COOKIE_NAME: z.string().default('adc_session'),
   SESSION_TTL_SECONDS: z.coerce.number().default(60 * 60 * 24 * 30),
+  OTP_CODE_TTL_SECONDS: z.coerce.number().default(60 * 10),
+  OTP_MAX_ATTEMPTS: z.coerce.number().default(5),
   AUTH_DEBUG: z
     .string()
     .optional()

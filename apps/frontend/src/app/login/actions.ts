@@ -75,11 +75,28 @@ export async function sendWhatsAppLogin(
   }
 
   try {
+    const response = await fetch(`${getServerApiBaseUrl()}/api/auth/request-code`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ phone }),
+      cache: 'no-store',
+    })
+
+    if (!response.ok) {
+      const payload = (await response.json().catch(() => null)) as { error?: string } | null
+      return {
+        ok: false,
+        error: payload?.error ?? 'Не удалось отправить код в WhatsApp.',
+      }
+    }
+
     await setWhatsAppChallengeCookies(phone)
 
     return {
       ok: true,
-      message: 'Код отправлен (dev режим: валидация кода отключена).',
+      message: 'Код отправлен в WhatsApp.',
     }
   } catch (error) {
     const text = error instanceof Error ? error.message : 'Неизвестная ошибка'
@@ -103,18 +120,22 @@ export async function verifyWhatsAppLoginCode(
   }
 
   try {
-    const response = await fetch(`${getServerApiBaseUrl()}/api/auth/login`, {
+    const response = await fetch(`${getServerApiBaseUrl()}/api/auth/verify-code`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ phone: phoneForLogin }),
+      body: JSON.stringify({
+        phone: phoneForLogin,
+        code: String(formData.get('code') || ''),
+      }),
       cache: 'no-store',
     })
 
     if (!response.ok) {
+      const payload = (await response.json().catch(() => null)) as { error?: string } | null
       await clearWhatsAppChallengeCookies()
-      return { ok: false, error: 'Не удалось выполнить вход.' }
+      return { ok: false, error: payload?.error ?? 'Не удалось выполнить вход.' }
     }
 
     const payload = (await response.json()) as LoginResponse

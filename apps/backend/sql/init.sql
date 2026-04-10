@@ -16,6 +16,17 @@ create table if not exists sessions (
   created_at timestamptz not null default now()
 );
 
+create table if not exists login_challenges (
+  id uuid primary key default gen_random_uuid(),
+  phone text not null,
+  code_hash text not null,
+  expires_at timestamptz not null,
+  attempts integer not null default 0,
+  consumed_at timestamptz,
+  revoked_at timestamptz,
+  created_at timestamptz not null default now()
+);
+
 create table if not exists profiles (
   id uuid primary key references users(id) on delete cascade,
   role text not null default 'user',
@@ -214,3 +225,205 @@ set
 where offer_title is null
    or offer_type is null
    or offer_terms_short is null;
+
+insert into restaurants (
+  name,
+  restaurant_name,
+  slug,
+  city,
+  district,
+  address,
+  phone,
+  instagram_url,
+  website_url,
+  two_gis_url,
+  cuisine,
+  cuisine_2,
+  cuisine_3,
+  description,
+  short_description,
+  is_active
+)
+values
+  (
+    'AUYL',
+    'AUYL',
+    'auyl',
+    'almaty',
+    'Медеуский район',
+    'ул. Сатпаева 30/8, Алматы',
+    '+77273111111',
+    'https://instagram.com/auyl.almaty',
+    null,
+    null,
+    'Казахская',
+    'Авторская',
+    null,
+    'Современная казахская кухня в атмосферном пространстве.',
+    'Современная казахская кухня и фирменные сеты.',
+    true
+  ),
+  (
+    'Vista',
+    'Vista',
+    'vista',
+    'almaty',
+    'Бостандыкский район',
+    'пр. Абая 10А, Алматы',
+    '+77273222222',
+    'https://instagram.com/vista.almaty',
+    null,
+    null,
+    'Европейская',
+    'Завтраки',
+    'Кофе',
+    'Городское кафе с завтраками и десертами.',
+    'Популярное кафе с завтраками и десертами весь день.',
+    true
+  ),
+  (
+    'Nori',
+    'Nori',
+    'nori',
+    'almaty',
+    'Алмалинский район',
+    'ул. Толе би 55, Алматы',
+    '+77273333333',
+    'https://instagram.com/nori.almaty',
+    null,
+    null,
+    'Японская',
+    'Суши',
+    null,
+    'Небольшой ресторан японской кухни с роллами и раменом.',
+    'Суши, роллы и рамен в центре Алматы.',
+    true
+  )
+on conflict (slug) do update
+set
+  name = excluded.name,
+  restaurant_name = excluded.restaurant_name,
+  city = excluded.city,
+  district = excluded.district,
+  address = excluded.address,
+  phone = excluded.phone,
+  instagram_url = excluded.instagram_url,
+  website_url = excluded.website_url,
+  two_gis_url = excluded.two_gis_url,
+  cuisine = excluded.cuisine,
+  cuisine_2 = excluded.cuisine_2,
+  cuisine_3 = excluded.cuisine_3,
+  description = excluded.description,
+  short_description = excluded.short_description,
+  is_active = excluded.is_active;
+
+insert into offers (
+  restaurant_id,
+  title,
+  offer_title,
+  offer_type,
+  offer_terms_short,
+  description,
+  estimated_value,
+  cooldown_days,
+  is_active
+)
+select
+  r.id,
+  seed.offer_title,
+  seed.offer_title,
+  seed.offer_type,
+  seed.offer_terms_short,
+  seed.offer_terms_short,
+  seed.estimated_value,
+  seed.cooldown_days,
+  true
+from (
+  values
+    ('auyl', '2for1', '2 за 1 на чайную церемонию', 'При заказе чайной церемонии вторая бесплатно.', 9000, 30),
+    ('vista', 'compliment', 'Десерт в подарок', 'При заказе основного блюда десерт от заведения.', 3500, 14),
+    ('nori', '2for1', '2 за 1 на роллы', 'Каждый вторник второй сет роллов бесплатно.', 7000, 21)
+) as seed(slug, offer_type, offer_title, offer_terms_short, estimated_value, cooldown_days)
+join restaurants r on r.slug = seed.slug
+where not exists (
+  select 1
+  from offers o
+  where o.restaurant_id = r.id
+    and coalesce(o.offer_title, o.title) = seed.offer_title
+);
+
+insert into restaurant_locations (
+  restaurant_id,
+  address,
+  is_active,
+  sort_order,
+  lat,
+  lng
+)
+select
+  r.id,
+  seed.address,
+  true,
+  0,
+  seed.lat,
+  seed.lng
+from (
+  values
+    ('auyl', 'ул. Сатпаева 30/8, Алматы', 43.2332, 76.9553),
+    ('vista', 'пр. Абая 10А, Алматы', 43.2385, 76.9451),
+    ('nori', 'ул. Толе би 55, Алматы', 43.2567, 76.9288)
+) as seed(slug, address, lat, lng)
+join restaurants r on r.slug = seed.slug
+where not exists (
+  select 1
+  from restaurant_locations rl
+  where rl.restaurant_id = r.id
+    and rl.sort_order = 0
+);
+
+insert into restaurant_hours (
+  restaurant_id,
+  day_of_week,
+  is_closed,
+  open_time,
+  close_time,
+  close_next_day
+)
+select
+  r.id,
+  seed.day_of_week,
+  false,
+  seed.open_time,
+  seed.close_time,
+  seed.close_next_day
+from (
+  values
+    ('auyl', 1, '12:00', '23:00', false),
+    ('auyl', 2, '12:00', '23:00', false),
+    ('auyl', 3, '12:00', '23:00', false),
+    ('auyl', 4, '12:00', '23:00', false),
+    ('auyl', 5, '12:00', '00:00', true),
+    ('auyl', 6, '12:00', '00:00', true),
+    ('auyl', 7, '12:00', '23:00', false),
+    ('vista', 1, '08:00', '22:00', false),
+    ('vista', 2, '08:00', '22:00', false),
+    ('vista', 3, '08:00', '22:00', false),
+    ('vista', 4, '08:00', '22:00', false),
+    ('vista', 5, '08:00', '23:00', false),
+    ('vista', 6, '09:00', '23:00', false),
+    ('vista', 7, '09:00', '22:00', false),
+    ('nori', 1, '11:00', '22:00', false),
+    ('nori', 2, '11:00', '22:00', false),
+    ('nori', 3, '11:00', '22:00', false),
+    ('nori', 4, '11:00', '22:00', false),
+    ('nori', 5, '11:00', '23:00', false),
+    ('nori', 6, '11:00', '23:00', false),
+    ('nori', 7, '11:00', '22:00', false)
+) as seed(slug, day_of_week, open_time, close_time, close_next_day)
+join restaurants r on r.slug = seed.slug
+where not exists (
+  select 1
+  from restaurant_hours rh
+  where rh.restaurant_id = r.id
+    and rh.day_of_week = seed.day_of_week
+);

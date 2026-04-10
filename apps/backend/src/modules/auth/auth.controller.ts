@@ -8,9 +8,59 @@ const loginSchema = z.object({
   phone: z.string().min(8),
 })
 
+const verifyCodeSchema = z.object({
+  phone: z.string().min(8),
+  code: z.string().min(4),
+})
+
 const authService = new AuthService()
 
 export class AuthController {
+  async requestCode(req: Request, res: Response) {
+    const body = loginSchema.parse(req.body)
+    authDebug('otp_request_api', {
+      requestId: req.requestId,
+      phone: body.phone,
+      host: req.header('host') ?? null,
+    })
+    const result = await authService.requestWhatsAppCode(body.phone)
+    return res.status(200).json({
+      ok: true,
+      expiresAt: result.expiresAt.toISOString(),
+    })
+  }
+
+  async verifyCode(req: Request, res: Response) {
+    const body = verifyCodeSchema.parse(req.body)
+    authDebug('otp_verify_api', {
+      requestId: req.requestId,
+      phone: body.phone,
+      host: req.header('host') ?? null,
+    })
+    const result = await authService.verifyWhatsAppCode(body.phone, body.code)
+    const secureCookie =
+      typeof env.SESSION_COOKIE_SECURE === 'boolean'
+        ? env.SESSION_COOKIE_SECURE
+        : env.FRONTEND_URL.startsWith('https://')
+
+    res.cookie(env.SESSION_COOKIE_NAME, result.token, {
+      httpOnly: true,
+      secure: secureCookie,
+      sameSite: 'lax',
+      maxAge: env.SESSION_TTL_SECONDS * 1000,
+      path: '/',
+    })
+
+    return res.status(200).json({
+      ok: true,
+      userId: result.userId,
+      token: result.token,
+      cookieName: env.SESSION_COOKIE_NAME,
+      ttlSeconds: env.SESSION_TTL_SECONDS,
+      expiresAt: result.expiresAt.toISOString(),
+    })
+  }
+
   async login(req: Request, res: Response) {
     const body = loginSchema.parse(req.body)
     authDebug('login_request', {

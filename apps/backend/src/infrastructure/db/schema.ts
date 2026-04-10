@@ -27,6 +27,17 @@ export const sessions = pgTable('sessions', {
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 })
 
+export const loginChallenges = pgTable('login_challenges', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  phone: text('phone').notNull(),
+  codeHash: text('code_hash').notNull(),
+  expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+  attempts: integer('attempts').notNull().default(0),
+  consumedAt: timestamp('consumed_at', { withTimezone: true }),
+  revokedAt: timestamp('revoked_at', { withTimezone: true }),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+})
+
 export const profiles = pgTable('profiles', {
   id: uuid('id').primaryKey(),
   role: text('role').notNull().default('user'),

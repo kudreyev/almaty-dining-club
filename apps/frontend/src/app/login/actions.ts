@@ -1,6 +1,6 @@
 'use server'
 
-import { cookies } from 'next/headers'
+import { cookies, headers } from 'next/headers'
 import { getServerApiBaseUrl } from '@/lib/api-base-url'
 import { normalizeToE164Like } from '@/lib/kz-phone'
 const WA_CHALLENGE_PHONE_COOKIE = 'wa_challenge_phone'
@@ -27,8 +27,7 @@ type SendWhatsAppLoginResult = {
 
 async function setWhatsAppChallengeCookies(phoneE164: string) {
   const cookieStore = await cookies()
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? ''
-  const secureCookies = siteUrl.startsWith('https://')
+  const secureCookies = await shouldUseSecureCookies()
   const commonOptions = {
     httpOnly: true,
     sameSite: 'lax' as const,
@@ -41,6 +40,25 @@ async function setWhatsAppChallengeCookies(phoneE164: string) {
   cookieStore.set(WA_CHALLENGE_PHONE_COOKIE, phoneE164, commonOptions)
 }
 
+async function shouldUseSecureCookies() {
+  const headerStore = await headers()
+  const requestOrigin = headerStore.get('origin') ?? headerStore.get('referer')
+
+  if (requestOrigin) {
+    try {
+      return new URL(requestOrigin).protocol === 'https:'
+    } catch {
+      // Fall back to proxy headers/env below.
+    }
+  }
+
+  const forwardedProto = headerStore.get('x-forwarded-proto')
+  if (forwardedProto) return forwardedProto === 'https'
+
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? ''
+  return siteUrl.startsWith('https://')
+}
+
 async function clearWhatsAppChallengeCookies() {
   const cookieStore = await cookies()
   cookieStore.delete(WA_CHALLENGE_PHONE_COOKIE)
@@ -48,8 +66,7 @@ async function clearWhatsAppChallengeCookies() {
 
 async function setSessionCookie(cookieName: string, token: string, ttlSeconds: number) {
   const cookieStore = await cookies()
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? ''
-  const secureCookies = siteUrl.startsWith('https://')
+  const secureCookies = await shouldUseSecureCookies()
 
   cookieStore.set(cookieName, token, {
     httpOnly: true,

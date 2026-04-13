@@ -1,5 +1,6 @@
 import { notFound } from 'next/navigation'
 import { requireAdmin } from '@/lib/admin'
+import { getAdminRestaurant } from '@/lib/restaurants-api'
 import { PhoneInput } from '@/components/phone-input'
 import { updateRestaurant } from '../../actions'
 import { deleteRestaurantPhoto, reorderRestaurantPhoto } from './photo-actions'
@@ -21,48 +22,18 @@ type RestaurantLocationCoords = {
   lng: number | null
 }
 
-type RestaurantPhoto = {
-  id: string
-  thumb_url: string
-  full_url: string
-  sort_order: number
-}
-
 export default async function AdminRestaurantEditPage({ params, searchParams }: PageProps) {
   const { id } = await params
   const { photoOk, photoError } = await searchParams
-  const { supabase } = await requireAdmin()
+  await requireAdmin()
 
-  const [{ data: r }, { data: restaurantHours }, { data: primaryLocation }, { data: photos }] = await Promise.all([
-    supabase
-      .from('restaurants')
-      .select('*')
-      .eq('id', id)
-      .single(),
-    supabase
-      .from('restaurant_hours')
-      .select('day_of_week, is_closed, open_time, close_time, close_next_day')
-      .eq('restaurant_id', id)
-      .order('day_of_week', { ascending: true })
-      .returns<RestaurantHour[]>(),
-    supabase
-      .from('restaurant_locations')
-      .select('lat, lng')
-      .eq('restaurant_id', id)
-      .eq('is_active', true)
-      .order('sort_order', { ascending: true })
-      .limit(1)
-      .maybeSingle<RestaurantLocationCoords>(),
-    supabase
-      .from('restaurant_photos')
-      .select('id, thumb_url, full_url, sort_order')
-      .eq('restaurant_id', id)
-      .eq('is_active', true)
-      .order('sort_order', { ascending: true })
-      .returns<RestaurantPhoto[]>(),
-  ])
+  const data = await getAdminRestaurant(id).catch(() => null)
+  if (!data) notFound()
 
-  if (!r) notFound()
+  const r = data.restaurant
+  const restaurantHours = data.restaurant_hours as RestaurantHour[]
+  const primaryLocation = data.primary_location as RestaurantLocationCoords | null
+  const photos = data.photos
 
   return (
     <div className="mx-auto max-w-2xl px-5 py-8">
@@ -138,7 +109,7 @@ export default async function AdminRestaurantEditPage({ params, searchParams }: 
 
         <RestaurantPhotoUpload restaurantId={r.id} />
 
-        {!photos || photos.length === 0 ? (
+        {photos.length === 0 ? (
           <EmptyState title="Фотографий пока нет" description="Загрузите первое фото заведения" />
         ) : (
           <div className="grid gap-4 sm:grid-cols-2">

@@ -1,17 +1,13 @@
-import Link from 'next/link'
 import { requireAdmin } from '@/lib/admin'
+import { listAdminRestaurants } from '@/lib/restaurants-api'
 import { listingVisibilityLabel } from '@/lib/labels'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 
 export default async function AdminRestaurantsPage() {
-  const { supabase } = await requireAdmin()
-
-  const { data: restaurants } = await supabase
-    .from('restaurants')
-    .select('id, restaurant_name, slug, district, is_active')
-    .order('restaurant_name', { ascending: true })
+  await requireAdmin()
+  const restaurants = await listAdminRestaurants()
 
   return (
     <div className="mx-auto max-w-4xl px-5 py-8">
@@ -26,7 +22,7 @@ export default async function AdminRestaurantsPage() {
       </div>
 
       <div className="space-y-3">
-        {restaurants?.map((r) => (
+        {restaurants.map((r) => (
           <Card key={r.id} padding="sm" hover>
             <div className="flex items-center justify-between gap-3">
               <div className="min-w-0">

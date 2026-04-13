@@ -166,4 +166,18 @@ export class AuthService {
     })
     return session ?? null
   }
+
+  async getSessionUser(rawToken: string | undefined) {
+    const session = await this.resolveSession(rawToken)
+    if (!session) return null
+    const user = await this.authRepository.findUserById(session.userId)
+    if (!user) return null
+    return {
+      id: user.id,
+      phone: user.phone,
+      email: user.email,
+      role: user.role,
+      expiresAt: session.expiresAt,
+    }
+  }
 }

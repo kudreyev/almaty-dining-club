@@ -9,6 +9,12 @@ export class AuthRepository {
     })
   }
 
+  async findUserById(id: string) {
+    return db.query.users.findFirst({
+      where: eq(users.id, id),
+    })
+  }
+
   async createUser(phone: string) {
     const [user] = await db
       .insert(users)

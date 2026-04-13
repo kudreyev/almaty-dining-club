@@ -1,4 +1,4 @@
-import { PutObjectCommand, S3Client } from '@aws-sdk/client-s3'
+import { DeleteObjectCommand, PutObjectCommand, S3Client } from '@aws-sdk/client-s3'
 import { env } from '@/common/config/env'
 
 export const s3Client = new S3Client({
@@ -26,4 +26,13 @@ export async function uploadPublicObject(args: {
   )
 
   return `${env.S3_PUBLIC_BASE_URL}/${env.S3_BUCKET}/${args.key}`
+}
+
+export async function deletePublicObject(key: string) {
+  await s3Client.send(
+    new DeleteObjectCommand({
+      Bucket: env.S3_BUCKET,
+      Key: key,
+    })
+  )
 }

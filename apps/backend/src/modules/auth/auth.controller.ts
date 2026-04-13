@@ -111,8 +111,8 @@ export class AuthController {
       origin: req.header('origin') ?? null,
       host: req.header('host') ?? null,
     })
-    const session = await authService.resolveSession(token)
-    if (!session) {
+    const user = await authService.getSessionUser(token)
+    if (!user) {
       authDebug('me_unauthorized', {
         requestId: req.requestId,
       })
@@ -121,13 +121,16 @@ export class AuthController {
 
     authDebug('me_authorized', {
       requestId: req.requestId,
-      userId: session.userId,
-      expiresAt: session.expiresAt.toISOString(),
+      userId: user.id,
+      expiresAt: user.expiresAt.toISOString(),
     })
     return res.status(200).json({
       ok: true,
-      userId: session.userId,
-      expiresAt: session.expiresAt,
+      userId: user.id,
+      phone: user.phone,
+      email: user.email,
+      role: user.role,
+      expiresAt: user.expiresAt,
     })
   }
 

@@ -1,10 +1,10 @@
 import { notFound } from 'next/navigation'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { getCurrentUserSubscription, isSubscriptionCurrentlyActive } from '@/lib/subscription'
+import { OpeningHoursDropdown } from '@/components/opening-hours-dropdown'
 import { RestaurantPhotoGallery } from '@/components/restaurant-photo-gallery'
 import { RestaurantMapCard } from '@/components/restaurant-map-card'
 import { OffersPanel } from '@/components/offers-panel'
-import { RestaurantHoursCard } from '@/components/restaurant-hours-card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card } from '@/components/ui/card'
@@ -152,7 +152,7 @@ export default async function RestaurantPage({ params }: PageProps) {
               {restaurant.short_description}
             </p>
 
-            <RestaurantHoursCard openStatus={openStatus} hoursForWeek={hoursForWeek} />
+            <OpeningHoursDropdown status={openStatus} weekSchedule={hoursForWeek} />
 
             {/* ADDRESS */}
             {restaurant.address ? (

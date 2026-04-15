@@ -4,14 +4,13 @@ import { getCurrentUserSubscription, isSubscriptionCurrentlyActive } from '@/lib
 import { RestaurantPhotoGallery } from '@/components/restaurant-photo-gallery'
 import { RestaurantMapCard } from '@/components/restaurant-map-card'
 import { OffersPanel } from '@/components/offers-panel'
+import { RestaurantHoursCard } from '@/components/restaurant-hours-card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card } from '@/components/ui/card'
 import {
   DEFAULT_TZ,
-  WEEKDAY_LABELS_RU,
   computeOpenStatus,
-  formatHoursRange,
   type RestaurantHour,
 } from '@/lib/opening-hours'
 
@@ -110,7 +109,6 @@ export default async function RestaurantPage({ params }: PageProps) {
   const cuisines = [restaurant.cuisine, restaurant.cuisine_2, restaurant.cuisine_3].filter(Boolean) as string[]
   const hoursForWeek = restaurant.restaurant_hours ?? []
   const openStatus = computeOpenStatus(hoursForWeek, new Date(), DEFAULT_TZ)
-  const hoursByDay = new Map(hoursForWeek.map((item) => [item.day_of_week, item]))
   const addressLine = restaurant.address?.trim() || `${restaurant.restaurant_name}, Алматы`
   const hasCoordinates = primaryLocation?.lat != null && primaryLocation?.lng != null
   const yandexSearchUrl = `https://yandex.kz/maps/?text=${encodeURIComponent(addressLine)}`
@@ -154,26 +152,7 @@ export default async function RestaurantPage({ params }: PageProps) {
               {restaurant.short_description}
             </p>
 
-            <div className="mt-6 rounded-xl bg-gray-50 p-4">
-              <p className="text-sm font-medium uppercase tracking-wider text-gray-400">Режим работы</p>
-              <p className={`mt-2 text-base font-medium ${openStatus.isOpen ? 'text-emerald-700' : 'text-gray-700'}`}>
-                {openStatus.labelShort}
-              </p>
-              {openStatus.labelDetail ? (
-                <p className="mt-1 text-sm text-gray-500">{openStatus.labelDetail}</p>
-              ) : null}
-              <div className="mt-3 space-y-1 text-sm text-gray-600">
-                {Array.from({ length: 7 }, (_, idx) => idx + 1).map((day) => (
-                  <p key={day}>
-                    <span className="font-medium text-gray-700">{WEEKDAY_LABELS_RU[day]}:</span>{' '}
-                    {formatHoursRange(hoursByDay.get(day))}
-                    {hoursByDay.get(day)?.close_next_day ? (
-                      <span className="text-xs text-gray-400"> (на следующий день)</span>
-                    ) : null}
-                  </p>
-                ))}
-              </div>
-            </div>
+            <RestaurantHoursCard openStatus={openStatus} hoursForWeek={hoursForWeek} />
 
             {/* ADDRESS */}
             {restaurant.address ? (

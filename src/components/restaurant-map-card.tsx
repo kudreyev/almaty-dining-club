@@ -35,14 +35,14 @@ export function RestaurantMapCard({
   }
 
   return (
-    <div className="mt-6 rounded-3xl border border-gray-200 bg-white p-5">
-      <h2 className="text-xl font-bold tracking-tight text-gray-950">Карта</h2>
+    <div className="mt-4 rounded-2xl border border-gray-200 bg-gray-50 p-4">
+      <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-500">Карта</h2>
 
       <a
         href={mapTargetUrl}
         target="_blank"
         rel="noreferrer"
-        className="mt-3 block h-44 overflow-hidden rounded-2xl border border-gray-200 sm:h-56"
+        className="mt-3 block h-40 overflow-hidden rounded-2xl border border-gray-200 bg-white sm:h-48"
       >
         {showImage ? (
           // eslint-disable-next-line @next/next/no-img-element
@@ -61,15 +61,13 @@ export function RestaurantMapCard({
         )}
       </a>
 
-      <p className="mt-3 truncate text-sm text-gray-500">{addressLine}</p>
-
       <div className="mt-3 flex flex-wrap gap-2">
         {twoGisUrl ? (
-          <Button href={twoGisUrl} variant="secondary" size="sm" target="_blank" rel="noreferrer">
+          <Button href={twoGisUrl} variant="secondary" size="sm" target="_blank" rel="noreferrer" className="rounded-full">
             Открыть в 2GIS
           </Button>
         ) : null}
-        <Button href={yandexMapUrl} variant="secondary" size="sm" target="_blank" rel="noreferrer">
+        <Button href={yandexMapUrl} variant="secondary" size="sm" target="_blank" rel="noreferrer" className="rounded-full">
           Открыть в Яндекс.Картах
         </Button>
       </div>

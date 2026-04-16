@@ -32,6 +32,7 @@ export default async function AdminRestaurantNewPage() {
             <label className="mb-1.5 block text-base font-medium text-gray-700">Телефон</label>
             <PhoneInput name="phone" className="w-full rounded-xl border border-gray-200 px-4 py-3 text-base outline-none transition-colors focus:border-accent" />
           </div>
+          <Input name="whatsapp_phone" label="WhatsApp" placeholder="+77001234567" />
           <RestaurantHoursFields />
 
           <label className="flex items-center gap-2 text-base text-gray-600">

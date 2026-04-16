@@ -3,7 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { requireAdmin } from '@/lib/admin'
-import { normalizeKZPhone } from '@/lib/kz-phone'
+import { normalizeKZPhone, normalizeWhatsAppPhone } from '@/lib/kz-phone'
 import type { RestaurantHour } from '@/lib/opening-hours'
 
 function minutesFromTime(value: string): number {
@@ -139,6 +139,8 @@ export async function createRestaurant(formData: FormData) {
 
   const phoneRaw = String(formData.get('phone') || '').trim()
   const phoneNormalized = phoneRaw ? normalizeKZPhone(phoneRaw) : null
+  const whatsappPhoneRaw = String(formData.get('whatsapp_phone') || '').trim()
+  const whatsappPhoneNormalized = normalizeWhatsAppPhone(whatsappPhoneRaw)
 
   const payload = {
     restaurant_name: String(formData.get('restaurant_name') || ''),
@@ -146,6 +148,7 @@ export async function createRestaurant(formData: FormData) {
     city: 'almaty',
     address: String(formData.get('address') || ''),
     phone: phoneNormalized,
+    whatsapp_phone: whatsappPhoneNormalized,
     instagram_url: String(formData.get('instagram_url') || '') || null,
     website_url: String(formData.get('website_url') || '') || null,
     two_gis_url: String(formData.get('two_gis_url') || '') || null,
@@ -181,6 +184,8 @@ export async function updateRestaurant(formData: FormData) {
 
   const phoneRaw = String(formData.get('phone') || '').trim()
   const phoneNormalized = phoneRaw ? normalizeKZPhone(phoneRaw) : null
+  const whatsappPhoneRaw = String(formData.get('whatsapp_phone') || '').trim()
+  const whatsappPhoneNormalized = normalizeWhatsAppPhone(whatsappPhoneRaw)
   const lat = parseOptionalCoordinate(formData.get('lat'))
   const lng = parseOptionalCoordinate(formData.get('lng'))
 
@@ -200,6 +205,7 @@ export async function updateRestaurant(formData: FormData) {
     slug: String(formData.get('slug') || ''),
     address: String(formData.get('address') || ''),
     phone: phoneNormalized,
+    whatsapp_phone: whatsappPhoneNormalized,
     instagram_url: String(formData.get('instagram_url') || '') || null,
     website_url: String(formData.get('website_url') || '') || null,
     two_gis_url: String(formData.get('two_gis_url') || '') || null,

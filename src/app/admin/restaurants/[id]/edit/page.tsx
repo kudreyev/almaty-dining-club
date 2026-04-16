@@ -39,6 +39,7 @@ type RestaurantRecord = {
   instagram_url: string | null
   two_gis_url: string | null
   phone: string | null
+  whatsapp_phone: string | null
   is_active: boolean
 }
 
@@ -61,6 +62,7 @@ export default async function AdminRestaurantEditPage({ params, searchParams }: 
         instagram_url,
         two_gis_url,
         phone,
+        whatsapp_phone,
         is_active
       `)
       .eq('id', id)
@@ -116,6 +118,7 @@ export default async function AdminRestaurantEditPage({ params, searchParams }: 
             <label className="mb-1.5 block text-base font-medium text-gray-700">Телефон</label>
             <PhoneInput name="phone" defaultValue={r.phone ?? ''} className="w-full rounded-xl border border-gray-200 px-4 py-3 text-base outline-none transition-colors focus:border-accent" />
           </div>
+          <Input name="whatsapp_phone" label="WhatsApp" defaultValue={r.whatsapp_phone ?? ''} placeholder="+77001234567" />
           <div className="grid gap-4 sm:grid-cols-2">
             <Input
               name="lat"

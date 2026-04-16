@@ -1,5 +1,6 @@
 import { notFound } from 'next/navigation'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
+import { buildWhatsAppUrl } from '@/lib/kz-phone'
 import { getCurrentUserSubscription, isSubscriptionCurrentlyActive } from '@/lib/subscription'
 import { OpeningHoursDropdown } from '@/components/opening-hours-dropdown'
 import { RestaurantPhotoGallery } from '@/components/restaurant-photo-gallery'
@@ -21,6 +22,7 @@ type Restaurant = {
   city: string
   address: string
   phone: string | null
+  whatsapp_phone: string | null
   instagram_url: string | null
   website_url: string | null
   two_gis_url: string | null
@@ -47,7 +49,7 @@ export default async function RestaurantPage({ params }: PageProps) {
   const { data: restaurant, error: restaurantError } = await supabase
     .from('restaurants')
     .select(`
-      id, restaurant_name, slug, city, address, phone,
+      id, restaurant_name, slug, city, address, phone, whatsapp_phone,
       instagram_url, website_url, two_gis_url,
       cuisine, cuisine_2, cuisine_3,
       is_active,
@@ -120,6 +122,10 @@ export default async function RestaurantPage({ params }: PageProps) {
     : null
   const backupMapUrl = null
   const noCoords = !hasCoordinates
+  const whatsappUrl = buildWhatsAppUrl(
+    restaurant.whatsapp_phone,
+    `Здравствуйте! Пишу по поводу заведения ${restaurant.restaurant_name}`
+  )
 
   console.warn(
     `[restaurant-map] slug=${restaurant.slug} previewMapUrl=${staticMapUrl ?? 'none'} backupMapUrl=none`
@@ -149,13 +155,44 @@ export default async function RestaurantPage({ params }: PageProps) {
 
             <OpeningHoursDropdown status={openStatus} weekSchedule={hoursForWeek} />
 
-            {/* ADDRESS */}
             {restaurant.address ? (
-              <div className="mt-6 rounded-xl bg-gray-50 p-4">
-                <p className="text-sm font-medium uppercase tracking-wider text-gray-400">Адрес</p>
-                <p className="mt-1.5 text-base leading-6 text-gray-700">{restaurant.address}</p>
-              </div>
+              <p className="mt-3 text-sm leading-6 text-gray-600 sm:text-base">{restaurant.address}</p>
             ) : null}
+
+            <div className="mt-6 rounded-3xl border border-gray-200 bg-white p-5">
+              <h2 className="text-xl font-bold tracking-tight text-gray-950">Детали</h2>
+              <div className="mt-4 flex flex-wrap gap-2">
+                {restaurant.instagram_url ? (
+                  <Button
+                    href={restaurant.instagram_url}
+                    variant="secondary"
+                    size="sm"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="rounded-full"
+                  >
+                    Instagram
+                  </Button>
+                ) : null}
+                {restaurant.phone ? (
+                  <Button href={`tel:${restaurant.phone}`} variant="secondary" size="sm" className="rounded-full">
+                    Позвонить
+                  </Button>
+                ) : null}
+                {whatsappUrl ? (
+                  <Button
+                    href={whatsappUrl}
+                    variant="secondary"
+                    size="sm"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="rounded-full"
+                  >
+                    WhatsApp
+                  </Button>
+                ) : null}
+              </div>
+            </div>
 
             <RestaurantMapCard
               addressLine={addressLine}
@@ -166,20 +203,6 @@ export default async function RestaurantPage({ params }: PageProps) {
               yandexMapUrl={yandexMapUrl}
               noCoords={noCoords}
             />
-
-            {/* LINKS */}
-            <div className="mt-4 flex flex-wrap gap-2">
-              {restaurant.instagram_url ? (
-                <Button href={restaurant.instagram_url} variant="secondary" size="sm" target="_blank" rel="noreferrer">
-                  Instagram
-                </Button>
-              ) : null}
-              {restaurant.phone ? (
-                <Button href={`tel:${restaurant.phone}`} variant="ghost" size="sm">
-                  {restaurant.phone}
-                </Button>
-              ) : null}
-            </div>
           </Card>
         </div>
 

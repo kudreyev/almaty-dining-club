@@ -88,3 +88,31 @@ export function normalizeKZPhone(input: string): string | null {
   if (!normalized || !isKZNumber(normalized)) return null
   return normalized
 }
+
+export function normalizeWhatsAppPhone(input: string): string | null {
+  const raw = input.trim()
+  if (!raw) return null
+
+  const sanitized = sanitizePhoneInput(raw)
+  const digits = sanitized.replace(/\D/g, '')
+
+  if (digits.length === 11 && (digits.startsWith('7') || digits.startsWith('8'))) {
+    return `+7${digits.slice(1)}`
+  }
+
+  return raw
+}
+
+export function waMeDigits(input: string): string {
+  return input.replace(/\D/g, '')
+}
+
+export function buildWhatsAppUrl(phone: string | null | undefined, text?: string): string | null {
+  if (!phone) return null
+
+  const digits = waMeDigits(phone)
+  if (!digits) return null
+
+  const query = text ? `?text=${encodeURIComponent(text)}` : ''
+  return `https://wa.me/${digits}${query}`
+}

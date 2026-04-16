@@ -6,7 +6,6 @@ import { OpeningHoursDropdown } from '@/components/opening-hours-dropdown'
 import { RestaurantPhotoGallery } from '@/components/restaurant-photo-gallery'
 import { RestaurantMapCard } from '@/components/restaurant-map-card'
 import { OffersPanel } from '@/components/offers-panel'
-import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card } from '@/components/ui/card'
 import {
@@ -159,41 +158,6 @@ export default async function RestaurantPage({ params }: PageProps) {
               <p className="mt-3 text-sm leading-6 text-gray-600 sm:text-base">{restaurant.address}</p>
             ) : null}
 
-            <div className="mt-6 rounded-3xl border border-gray-200 bg-white p-5">
-              <h2 className="text-xl font-bold tracking-tight text-gray-950">Детали</h2>
-              <div className="mt-4 flex flex-wrap gap-2">
-                {restaurant.instagram_url ? (
-                  <Button
-                    href={restaurant.instagram_url}
-                    variant="secondary"
-                    size="sm"
-                    target="_blank"
-                    rel="noreferrer"
-                    className="rounded-full"
-                  >
-                    Instagram
-                  </Button>
-                ) : null}
-                {restaurant.phone ? (
-                  <Button href={`tel:${restaurant.phone}`} variant="secondary" size="sm" className="rounded-full">
-                    Позвонить
-                  </Button>
-                ) : null}
-                {whatsappUrl ? (
-                  <Button
-                    href={whatsappUrl}
-                    variant="secondary"
-                    size="sm"
-                    target="_blank"
-                    rel="noreferrer"
-                    className="rounded-full"
-                  >
-                    WhatsApp
-                  </Button>
-                ) : null}
-              </div>
-            </div>
-
             <RestaurantMapCard
               addressLine={addressLine}
               staticMapUrl={staticMapUrl}
@@ -202,6 +166,9 @@ export default async function RestaurantPage({ params }: PageProps) {
               mapTargetUrl={mapTargetUrl}
               yandexMapUrl={yandexMapUrl}
               noCoords={noCoords}
+              instagramUrl={restaurant.instagram_url}
+              whatsappUrl={whatsappUrl}
+              phone={restaurant.phone}
             />
           </Card>
         </div>

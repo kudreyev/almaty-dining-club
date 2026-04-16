@@ -11,6 +11,9 @@ type RestaurantMapCardProps = {
   mapTargetUrl: string
   yandexMapUrl: string
   noCoords: boolean
+  instagramUrl?: string | null
+  whatsappUrl?: string | null
+  phone?: string | null
 }
 
 export function RestaurantMapCard({
@@ -21,6 +24,9 @@ export function RestaurantMapCard({
   mapTargetUrl,
   yandexMapUrl,
   noCoords,
+  instagramUrl,
+  whatsappUrl,
+  phone,
 }: RestaurantMapCardProps) {
   const [currentMapUrl, setCurrentMapUrl] = useState<string | null>(staticMapUrl)
   const [mapImageFailed, setMapImageFailed] = useState(false)
@@ -35,14 +41,14 @@ export function RestaurantMapCard({
   }
 
   return (
-    <div className="mt-4 rounded-2xl border border-gray-200 bg-gray-50 p-4">
-      <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-500">Карта</h2>
+    <div className="mt-6 rounded-3xl border border-gray-200 bg-white p-5">
+      <h2 className="text-xl font-bold tracking-tight text-gray-950">Детали</h2>
 
       <a
         href={mapTargetUrl}
         target="_blank"
         rel="noreferrer"
-        className="mt-3 block h-40 overflow-hidden rounded-2xl border border-gray-200 bg-white sm:h-48"
+        className="mt-4 block h-40 overflow-hidden rounded-2xl border border-gray-200 bg-gray-50 sm:h-48"
       >
         {showImage ? (
           // eslint-disable-next-line @next/next/no-img-element
@@ -63,13 +69,59 @@ export function RestaurantMapCard({
 
       <div className="mt-3 flex flex-wrap gap-2">
         {twoGisUrl ? (
-          <Button href={twoGisUrl} variant="secondary" size="sm" target="_blank" rel="noreferrer" className="rounded-full">
+          <Button
+            href={twoGisUrl}
+            variant="secondary"
+            size="sm"
+            target="_blank"
+            rel="noreferrer"
+            className="rounded-full"
+          >
             Открыть в 2GIS
           </Button>
         ) : null}
-        <Button href={yandexMapUrl} variant="secondary" size="sm" target="_blank" rel="noreferrer" className="rounded-full">
+        <Button
+          href={yandexMapUrl}
+          variant="secondary"
+          size="sm"
+          target="_blank"
+          rel="noreferrer"
+          className="rounded-full"
+        >
           Открыть в Яндекс.Картах
         </Button>
+      </div>
+
+      <div className="mt-3 flex flex-wrap gap-2">
+        {instagramUrl ? (
+          <Button
+            href={instagramUrl}
+            variant="secondary"
+            size="sm"
+            target="_blank"
+            rel="noreferrer"
+            className="rounded-full"
+          >
+            Instagram
+          </Button>
+        ) : null}
+        {whatsappUrl ? (
+          <Button
+            href={whatsappUrl}
+            variant="secondary"
+            size="sm"
+            target="_blank"
+            rel="noreferrer"
+            className="rounded-full"
+          >
+            WhatsApp
+          </Button>
+        ) : null}
+        {phone ? (
+          <Button href={`tel:${phone}`} variant="secondary" size="sm" className="rounded-full">
+            Позвонить
+          </Button>
+        ) : null}
       </div>
     </div>
   )

@@ -41,15 +41,15 @@ export function RestaurantMapCard({
   }
 
   return (
-    <div className="mt-6 rounded-3xl border border-gray-200 bg-white p-5">
-      <h2 className="text-xl font-bold tracking-tight text-gray-950">Детали</h2>
+    <div className="rounded-2xl border border-gray-200 bg-white p-5 sm:p-6">
+      <h2 className="text-lg font-semibold tracking-tight text-gray-950 sm:text-xl">Детали</h2>
 
       {noCoords ? null : (
         <a
           href={mapTargetUrl}
           target="_blank"
           rel="noreferrer"
-          className="mt-4 block h-40 overflow-hidden rounded-2xl border border-gray-200 bg-gray-50 sm:h-48"
+          className="mt-4 block h-44 overflow-hidden rounded-2xl border border-gray-200 bg-gray-50 sm:h-48"
         >
           {showImage ? (
             // eslint-disable-next-line @next/next/no-img-element

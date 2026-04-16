@@ -71,7 +71,7 @@ export default async function AlmatyPage({ searchParams }: PageProps) {
   if (error) {
     return (
       <div className="mx-auto max-w-5xl px-5 py-10">
-        <h1 className="text-3xl font-bold sm:text-4xl">Заведения Алматы</h1>
+        <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">Заведения Алматы</h1>
         <p className="mt-4 text-base text-red-600">Ошибка: {error.message}</p>
       </div>
     )
@@ -152,10 +152,10 @@ export default async function AlmatyPage({ searchParams }: PageProps) {
   ]
 
   return (
-    <div className="mx-auto max-w-6xl px-5 py-8">
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold sm:text-4xl">Заведения Алматы</h1>
-        <p className="mt-1 text-base leading-6 text-gray-500">Партнёры с офферами 2за1 и в подарок.</p>
+    <div className="mx-auto max-w-6xl px-5 py-8 md:py-12">
+      <div className="mb-8">
+        <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">Заведения Алматы</h1>
+        <p className="mt-2 text-base leading-6 text-gray-500">Партнёры с офферами 2за1 и в подарок.</p>
       </div>
 
       <RestaurantListClient

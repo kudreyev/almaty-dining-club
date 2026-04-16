@@ -12,7 +12,7 @@ export default async function AdminRestaurantNewPage() {
   return (
     <div className="mx-auto max-w-2xl px-5 py-8">
       <div className="mb-6 flex items-center justify-between">
-        <h1 className="text-3xl font-bold sm:text-4xl">Добавить ресторан</h1>
+        <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">Добавить ресторан</h1>
         <Button href="/admin/restaurants" variant="ghost" size="sm">← Назад</Button>
       </div>
 

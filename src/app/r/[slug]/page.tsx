@@ -145,14 +145,14 @@ export default async function RestaurantPage({ params }: PageProps) {
         {/* INFO */}
         <div className="order-2 lg:col-start-1 lg:row-start-2">
           <Card>
-            <div className="flex flex-wrap gap-1.5">
+            <div className="flex flex-wrap gap-2">
               {cuisines.map((c) => (
                 <Badge key={c}>{c}</Badge>
               ))}
             </div>
 
-            <div className="mt-4 flex items-start justify-between gap-3">
-              <h1 className="text-2xl font-bold tracking-tight text-gray-950 sm:text-3xl">
+            <div className="mt-3 flex items-start justify-between gap-3">
+              <h1 className="text-2xl font-semibold tracking-tight text-gray-950 sm:text-3xl">
                 {restaurant.restaurant_name}
               </h1>
               <ShareButton title={restaurant.restaurant_name} text={`${restaurant.restaurant_name} — смотри на KudaPass`} />

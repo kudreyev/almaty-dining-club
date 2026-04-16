@@ -16,7 +16,7 @@ export function FaqAccordion({ items }: { items: Item[] }) {
             <button
               type="button"
               onClick={() => setOpenIndex(isOpen ? null : idx)}
-              className="flex w-full items-center justify-between gap-4 px-5 py-4 text-left text-sm font-medium text-gray-900 transition-colors hover:bg-gray-50"
+              className="flex w-full items-center justify-between gap-4 px-5 py-4 text-left text-base font-medium leading-6 text-gray-900 transition-colors hover:bg-gray-50"
             >
               {item.q}
               <svg
@@ -34,7 +34,7 @@ export function FaqAccordion({ items }: { items: Item[] }) {
                 isOpen ? 'max-h-60 pb-4' : 'max-h-0'
               }`}
             >
-              <p className="px-5 text-sm leading-relaxed text-gray-500">{item.a}</p>
+              <p className="px-5 text-base leading-6 text-gray-500">{item.a}</p>
             </div>
           </div>
         )

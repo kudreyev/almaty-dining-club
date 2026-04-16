@@ -40,7 +40,7 @@ export default function PricingPage() {
           <p className="text-sm font-medium uppercase tracking-widest text-gray-400">
             Подписка
           </p>
-          <h1 className="mt-3 text-3xl font-bold tracking-tight sm:text-4xl">
+          <h1 className="mt-3 text-3xl font-semibold tracking-tight sm:text-4xl">
             Все рестораны — одна подписка
           </h1>
           <p className="mx-auto mt-4 max-w-lg text-base leading-relaxed text-gray-500">
@@ -91,7 +91,7 @@ export default function PricingPage() {
 
         {/* HOW IT WORKS */}
         <section className="mt-14">
-          <h2 className="text-center text-xl font-bold sm:text-2xl">Как это работает</h2>
+          <h2 className="text-center text-xl font-semibold sm:text-2xl">Как это работает</h2>
 
           <div className="mt-8 grid gap-4 sm:grid-cols-3">
             {[
@@ -112,7 +112,7 @@ export default function PricingPage() {
 
         {/* FAQ */}
         <section className="mt-14">
-          <h2 className="text-center text-xl font-bold sm:text-2xl">Частые вопросы</h2>
+          <h2 className="text-center text-xl font-semibold sm:text-2xl">Частые вопросы</h2>
           <div className="mt-8">
             <FaqAccordion items={FAQ_ITEMS} />
           </div>
@@ -130,7 +130,7 @@ export default function PricingPage() {
             href={WHATSAPP_SUBSCRIBE_URL}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex shrink-0 items-center justify-center rounded-xl bg-gray-900 px-5 py-3 text-base font-semibold text-white transition-colors hover:bg-black active:scale-[0.98]"
+            className="inline-flex shrink-0 items-center justify-center rounded-2xl bg-gray-900 px-5 py-3 text-base font-semibold text-white transition-colors hover:bg-black active:scale-[0.98]"
           >
             Оформить в WhatsApp
           </a>

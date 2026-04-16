@@ -22,7 +22,7 @@ export default async function AdminOfferNewPage({ params }: PageProps) {
     <div className="mx-auto max-w-2xl px-5 py-8">
       <div className="mb-6 flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold sm:text-4xl">Добавить оффер</h1>
+          <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">Добавить оффер</h1>
           <p className="text-base text-gray-500">{restaurant?.restaurant_name}</p>
         </div>
         <Button href={`/admin/offers/${restaurantId}`} variant="ghost" size="sm">← Назад</Button>

@@ -110,7 +110,7 @@ export default async function AdminActivationLinksPage({
   return (
     <div className="mx-auto max-w-6xl px-5 py-8">
       <div className="mb-6">
-        <h1 className="text-3xl font-bold sm:text-4xl">Ссылки активации</h1>
+        <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">Ссылки активации</h1>
         <p className="mt-1 text-base leading-6 text-gray-500">
           Создайте ссылку для клиента после оплаты. Срок — 24 часа.
         </p>

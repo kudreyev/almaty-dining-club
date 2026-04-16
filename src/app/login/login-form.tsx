@@ -97,7 +97,7 @@ export function LoginForm({
   return (
     <div className="flex min-h-[60vh] items-center justify-center px-5 py-12">
       <Card className="w-full max-w-sm" padding="lg">
-        <h1 className="text-3xl font-bold sm:text-4xl">Вход через WhatsApp</h1>
+        <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">Вход через WhatsApp</h1>
         <p className="mt-2 text-base leading-6 text-gray-500">
           Введите номер и подтвердите код из WhatsApp.
         </p>

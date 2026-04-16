@@ -89,25 +89,25 @@ export default async function MePage({ searchParams }: PageProps) {
   return (
     <div className="mx-auto max-w-2xl px-5 py-8">
       <div className="mb-6 flex items-center justify-between">
-        <h1 className="text-xl font-bold">Личный кабинет</h1>
+        <h1 className="text-xl font-semibold tracking-tight sm:text-2xl">Личный кабинет</h1>
         <LogoutButton />
       </div>
 
       {payment === 'submitted' ? (
-        <div className="mb-6 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+        <div className="mb-6 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-base text-emerald-700">
           Заявка отправлена. После проверки подписка будет активирована.
         </div>
       ) : null}
 
       <div className="mb-6 grid gap-4 sm:grid-cols-2">
         <Card>
-          <p className="text-xs text-gray-400">Телефон</p>
-          <p className="mt-1 text-sm font-semibold">{displayedPhone}</p>
+          <p className="text-sm text-gray-400">Телефон</p>
+          <p className="mt-1 text-base font-semibold">{displayedPhone}</p>
         </Card>
         <Card>
           <div className="flex items-center justify-between gap-3">
             <div>
-              <p className="text-xs text-gray-400">Подписка</p>
+              <p className="text-sm text-gray-400">Подписка</p>
               <Badge color={subColor} className="mt-1">
                 {currentSubscription
                   ? subscriptionStatusLabel(currentSubscription.status)
@@ -121,7 +121,7 @@ export default async function MePage({ searchParams }: PageProps) {
         </Card>
       </div>
 
-      <h2 className="mb-4 text-lg font-bold">История использований</h2>
+      <h2 className="mb-4 text-lg font-semibold">История использований</h2>
 
       {!redemptions || redemptions.length === 0 ? (
         <EmptyState title="Пока нет использований" description="Активируйте оффер в ресторане" />
@@ -131,10 +131,10 @@ export default async function MePage({ searchParams }: PageProps) {
             <Card key={item.id} padding="sm" hover>
               <div className="flex items-center justify-between gap-3">
                 <div className="min-w-0">
-                  <p className="truncate font-semibold text-sm">
+                  <p className="truncate text-base font-semibold">
                     {item.restaurants?.restaurant_name ?? '—'}
                   </p>
-                  <p className="mt-0.5 truncate text-xs text-gray-500">
+                  <p className="mt-0.5 truncate text-sm text-gray-500">
                     {item.offers?.offer_title ?? '—'}
                   </p>
                 </div>
@@ -142,7 +142,7 @@ export default async function MePage({ searchParams }: PageProps) {
                   <Badge color={item.offers?.offer_type === '2for1' ? 'dark' : 'blue'}>
                     {item.offers?.offer_type ? offerTypeLabel(item.offers.offer_type) : '—'}
                   </Badge>
-                  <p className="mt-1 text-xs text-gray-400">
+                  <p className="mt-1 text-sm text-gray-400">
                     {new Date(item.redeemed_at).toLocaleDateString('ru-RU')}
                   </p>
                 </div>

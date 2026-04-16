@@ -39,7 +39,7 @@ export default async function AdminStaffPage() {
   return (
     <div className="mx-auto max-w-4xl px-5 py-8">
       <div className="mb-6">
-        <h1 className="text-3xl font-bold sm:text-4xl">PIN персонала</h1>
+        <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">PIN персонала</h1>
         <p className="mt-1 text-base leading-6 text-gray-500">Один PIN на ресторан для входа персонала.</p>
       </div>
 

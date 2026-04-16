@@ -49,7 +49,7 @@ export default function TransferSubscriptionPage() {
   return (
     <div className="mx-auto max-w-2xl px-5 py-8">
       <div className="mb-6">
-        <h1 className="text-3xl font-bold sm:text-4xl">Перенос подписки</h1>
+        <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">Перенос подписки</h1>
         <p className="mt-1 text-base leading-6 text-gray-500">
           Перенесите активную подписку с одного номера на другой.
         </p>

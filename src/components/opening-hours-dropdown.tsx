@@ -62,7 +62,7 @@ export function OpeningHoursDropdown({ status, weekSchedule }: OpeningHoursDropd
   )
 
   if (!collapsedLabel && weekSchedule.length === 0) {
-    return <div className="mt-6 text-sm text-gray-500">График не указан</div>
+    return <div className="mt-4 text-sm text-gray-500">График не указан</div>
   }
 
   const toneClass = status.isOpen
@@ -72,7 +72,7 @@ export function OpeningHoursDropdown({ status, weekSchedule }: OpeningHoursDropd
       : 'text-gray-500'
 
   return (
-    <div className="mt-6">
+    <div className="mt-4">
       <button
         type="button"
         onClick={() => setIsExpanded((prev) => !prev)}
@@ -80,11 +80,11 @@ export function OpeningHoursDropdown({ status, weekSchedule }: OpeningHoursDropd
         className={`flex w-full items-center justify-between gap-3 text-left ${toneClass}`}
       >
         <span className="text-base font-medium leading-6">{collapsedLabel ?? 'График не указан'}</span>
-        <ChevronDownIcon expanded={isExpanded} className="h-4 w-4 shrink-0" />
+        <ChevronDownIcon expanded={isExpanded} className="h-5 w-5 shrink-0" />
       </button>
 
       {isExpanded ? (
-        <div className="mt-3 space-y-1 text-sm leading-6 text-gray-600">
+        <div className="mt-3 space-y-1.5 text-sm leading-5 text-gray-600">
           {Array.from({ length: 7 }, (_, idx) => idx + 1).map((day) => (
             <p key={day}>
               <span className="font-medium text-gray-700">{WEEKDAY_LABELS_RU[day]}:</span>{' '}

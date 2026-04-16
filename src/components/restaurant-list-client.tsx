@@ -184,17 +184,17 @@ export function RestaurantListClient({
     <>
       <div className="mb-6">
         <div className="flex items-baseline justify-between gap-3">
-          <h2 className="text-xl font-bold tracking-tight text-gray-950 sm:text-2xl">{title}</h2>
+          <h2 className="text-xl font-semibold tracking-tight text-gray-950 sm:text-2xl">{title}</h2>
           <div className="flex items-center gap-3">
             {showMapLink ? (
               <Link
                 href="/map"
-                className="rounded-full border border-gray-200 bg-white px-3 py-1 text-sm font-medium text-gray-800 transition-colors hover:bg-gray-50"
+                className="rounded-full border border-gray-200 bg-white px-3.5 py-1.5 text-sm font-medium text-gray-800 transition-colors hover:bg-gray-50"
               >
                 Карта
               </Link>
             ) : null}
-            <p className="shrink-0 text-base text-gray-400">{sortedRestaurants.length} шт.</p>
+            <p className="shrink-0 text-sm text-gray-400">{sortedRestaurants.length} шт.</p>
           </div>
         </div>
 
@@ -227,7 +227,7 @@ export function RestaurantListClient({
         </div>
 
         {geoMessage ? (
-          <div className="mt-2 space-y-0.5 text-xs text-gray-500" role="status">
+          <div className="mt-2.5 space-y-0.5 text-sm text-gray-500" role="status">
             <p>{geoMessage.main}</p>
             {geoMessage.extra ? <p>{geoMessage.extra}</p> : null}
           </div>
@@ -262,9 +262,9 @@ export function RestaurantListClient({
                 )}
               </div>
 
-              <div className="p-4">
-                <h3 className="text-lg font-bold tracking-tight leading-tight text-gray-950 sm:text-xl">{r.restaurant_name}</h3>
-                <div className="mt-1.5 flex flex-wrap gap-1.5">
+              <div className="p-4 sm:p-5">
+                <h3 className="text-base font-semibold tracking-tight leading-tight text-gray-950 sm:text-lg">{r.restaurant_name}</h3>
+                <div className="mt-2 flex flex-wrap gap-1.5">
                   {[r.cuisine, r.cuisine_2, r.cuisine_3]
                     .filter(Boolean)
                     .slice(0, 3)
@@ -303,7 +303,7 @@ export function RestaurantListClient({
                   </div>
                 ) : null}
 
-                {r.address ? <p className="mt-3 truncate text-base leading-6 text-gray-500">{r.address}</p> : null}
+                {r.address ? <p className="mt-3 truncate text-sm leading-5 text-gray-500">{r.address}</p> : null}
               </div>
             </Link>
           ))}

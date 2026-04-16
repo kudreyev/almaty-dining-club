@@ -13,7 +13,7 @@ export default async function AdminOffersPage() {
   return (
     <div className="mx-auto max-w-4xl px-5 py-8">
       <div className="mb-6">
-        <h1 className="text-3xl font-bold sm:text-4xl">Офферы</h1>
+        <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">Офферы</h1>
         <p className="mt-1 text-base leading-6 text-gray-500">Выберите ресторан для управления офферами</p>
       </div>
 

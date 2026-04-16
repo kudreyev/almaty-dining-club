@@ -95,7 +95,7 @@ export default async function AdminRestaurantEditPage({ params, searchParams }: 
   return (
     <div className="mx-auto max-w-2xl px-5 py-8">
       <div className="mb-6 flex items-center justify-between gap-3">
-        <h1 className="text-3xl font-bold sm:text-4xl">Редактировать</h1>
+        <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">Редактировать</h1>
         <div className="flex gap-2">
           <Button href="/admin/restaurants" variant="ghost" size="sm">← Назад</Button>
         </div>
@@ -160,7 +160,7 @@ export default async function AdminRestaurantEditPage({ params, searchParams }: 
 
       <Card className="mt-6 space-y-4">
         <div>
-          <h2 className="text-xl font-bold sm:text-2xl">Фотографии</h2>
+          <h2 className="text-lg font-semibold sm:text-xl">Фотографии</h2>
           <p className="mt-1 text-base text-gray-500">Загрузка до 10 изображений за раз.</p>
         </div>
 

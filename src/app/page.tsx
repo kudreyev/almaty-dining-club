@@ -248,18 +248,18 @@ export default async function HomePage({ searchParams }: PageProps) {
   return (
     <div className="mx-auto max-w-6xl px-5 py-8 md:py-12">
       {/* HERO */}
-      <section className="relative -mx-5 mb-6 md:mx-0 md:mb-8">
-        <div className="bg-gradient-to-b from-stone-400/[0.07] via-orange-50/[0.025] to-background px-5 py-8 md:rounded-3xl md:px-8 md:py-10">
+      <section className="relative -mx-5 mb-8 md:mx-0 md:mb-10">
+        <div className="bg-gradient-to-b from-stone-400/[0.07] via-orange-50/[0.025] to-background px-5 py-10 md:rounded-3xl md:px-8 md:py-12">
           <p className="text-sm font-semibold uppercase tracking-widest text-gray-400">
             Алматы
           </p>
-          <h1 className="mt-3 max-w-3xl text-3xl font-semibold tracking-tight text-gray-950 leading-tight sm:text-4xl sm:font-bold">
+          <h1 className="mt-3 max-w-3xl text-3xl font-semibold leading-tight tracking-tight text-gray-950 sm:text-4xl">
             2за1 и подарки в ресторанах по&nbsp;подписке
           </h1>
           <p className="mt-4 max-w-xl text-base leading-6 text-gray-500">
             Выбирай заведение, показывай код персоналу. Без купонов и распечаток.
           </p>
-          <p className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-base leading-6 text-gray-600">
+          <p className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-1 text-base leading-6 text-gray-600">
             <span>
               <span className="font-semibold text-gray-900">{totalVenues}</span>
               {' '}

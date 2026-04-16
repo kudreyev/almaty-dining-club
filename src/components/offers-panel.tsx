@@ -43,7 +43,7 @@ export function OffersPanel({ offers, restaurantId, hasSubscription }: OffersPan
 
       <div className="flex flex-col gap-4">
         {visibleOffers.length === 0 ? (
-          <div className="rounded-xl bg-gray-50 px-4 py-6 text-center text-base text-gray-400">
+          <div className="rounded-2xl bg-gray-50 px-4 py-8 text-center text-base text-gray-400">
             Пока нет активных офферов
           </div>
         ) : (
@@ -51,22 +51,22 @@ export function OffersPanel({ offers, restaurantId, hasSubscription }: OffersPan
             const benefitLabel = formatEstimatedValue(offer.estimated_value)
             const cooldownLabel = formatOfferCooldownText(offer.cooldown_days)
             return (
-            <div key={offer.id} className="rounded-xl border border-gray-100 bg-white p-4">
-              <h3 className="text-lg font-semibold leading-6 text-gray-900 sm:text-xl">
+            <div key={offer.id} className="rounded-2xl border border-gray-100 bg-white p-4 sm:p-5">
+              <h3 className="text-base font-semibold leading-6 text-gray-900 sm:text-lg">
                 {formatOfferHeadline(offer.offer_type, offer.offer_title)}
               </h3>
 
-              <div className="mt-2 flex min-w-0 flex-nowrap items-center gap-1 sm:gap-2">
+              <div className="mt-2.5 flex min-w-0 flex-nowrap items-center gap-1.5 sm:gap-2">
                 {benefitLabel ? (
                   <span
-                    className="inline-flex shrink-0 whitespace-nowrap rounded-full bg-gray-100 px-2 py-1 text-xs font-medium text-gray-800 sm:px-3 sm:text-sm"
+                    className="inline-flex shrink-0 whitespace-nowrap rounded-full bg-gray-100 px-3 py-1 text-sm font-medium text-gray-800"
                     title={benefitLabel}
                   >
                     {benefitLabel}
                   </span>
                 ) : null}
                 <span
-                  className={`inline-flex whitespace-nowrap rounded-full bg-gray-100 px-2 py-1 text-xs font-medium text-gray-800 sm:px-3 sm:text-sm ${
+                  className={`inline-flex whitespace-nowrap rounded-full bg-gray-100 px-3 py-1 text-sm font-medium text-gray-800 ${
                     benefitLabel ? 'min-w-0 flex-1' : 'shrink-0'
                   }`}
                   title={cooldownLabel}
@@ -93,7 +93,7 @@ export function OffersPanel({ offers, restaurantId, hasSubscription }: OffersPan
                 <a
                   href={`/app/redeem/${restaurantId}/${offer.id}`}
                   onClick={handleActivateClick}
-                  className="mt-4 flex w-full items-center justify-center rounded-xl bg-accent px-5 py-2.5 text-sm font-medium text-white transition-all duration-150 hover:bg-accent-dark active:scale-[0.98]"
+                  className="mt-4 flex w-full items-center justify-center rounded-2xl bg-accent px-5 py-3 text-base font-medium text-white transition-all duration-150 hover:bg-accent-dark active:scale-[0.98]"
                 >
                   Получить
                 </a>
@@ -108,7 +108,7 @@ export function OffersPanel({ offers, restaurantId, hasSubscription }: OffersPan
       </div>
 
       {hasSubscription ? (
-        <div className="rounded-xl bg-emerald-50 px-4 py-3 text-center text-sm font-medium text-emerald-700">
+        <div className="rounded-2xl bg-emerald-50 px-4 py-3 text-center text-sm font-medium text-emerald-700">
           Подписка активна
         </div>
       ) : null}

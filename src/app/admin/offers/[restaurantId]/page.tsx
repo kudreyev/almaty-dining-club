@@ -30,7 +30,7 @@ export default async function AdminOffersForRestaurantPage({ params }: PageProps
           <Link href="/admin/offers" className="text-sm text-gray-400 transition-colors hover:text-black">
             ← Все рестораны
           </Link>
-          <h1 className="mt-1 text-3xl font-bold sm:text-4xl">{restaurant?.restaurant_name}</h1>
+          <h1 className="mt-1 text-2xl font-semibold tracking-tight sm:text-3xl">{restaurant?.restaurant_name}</h1>
           <p className="text-base text-gray-500">Офферы</p>
         </div>
         <Button href={`/admin/offers/${restaurantId}/new`} size="sm">

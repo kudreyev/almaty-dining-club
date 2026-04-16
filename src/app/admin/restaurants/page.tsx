@@ -17,7 +17,7 @@ export default async function AdminRestaurantsPage() {
     <div className="mx-auto max-w-4xl px-5 py-8">
       <div className="mb-6 flex items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold sm:text-4xl">Заведения</h1>
+          <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">Заведения</h1>
           <p className="mt-1 text-base leading-6 text-gray-500">Управление ресторанами</p>
         </div>
         <Button href="/admin/restaurants/new" size="sm">

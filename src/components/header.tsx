@@ -63,7 +63,7 @@ export async function Header() {
                 <Link
                   key={l.href}
                   href={l.href}
-                  className="rounded-lg px-3 py-2 text-xs font-medium text-gray-500 transition-colors hover:bg-accent-soft hover:text-accent"
+                  className="rounded-lg px-3 py-2 text-sm font-medium text-gray-500 transition-colors hover:bg-accent-soft hover:text-accent"
                 >
                   {l.label}
                 </Link>

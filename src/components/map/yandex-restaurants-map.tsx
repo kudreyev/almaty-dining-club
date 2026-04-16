@@ -238,15 +238,22 @@ export function YandexRestaurantsMap({ places }: { places: MapPlace[] }) {
   }
 
   return (
-    <div className="relative h-full w-full">
-      <div ref={containerRef} className="h-full w-full rounded-2xl" />
+    <div className="relative h-full w-full overflow-hidden">
+      {/* 
+        На мобилке слегка "вытягиваем" сам canvas карты вниз и прячем лишнее через overflow-hidden,
+        чтобы встроенный нижний брендинг Яндекс.Карт уходил за пределы viewport карты.
+      */}
+      <div
+        ref={containerRef}
+        className="absolute inset-x-0 top-0 bottom-[-56px] rounded-2xl sm:bottom-0"
+      />
       {safePlaces.length === 0 ? (
-        <div className="pointer-events-none absolute left-4 top-4 rounded-xl border border-gray-200 bg-white/95 px-3 py-2 text-sm text-gray-700 shadow-sm backdrop-blur">
+        <div className="pointer-events-none absolute left-4 top-4 z-10 rounded-xl border border-gray-200 bg-white/95 px-3 py-2 text-sm text-gray-700 shadow-sm backdrop-blur">
           Нет координат у заведений — добавьте lat/lng в админке, пока карта центрируется на Алматы.
         </div>
       ) : null}
       {process.env.NODE_ENV !== 'production' ? (
-        <div className="pointer-events-none absolute bottom-4 left-4 rounded-xl border border-gray-200 bg-white/90 px-3 py-2 text-xs text-gray-600 shadow-sm backdrop-blur">
+        <div className="pointer-events-none absolute bottom-20 left-4 z-10 rounded-xl border border-gray-200 bg-white/90 px-3 py-2 text-xs text-gray-600 shadow-sm backdrop-blur sm:bottom-4">
           Всего: {places.length} · с координатами: {safePlaces.length}
         </div>
       ) : null}

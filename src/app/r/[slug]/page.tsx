@@ -2,6 +2,7 @@ import { notFound } from 'next/navigation'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { buildWhatsAppUrl } from '@/lib/kz-phone'
 import { getCurrentUserSubscription, isSubscriptionCurrentlyActive } from '@/lib/subscription'
+import { AddressWithDistance } from '@/components/address-with-distance'
 import { OpeningHoursDropdown } from '@/components/opening-hours-dropdown'
 import { ShareButton } from '@/components/share-button'
 import { RestaurantPhotoGallery } from '@/components/restaurant-photo-gallery'
@@ -144,24 +145,26 @@ export default async function RestaurantPage({ params }: PageProps) {
         {/* INFO */}
         <div className="order-2 lg:col-start-1 lg:row-start-2">
           <Card>
-            <div className="flex items-start justify-between gap-3">
-              <div className="flex flex-wrap gap-1.5">
-                {cuisines.map((c) => (
-                  <Badge key={c}>{c}</Badge>
-                ))}
-              </div>
+            <div className="flex flex-wrap gap-1.5">
+              {cuisines.map((c) => (
+                <Badge key={c}>{c}</Badge>
+              ))}
+            </div>
+
+            <div className="mt-4 flex items-start justify-between gap-3">
+              <h1 className="text-2xl font-bold tracking-tight text-gray-950 sm:text-3xl">
+                {restaurant.restaurant_name}
+              </h1>
               <ShareButton title={restaurant.restaurant_name} text={`${restaurant.restaurant_name} — смотри на KudaPass`} />
             </div>
 
-            <h1 className="mt-4 text-2xl font-bold tracking-tight text-gray-950 sm:text-3xl">
-              {restaurant.restaurant_name}
-            </h1>
-
             <OpeningHoursDropdown status={openStatus} weekSchedule={hoursForWeek} />
 
-            {restaurant.address ? (
-              <p className="mt-3 text-sm leading-6 text-gray-500">{restaurant.address}</p>
-            ) : null}
+            <AddressWithDistance
+              address={restaurant.address}
+              restaurantLat={primaryLocation?.lat ?? null}
+              restaurantLng={primaryLocation?.lng ?? null}
+            />
           </Card>
         </div>
 

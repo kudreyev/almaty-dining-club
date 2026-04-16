@@ -21,3 +21,11 @@ export function haversineDistanceKm(
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
   return EARTH_RADIUS_KM * c
 }
+
+export function formatDistance(distanceKm: number): string {
+  const meters = distanceKm * 1000
+  if (meters < 1000) {
+    return `в ${Math.round(meters / 10) * 10} м`
+  }
+  return `в ${distanceKm.toFixed(1)} км`
+}

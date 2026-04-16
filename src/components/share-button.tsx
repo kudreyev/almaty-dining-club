@@ -38,14 +38,9 @@ export function ShareButton({ title, text, url }: ShareButtonProps) {
       type="button"
       onClick={handleShare}
       aria-label="Поделиться"
-      className="group relative flex h-10 w-10 items-center justify-center rounded-full border border-gray-200 bg-white text-gray-500 transition-all duration-150 hover:border-gray-300 hover:bg-gray-50 hover:text-gray-700 active:scale-95"
+      className="group relative flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-gray-400 transition-colors duration-150 hover:bg-gray-100 hover:text-gray-600 active:scale-95"
     >
-      <svg
-        viewBox="0 0 24 24"
-        fill="none"
-        className="h-[18px] w-[18px]"
-        aria-hidden="true"
-      >
+      <svg viewBox="0 0 24 24" fill="none" className="h-[18px] w-[18px]" aria-hidden="true">
         <path
           d="M21 3L14.5 21l-3.22-8.28L3 9.5 21 3z"
           stroke="currentColor"

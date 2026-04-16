@@ -37,97 +37,81 @@ export function OffersPanel({ offers, restaurantId, hasSubscription }: OffersPan
 
   const handleClosePaywall = useCallback(() => setShowPaywall(false), [])
 
-  const hasOffers = visibleOffers.length > 0
-
   return (
     <>
       {showPaywall ? <PaywallModal onClose={handleClosePaywall} /> : null}
 
-      <div className="rounded-2xl border border-gray-200 bg-gradient-to-b from-gray-950 to-gray-900 p-5 shadow-[0_2px_8px_rgba(0,0,0,0.08),0_12px_32px_-8px_rgba(0,0,0,0.16)] sm:p-6">
-        <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-lg font-bold tracking-tight text-white sm:text-xl">Предложения</h2>
-          {hasOffers ? (
-            <span className="rounded-full bg-white/15 px-3 py-1 text-xs font-medium text-white/80">
-              {offers.length} {offers.length === 1 ? 'оффер' : offers.length < 5 ? 'оффера' : 'офферов'}
-            </span>
-          ) : null}
-        </div>
-
-        <div className="flex flex-col gap-3">
-          {!hasOffers ? (
-            <div className="rounded-xl bg-white/10 px-4 py-6 text-center text-base text-white/50">
-              Пока нет активных офферов
-            </div>
-          ) : (
-            visibleOffers.map((offer) => {
-              const benefitLabel = formatEstimatedValue(offer.estimated_value)
-              const cooldownLabel = formatOfferCooldownText(offer.cooldown_days)
-              return (
-                <div
-                  key={offer.id}
-                  className="rounded-2xl border border-white/10 bg-white p-5 shadow-[0_1px_3px_rgba(0,0,0,0.04),0_6px_16px_-4px_rgba(0,0,0,0.1)]"
-                >
-                  <h3 className="text-lg font-bold leading-6 text-gray-950 sm:text-xl">
-                    {formatOfferHeadline(offer.offer_type, offer.offer_title)}
-                  </h3>
-
-                  <div className="mt-2.5 flex min-w-0 flex-nowrap items-center gap-1.5 sm:gap-2">
-                    {benefitLabel ? (
-                      <span
-                        className="inline-flex shrink-0 whitespace-nowrap rounded-full bg-gray-950 px-2.5 py-1 text-xs font-semibold text-white sm:px-3 sm:text-sm"
-                        title={benefitLabel}
-                      >
-                        {benefitLabel}
-                      </span>
-                    ) : null}
-                    <span
-                      className={`inline-flex whitespace-nowrap rounded-full bg-gray-100 px-2.5 py-1 text-xs font-medium text-gray-700 sm:px-3 sm:text-sm ${
-                        benefitLabel ? 'min-w-0 flex-1' : 'shrink-0'
-                      }`}
-                      title={cooldownLabel}
-                    >
-                      <span className={benefitLabel ? 'block truncate' : 'block'}>
-                        {cooldownLabel}
-                      </span>
-                    </span>
-                  </div>
-
-                  <p className="mt-3 text-sm leading-relaxed text-gray-500 sm:text-base">
-                    {offer.offer_terms_short}
-                  </p>
-
-                  {hasSubscription ? (
-                    <Button
-                      href={`/app/redeem/${restaurantId}/${offer.id}`}
-                      size="md"
-                      className="mt-5 w-full"
-                    >
-                      Получить
-                    </Button>
-                  ) : (
-                    <a
-                      href={`/app/redeem/${restaurantId}/${offer.id}`}
-                      onClick={handleActivateClick}
-                      className="mt-5 flex w-full items-center justify-center rounded-xl bg-gray-950 px-5 py-3 text-sm font-semibold text-white transition-all duration-150 hover:bg-black active:scale-[0.98]"
-                    >
-                      Получить
-                    </a>
-                  )}
-                </div>
-              )
-            })
-          )}
-          {hiddenOffersCount > 0 ? (
-            <p className="text-center text-sm text-white/50">и ещё {hiddenOffersCount}</p>
-          ) : null}
-        </div>
-
-        {hasSubscription ? (
-          <div className="mt-4 rounded-xl bg-emerald-400/15 px-4 py-3 text-center text-sm font-medium text-emerald-300">
-            Подписка активна
+      <div className="flex flex-col gap-4">
+        {visibleOffers.length === 0 ? (
+          <div className="rounded-xl bg-gray-50 px-4 py-6 text-center text-base text-gray-400">
+            Пока нет активных офферов
           </div>
+        ) : (
+          visibleOffers.map((offer) => {
+            const benefitLabel = formatEstimatedValue(offer.estimated_value)
+            const cooldownLabel = formatOfferCooldownText(offer.cooldown_days)
+            return (
+            <div key={offer.id} className="rounded-xl border border-gray-100 bg-white p-4">
+              <h3 className="text-lg font-semibold leading-6 text-gray-900 sm:text-xl">
+                {formatOfferHeadline(offer.offer_type, offer.offer_title)}
+              </h3>
+
+              <div className="mt-2 flex min-w-0 flex-nowrap items-center gap-1 sm:gap-2">
+                {benefitLabel ? (
+                  <span
+                    className="inline-flex shrink-0 whitespace-nowrap rounded-full bg-gray-100 px-2 py-1 text-xs font-medium text-gray-800 sm:px-3 sm:text-sm"
+                    title={benefitLabel}
+                  >
+                    {benefitLabel}
+                  </span>
+                ) : null}
+                <span
+                  className={`inline-flex whitespace-nowrap rounded-full bg-gray-100 px-2 py-1 text-xs font-medium text-gray-800 sm:px-3 sm:text-sm ${
+                    benefitLabel ? 'min-w-0 flex-1' : 'shrink-0'
+                  }`}
+                  title={cooldownLabel}
+                >
+                  <span className={benefitLabel ? 'block truncate' : 'block'}>
+                    {cooldownLabel}
+                  </span>
+                </span>
+              </div>
+
+              <p className="mt-3 text-base leading-6 text-gray-600">
+                {offer.offer_terms_short}
+              </p>
+
+              {hasSubscription ? (
+                <Button
+                  href={`/app/redeem/${restaurantId}/${offer.id}`}
+                  size="md"
+                  className="mt-4 w-full"
+                >
+                  Получить
+                </Button>
+              ) : (
+                <a
+                  href={`/app/redeem/${restaurantId}/${offer.id}`}
+                  onClick={handleActivateClick}
+                  className="mt-4 flex w-full items-center justify-center rounded-xl bg-accent px-5 py-2.5 text-sm font-medium text-white transition-all duration-150 hover:bg-accent-dark active:scale-[0.98]"
+                >
+                  Получить
+                </a>
+              )}
+            </div>
+            )
+          })
+        )}
+        {hiddenOffersCount > 0 ? (
+          <p className="text-center text-sm text-gray-400">и ещё {hiddenOffersCount}</p>
         ) : null}
       </div>
+
+      {hasSubscription ? (
+        <div className="rounded-xl bg-emerald-50 px-4 py-3 text-center text-sm font-medium text-emerald-700">
+          Подписка активна
+        </div>
+      ) : null}
     </>
   )
 }

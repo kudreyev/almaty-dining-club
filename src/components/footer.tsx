@@ -1,8 +1,14 @@
+'use client'
+
 import Link from 'next/link'
+import { usePathname } from 'next/navigation'
 
 export function Footer() {
+  const pathname = usePathname()
+  const hideOnMobile = pathname === '/map'
+
   return (
-    <footer className="border-t border-gray-200/80 bg-white">
+    <footer className={`border-t border-gray-200/80 bg-white ${hideOnMobile ? 'hidden sm:block' : ''}`}>
       <div className="mx-auto max-w-6xl px-5 py-10">
         <div className="grid gap-8 sm:grid-cols-3">
           <div>

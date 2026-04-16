@@ -1,6 +1,7 @@
 import { createSupabasePublicClient } from '@/lib/supabase/public'
 import { Button } from '@/components/ui/button'
 import { RestaurantListClient } from '@/components/restaurant-list-client'
+import { HomeMobileControls } from '@/components/home/home-mobile-controls'
 import { DEFAULT_TZ, computeOpenStatus, type RestaurantHour } from '@/lib/opening-hours'
 
 export const dynamic = 'force-dynamic'
@@ -152,17 +153,24 @@ export default async function HomePage({ searchParams }: PageProps) {
   ).sort((a, b) => a.localeCompare(b, 'ru'))
 
   const filteredRestaurants = restaurantsWithStatus.filter((r) => {
+    const cuisinesFilter = cuisine === 'all'
+      ? []
+      : cuisine.split(',').map((x) => x.trim()).filter(Boolean)
+    const offersFilter = offer === 'all'
+      ? []
+      : offer.split(',').map((x) => x.trim()).filter(Boolean)
+
     const cuisineOk =
-      cuisine === 'all'
+      cuisinesFilter.length === 0
         ? true
         : [r.cuisine, r.cuisine_2, r.cuisine_3]
             .filter(Boolean)
-            .includes(cuisine)
+            .some((c) => cuisinesFilter.includes(c as string))
 
     const offerOk =
-      offer === 'all'
+      offersFilter.length === 0
         ? true
-        : r.offers.some((o) => o.offer_type === offer)
+        : r.offers.some((o) => offersFilter.includes(o.offer_type))
 
     const openNowOk = !openNow || r.openStatus.isOpen
 
@@ -246,7 +254,7 @@ export default async function HomePage({ searchParams }: PageProps) {
   ]
 
   return (
-    <div className="mx-auto max-w-6xl px-5 py-8 md:py-12">
+    <div className="mx-auto max-w-6xl px-5 py-8 pb-24 md:py-12 md:pb-12">
       {/* HERO */}
       <section className="relative -mx-5 mb-8 md:mx-0 md:mb-10">
         <div className="bg-gradient-to-b from-stone-400/[0.07] via-orange-50/[0.025] to-background px-5 py-10 md:rounded-3xl md:px-8 md:py-12">
@@ -288,6 +296,8 @@ export default async function HomePage({ searchParams }: PageProps) {
       </section>
 
       <RestaurantListClient restaurants={filteredRestaurants} quickChips={quickChips} />
+
+      <HomeMobileControls cuisineOptions={cuisines} applyCount={filteredRestaurants.length} />
     </div>
   )
 }

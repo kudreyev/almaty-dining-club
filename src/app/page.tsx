@@ -38,6 +38,8 @@ type Restaurant = {
 
 type PageProps = {
   searchParams: Promise<{
+    open?: string
+    type?: string
     cuisine?: string
     offer?: string
     openNow?: string
@@ -71,8 +73,16 @@ function ruCountWord(n: number, forms: [one: string, few: string, many: string])
 }
 
 export default async function HomePage({ searchParams }: PageProps) {
-  const { cuisine = 'all', offer = 'all', openNow: openNowRaw = '0' } = await searchParams
-  const openNow = openNowRaw === '1'
+  const {
+    cuisine = 'all',
+    type,
+    offer: offerLegacy,
+    open,
+    openNow: openNowLegacy,
+  } = await searchParams
+
+  const offer = type ?? offerLegacy ?? 'all'
+  const openNow = (open ?? openNowLegacy ?? '0') === '1'
   const supabase = createSupabasePublicClient()
   const now = new Date()
 
@@ -192,8 +202,8 @@ export default async function HomePage({ searchParams }: PageProps) {
       label: 'Открыто сейчас',
       href: homeQuery({
         cuisine,
-        offer,
-        openNow: openNow ? '' : '1',
+        type: offer,
+        open: openNow ? '' : '1',
       }),
       isActive: openNow,
     },
@@ -201,8 +211,8 @@ export default async function HomePage({ searchParams }: PageProps) {
       label: '2за1',
       href: homeQuery({
         cuisine,
-        offer: offer === '2for1' ? '' : '2for1',
-        openNow: openNow ? '1' : '',
+        type: offer === '2for1' ? '' : '2for1',
+        open: openNow ? '1' : '',
       }),
       isActive: offer === '2for1',
     },
@@ -210,8 +220,8 @@ export default async function HomePage({ searchParams }: PageProps) {
       label: 'В подарок',
       href: homeQuery({
         cuisine,
-        offer: offer === 'compliment' ? '' : 'compliment',
-        openNow: openNow ? '1' : '',
+        type: offer === 'compliment' ? '' : 'compliment',
+        open: openNow ? '1' : '',
       }),
       isActive: offer === 'compliment',
     },
@@ -219,7 +229,7 @@ export default async function HomePage({ searchParams }: PageProps) {
       ? [
           {
             label: 'Кофе',
-            href: homeQuery({ cuisine: coffeeCuisine, openNow: openNow ? '1' : '' }),
+            href: homeQuery({ cuisine: coffeeCuisine, open: openNow ? '1' : '', type: offer === 'all' ? '' : offer }),
             isActive: cuisine === coffeeCuisine && offer === 'all',
           },
         ]
@@ -228,7 +238,7 @@ export default async function HomePage({ searchParams }: PageProps) {
       ? [
           {
             label: 'Бранч',
-            href: homeQuery({ cuisine: brunchCuisine, openNow: openNow ? '1' : '' }),
+            href: homeQuery({ cuisine: brunchCuisine, open: openNow ? '1' : '', type: offer === 'all' ? '' : offer }),
             isActive: cuisine === brunchCuisine && offer === 'all',
           },
         ]
@@ -237,7 +247,7 @@ export default async function HomePage({ searchParams }: PageProps) {
       ? [
           {
             label: 'Суши',
-            href: homeQuery({ cuisine: sushiCuisine, openNow: openNow ? '1' : '' }),
+            href: homeQuery({ cuisine: sushiCuisine, open: openNow ? '1' : '', type: offer === 'all' ? '' : offer }),
             isActive: cuisine === sushiCuisine && offer === 'all',
           },
         ]
@@ -246,7 +256,7 @@ export default async function HomePage({ searchParams }: PageProps) {
       ? [
           {
             label: 'Веган',
-            href: homeQuery({ cuisine: veganCuisine, openNow: openNow ? '1' : '' }),
+            href: homeQuery({ cuisine: veganCuisine, open: openNow ? '1' : '', type: offer === 'all' ? '' : offer }),
             isActive: cuisine === veganCuisine && offer === 'all',
           },
         ]

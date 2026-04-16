@@ -14,7 +14,7 @@ export function FloatingMapSwitch({
   rightHref: string
 }) {
   return (
-    <div className="pointer-events-none absolute inset-x-0 bottom-4 z-10 flex justify-center px-4 sm:hidden">
+    <div className="pointer-events-none fixed inset-x-0 bottom-4 z-40 flex justify-center px-4 sm:hidden">
       <div className="pointer-events-auto flex items-center gap-2 rounded-3xl border border-gray-200 bg-white/90 p-1 shadow-sm backdrop-blur">
         <button
           type="button"

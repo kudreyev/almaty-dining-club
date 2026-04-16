@@ -22,10 +22,10 @@ function parseCsv(value: string | null | undefined): string[] {
 
 export function parseFiltersFromSearchParams(sp: URLSearchParams): RestaurantFilters {
   const openNow =
-    sp.get('openNow') === '1' ||
-    sp.get('open') === '1'
+    sp.get('open') === '1' ||
+    sp.get('openNow') === '1'
 
-  const offersRaw = sp.get('offer') ?? sp.get('offers') ?? ''
+  const offersRaw = sp.get('type') ?? sp.get('offer') ?? sp.get('offers') ?? ''
   const offers = new Set<OfferType>()
   for (const x of parseCsv(offersRaw)) {
     if (x === '2for1' || x === 'compliment') offers.add(x)
@@ -43,17 +43,18 @@ export function serializeFiltersToSearchParams(
 ): URLSearchParams {
   const sp = new URLSearchParams(base ? base.toString() : '')
 
-  if (filters.openNow) sp.set('openNow', '1')
-  else sp.delete('openNow')
+  if (filters.openNow) sp.set('open', '1')
+  else sp.delete('open')
 
-  if (filters.offers.size > 0) sp.set('offer', Array.from(filters.offers).join(','))
-  else sp.delete('offer')
+  if (filters.offers.size > 0) sp.set('type', Array.from(filters.offers).join(','))
+  else sp.delete('type')
 
   if (filters.cuisines.size > 0) sp.set('cuisine', Array.from(filters.cuisines).join(','))
   else sp.delete('cuisine')
 
   // Back-compat keys cleanup
-  sp.delete('open')
+  sp.delete('openNow')
+  sp.delete('offer')
   sp.delete('offers')
   sp.delete('cuisines')
 

@@ -3,6 +3,7 @@ import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { buildWhatsAppUrl } from '@/lib/kz-phone'
 import { getCurrentUserSubscription, isSubscriptionCurrentlyActive } from '@/lib/subscription'
 import { OpeningHoursDropdown } from '@/components/opening-hours-dropdown'
+import { ShareButton } from '@/components/share-button'
 import { RestaurantPhotoGallery } from '@/components/restaurant-photo-gallery'
 import { RestaurantMapCard } from '@/components/restaurant-map-card'
 import { OffersPanel } from '@/components/offers-panel'
@@ -143,20 +144,23 @@ export default async function RestaurantPage({ params }: PageProps) {
         {/* INFO */}
         <div className="order-2 lg:col-start-1 lg:row-start-2">
           <Card>
-            <div className="flex flex-wrap gap-1.5">
-              {cuisines.map((c) => (
-                <Badge key={c}>{c}</Badge>
-              ))}
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex flex-wrap gap-1.5">
+                {cuisines.map((c) => (
+                  <Badge key={c}>{c}</Badge>
+                ))}
+              </div>
+              <ShareButton title={restaurant.restaurant_name} text={`${restaurant.restaurant_name} — смотри на KudaPass`} />
             </div>
 
-            <h1 className="mt-4 text-3xl font-bold tracking-tight sm:text-4xl">
+            <h1 className="mt-4 text-2xl font-bold tracking-tight text-gray-950 sm:text-3xl">
               {restaurant.restaurant_name}
             </h1>
 
             <OpeningHoursDropdown status={openStatus} weekSchedule={hoursForWeek} />
 
             {restaurant.address ? (
-              <p className="mt-3 text-sm leading-6 text-gray-600 sm:text-base">{restaurant.address}</p>
+              <p className="mt-3 text-sm leading-6 text-gray-500">{restaurant.address}</p>
             ) : null}
           </Card>
         </div>

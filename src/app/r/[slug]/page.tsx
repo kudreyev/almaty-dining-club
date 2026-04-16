@@ -157,20 +157,20 @@ export default async function RestaurantPage({ params }: PageProps) {
             {restaurant.address ? (
               <p className="mt-3 text-sm leading-6 text-gray-600 sm:text-base">{restaurant.address}</p>
             ) : null}
-
-            <RestaurantMapCard
-              addressLine={addressLine}
-              staticMapUrl={staticMapUrl}
-              backupMapUrl={backupMapUrl}
-              twoGisUrl={restaurant.two_gis_url}
-              mapTargetUrl={mapTargetUrl}
-              yandexMapUrl={yandexMapUrl}
-              noCoords={noCoords}
-              instagramUrl={restaurant.instagram_url}
-              whatsappUrl={whatsappUrl}
-              phone={restaurant.phone}
-            />
           </Card>
+
+          <RestaurantMapCard
+            addressLine={addressLine}
+            staticMapUrl={staticMapUrl}
+            backupMapUrl={backupMapUrl}
+            twoGisUrl={restaurant.two_gis_url}
+            mapTargetUrl={mapTargetUrl}
+            yandexMapUrl={yandexMapUrl}
+            noCoords={noCoords}
+            instagramUrl={restaurant.instagram_url}
+            whatsappUrl={whatsappUrl}
+            phone={restaurant.phone}
+          />
         </div>
 
         {/* RIGHT — OFFERS */}

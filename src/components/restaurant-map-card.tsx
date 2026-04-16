@@ -30,7 +30,7 @@ export function RestaurantMapCard({
 }: RestaurantMapCardProps) {
   const [currentMapUrl, setCurrentMapUrl] = useState<string | null>(staticMapUrl)
   const [mapImageFailed, setMapImageFailed] = useState(false)
-  const showImage = Boolean(currentMapUrl) && !mapImageFailed
+  const showImage = !noCoords && Boolean(currentMapUrl) && !mapImageFailed
 
   function handleImageError() {
     if (backupMapUrl && currentMapUrl !== backupMapUrl) {
@@ -44,30 +44,32 @@ export function RestaurantMapCard({
     <div className="mt-6 rounded-3xl border border-gray-200 bg-white p-5">
       <h2 className="text-xl font-bold tracking-tight text-gray-950">Детали</h2>
 
-      <a
-        href={mapTargetUrl}
-        target="_blank"
-        rel="noreferrer"
-        className="mt-4 block h-40 overflow-hidden rounded-2xl border border-gray-200 bg-gray-50 sm:h-48"
-      >
-        {showImage ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={currentMapUrl!}
-            alt={`Карта: ${addressLine}`}
-            className="h-full w-full object-cover"
-            onError={handleImageError}
-          />
-        ) : (
-          <div className="flex h-full w-full items-center justify-center bg-gray-50 px-4 text-center text-sm text-gray-500">
-            {noCoords
-              ? 'Добавьте координаты в админке, чтобы появилась карта'
-              : 'Карта недоступна'}
-          </div>
-        )}
-      </a>
+      {noCoords ? null : (
+        <a
+          href={mapTargetUrl}
+          target="_blank"
+          rel="noreferrer"
+          className="mt-4 block h-40 overflow-hidden rounded-2xl border border-gray-200 bg-gray-50 sm:h-48"
+        >
+          {showImage ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={currentMapUrl!}
+              alt={`Карта: ${addressLine}`}
+              className="h-full w-full object-cover"
+              onError={handleImageError}
+            />
+          ) : (
+            <div className="flex h-full w-full items-center justify-center bg-gray-50 px-4 text-center text-sm text-gray-500">
+              Карта недоступна
+            </div>
+          )}
+        </a>
+      )}
 
-      <div className="mt-3 flex flex-wrap gap-2">
+      <p className="mt-3 text-sm text-gray-600">{addressLine}</p>
+
+      <div className="mt-4 flex flex-wrap gap-2">
         {twoGisUrl ? (
           <Button
             href={twoGisUrl}

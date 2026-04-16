@@ -57,6 +57,7 @@ export function MapScreen({
 
     const askedKey = 'kp:geoAskedAt'
     const locKey = 'kp:userLocation'
+    const nextLocKey = 'kudapass_user_location'
     const askedAt = Number(localStorage.getItem(askedKey) ?? '0')
     const weekMs = 7 * 24 * 60 * 60 * 1000
     if (askedAt && Date.now() - askedAt < weekMs) return
@@ -69,7 +70,9 @@ export function MapScreen({
           lng: pos.coords.longitude,
           ts: Date.now(),
         }
-        localStorage.setItem(locKey, JSON.stringify(payload))
+        const serialized = JSON.stringify(payload)
+        localStorage.setItem(locKey, serialized)
+        localStorage.setItem(nextLocKey, serialized)
       },
       (err) => {
         if (err?.code === 1) {

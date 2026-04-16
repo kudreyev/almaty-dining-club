@@ -1,12 +1,12 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { Badge } from '@/components/ui/badge'
 import { EmptyState } from '@/components/ui/empty-state'
 import { formatOfferHeadline } from '@/lib/offers'
-import { haversineDistanceKm } from '@/lib/distance'
+import { formatDistance, haversineDistanceKm } from '@/lib/distance'
 
 type Offer = {
   offer_type: '2for1' | 'compliment'
@@ -56,6 +56,9 @@ type Props = {
 const GEO_HINT_MAIN =
   'Нужно разрешить геолокацию, чтобы сортировать по близости.'
 const GEO_HINT_DENIED_EXTRA = 'Включите в настройках браузера для kudapass.kz.'
+const USER_LOCATION_STORAGE_KEY = 'kudapass_user_location'
+const LEGACY_USER_LOCATION_STORAGE_KEY = 'kp:userLocation'
+const USER_LOCATION_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000
 
 type GeoRequestResult =
   | { ok: true; lat: number; lng: number }
@@ -96,6 +99,44 @@ function requestUserPosition(): Promise<GeoRequestResult> {
   })
 }
 
+function getStoredUserLocation(): { lat: number; lng: number } | null {
+  if (typeof window === 'undefined') return null
+
+  const raw =
+    window.localStorage.getItem(USER_LOCATION_STORAGE_KEY)
+    ?? window.localStorage.getItem(LEGACY_USER_LOCATION_STORAGE_KEY)
+
+  if (!raw) return null
+
+  try {
+    const parsed = JSON.parse(raw) as { lat?: number; lng?: number; ts?: number }
+    if (
+      typeof parsed.lat !== 'number'
+      || typeof parsed.lng !== 'number'
+      || !Number.isFinite(parsed.lat)
+      || !Number.isFinite(parsed.lng)
+    ) {
+      return null
+    }
+
+    if (typeof parsed.ts === 'number' && Date.now() - parsed.ts > USER_LOCATION_MAX_AGE_MS) {
+      return null
+    }
+
+    return { lat: parsed.lat, lng: parsed.lng }
+  } catch {
+    return null
+  }
+}
+
+function persistUserLocation(lat: number, lng: number) {
+  if (typeof window === 'undefined') return
+
+  const payload = JSON.stringify({ lat, lng, ts: Date.now() })
+  window.localStorage.setItem(USER_LOCATION_STORAGE_KEY, payload)
+  window.localStorage.setItem(LEGACY_USER_LOCATION_STORAGE_KEY, payload)
+}
+
 export function RestaurantListClient({
   restaurants,
   quickChips,
@@ -105,6 +146,14 @@ export function RestaurantListClient({
   const [proximityOn, setProximityOn] = useState(false)
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null)
   const [geoMessage, setGeoMessage] = useState<{ main: string; extra?: string } | null>(null)
+
+  useEffect(() => {
+    const storedLocation = getStoredUserLocation()
+    if (!storedLocation) return
+
+    setUserLocation(storedLocation)
+    setProximityOn(true)
+  }, [])
 
   const sortedRestaurants = useMemo(() => {
     const useProximity = proximityOn && userLocation !== null
@@ -166,6 +215,7 @@ export function RestaurantListClient({
 
     const result = await requestUserPosition()
     if (result.ok) {
+      persistUserLocation(result.lat, result.lng)
       setUserLocation({ lat: result.lat, lng: result.lng })
       setProximityOn(true)
       setGeoMessage(null)
@@ -283,10 +333,6 @@ export function RestaurantListClient({
                         : 'Закрыто')}
                 </p>
 
-                {proximityChipActive && Number.isFinite(distanceKm) ? (
-                  <p className="mt-1 text-sm text-gray-500">{distanceKm.toFixed(1)} км</p>
-                ) : null}
-
                 {r.offers.length > 0 ? (
                   <div className="mt-3 flex flex-wrap items-center gap-1.5">
                     {r.offers.slice(0, 3).map((o, i) => (
@@ -303,7 +349,12 @@ export function RestaurantListClient({
                   </div>
                 ) : null}
 
-                {r.address ? <p className="mt-3 truncate text-sm leading-5 text-gray-500">{r.address}</p> : null}
+                {r.address ? (
+                  <p className="mt-3 min-w-0 truncate text-sm leading-5 text-gray-600">
+                    {r.address}
+                    {proximityChipActive && Number.isFinite(distanceKm) ? ` • ${formatDistance(distanceKm)}` : ''}
+                  </p>
+                ) : null}
               </div>
             </Link>
           ))}

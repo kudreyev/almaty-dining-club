@@ -96,6 +96,16 @@ export default async function MapPage() {
   
   const coordsCount = places.filter((p) => p.lat != null && p.lng != null).length
   const showDevCounts = process.env.NODE_ENV !== 'production'
+  const showSuspiciousCoordsDev =
+    showDevCounts &&
+    places.some((p) => {
+      if (p.lat == null || p.lng == null) return false
+      const lat = p.lat
+      const lng = p.lng
+      const worldBad = Math.abs(lat) > 90 || Math.abs(lng) > 180
+      const almatyBad = !(lat >= 41 && lat <= 46 && lng >= 72 && lng <= 82)
+      return worldBad || almatyBad
+    })
 
   return (
     <div className="mx-auto max-w-6xl px-5 py-6">
@@ -111,6 +121,11 @@ export default async function MapPage() {
           {showDevCounts ? (
             <p className="mt-1 text-xs text-gray-400">
               dev: всего заведений {places.length}, с координатами {coordsCount}
+            </p>
+          ) : null}
+          {showSuspiciousCoordsDev ? (
+            <p className="mt-1 text-xs text-amber-600">
+              dev: есть точки с подозрительными координатами (возможен swap lat/lng)
             </p>
           ) : null}
         </div>

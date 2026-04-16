@@ -44,10 +44,28 @@ declare global {
 
 const SCRIPT_ID = 'yandex-maps-script'
 
-const ALMATY_CENTER_LNG_LAT: [number, number] = [76.889709, 43.238949]
+// Важно: Яндекс.Карты (JS API 2.1) используют порядок координат [lat, lng].
+const ALMATY_CENTER_LAT_LNG: [number, number] = [43.238949, 76.889709]
 const DEFAULT_ZOOM = 12
 const FIT_PADDING = 40
 const MAX_ZOOM = 15
+
+function warnIfSuspiciousCoords(lat: number, lng: number, context: string) {
+  if (process.env.NODE_ENV === 'production') return
+
+  if (Math.abs(lat) > 90 || Math.abs(lng) > 180) {
+    // eslint-disable-next-line no-console
+    console.warn(`[map] suspicious coords (world bounds) ${context}: lat=${lat} lng=${lng}`)
+    return
+  }
+
+  // Алматы: грубая проверка диапазона, чтобы отлавливать swap lat/lng.
+  const looksLikeAlmaty = lat >= 41 && lat <= 46 && lng >= 72 && lng <= 82
+  if (!looksLikeAlmaty) {
+    // eslint-disable-next-line no-console
+    console.warn(`[map] coords out of Almaty range ${context}: lat=${lat} lng=${lng}`)
+  }
+}
 
 function escapeHtml(value: string): string {
   return value
@@ -140,8 +158,8 @@ export function YandexRestaurantsMap({ places }: { places: MapPlace[] }) {
           map = new ymaps.Map(
             containerRef.current,
             {
-              // Важно: Яндекс.Карты ожидают координаты в порядке [lng, lat].
-              center: ALMATY_CENTER_LNG_LAT,
+              // Важно: порядок [lat, lng]
+              center: ALMATY_CENTER_LAT_LNG,
               zoom: DEFAULT_ZOOM,
               controls: ['zoomControl', 'geolocationControl'],
             },
@@ -156,11 +174,13 @@ export function YandexRestaurantsMap({ places }: { places: MapPlace[] }) {
               groupByCoordinates: false,
             })
 
-            // Координаты маркера: [lng, lat]
             const placemarks = safePlaces.map(
-              (place) =>
-                new ymaps.Placemark(
-                  [place.lng as number, place.lat as number],
+              (place) => {
+                const lat = place.lat as number
+                const lng = place.lng as number
+                warnIfSuspiciousCoords(lat, lng, `place=${place.slug}`)
+                return new ymaps.Placemark(
+                  [lat, lng],
                   {
                     balloonContentBody: buildBalloonHtml(place as MapPlace),
                     hintContent: place.name,
@@ -169,6 +189,7 @@ export function YandexRestaurantsMap({ places }: { places: MapPlace[] }) {
                     preset: 'islands#blackCircleDotIcon',
                   }
                 )
+              }
             )
 
             clusterer.add(placemarks)
@@ -185,7 +206,7 @@ export function YandexRestaurantsMap({ places }: { places: MapPlace[] }) {
             }
           } else {
             // Если координат нет — остаёмся на Алматы.
-            map.setCenter?.(ALMATY_CENTER_LNG_LAT, DEFAULT_ZOOM)
+            map.setCenter?.(ALMATY_CENTER_LAT_LNG, DEFAULT_ZOOM)
           }
         })
       })

@@ -65,14 +65,10 @@ export default async function MapPage() {
     .returns<Restaurant[]>()
 
   const now = new Date()
-  const places = (restaurants ?? [])
-    .map((restaurant) => {
+  const places = (restaurants ?? []).map((restaurant) => {
       const primaryLocation = (restaurant.restaurant_locations ?? [])
         .filter((location) => location.is_active)
-        .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0))
-        .find((location) => location.lat != null && location.lng != null)
-
-      if (primaryLocation?.lat == null || primaryLocation?.lng == null) return null
+        .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0))[0]
 
       const openStatus = computeOpenStatus(restaurant.restaurant_hours ?? [], now, DEFAULT_TZ)
       const statusLine = openStatus.isOpen
@@ -91,20 +87,32 @@ export default async function MapPage() {
       return {
         slug: restaurant.slug,
         name: restaurant.restaurant_name,
-        lat: primaryLocation.lat,
-        lng: primaryLocation.lng,
+        lat: primaryLocation?.lat ?? null,
+        lng: primaryLocation?.lng ?? null,
         offerChips,
         statusLine,
       }
     })
-    .filter((item): item is NonNullable<typeof item> => Boolean(item))
+  
+  const coordsCount = places.filter((p) => p.lat != null && p.lng != null).length
+  const showDevCounts = process.env.NODE_ENV !== 'production'
 
   return (
     <div className="mx-auto max-w-6xl px-5 py-6">
       <div className="mb-4 flex items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">Карта заведений</h1>
+          <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">Карта заведений</h1>
           <p className="mt-1 text-sm text-gray-500">Нажмите на маркер, чтобы открыть карточку заведения.</p>
+          {coordsCount === 0 ? (
+            <p className="mt-2 text-sm text-gray-500">
+              Нет координат у заведений — добавьте lat/lng в админке, пока карта центрируется на Алматы.
+            </p>
+          ) : null}
+          {showDevCounts ? (
+            <p className="mt-1 text-xs text-gray-400">
+              dev: всего заведений {places.length}, с координатами {coordsCount}
+            </p>
+          ) : null}
         </div>
         <Link
           href="/"

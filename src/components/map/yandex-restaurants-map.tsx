@@ -5,8 +5,8 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 type MapPlace = {
   slug: string
   name: string
-  lat: number
-  lng: number
+  lat: number | null
+  lng: number | null
   offerChips: string[]
   statusLine: string
 }
@@ -18,11 +18,15 @@ type YMapGeoObjects = {
 type YMapInstance = {
   geoObjects: YMapGeoObjects
   setBounds: (bounds: unknown, options?: unknown) => void
+  setCenter?: (center: [number, number], zoom?: number, options?: unknown) => void
+  setZoom?: (zoom: number, options?: unknown) => void
+  getZoom?: () => number
   destroy: () => void
 }
 
 type YClustererInstance = {
   add: (items: unknown[]) => void
+  getBounds?: () => unknown
 }
 
 type YMapsApi = {
@@ -39,6 +43,11 @@ declare global {
 }
 
 const SCRIPT_ID = 'yandex-maps-script'
+
+const ALMATY_CENTER_LNG_LAT: [number, number] = [76.889709, 43.238949]
+const DEFAULT_ZOOM = 12
+const FIT_PADDING = 40
+const MAX_ZOOM = 15
 
 function escapeHtml(value: string): string {
   return value
@@ -100,12 +109,19 @@ export function YandexRestaurantsMap({ places }: { places: MapPlace[] }) {
   const [error, setError] = useState<string | null>(null)
 
   const safePlaces = useMemo(
-    () => places.filter((place) => Number.isFinite(place.lat) && Number.isFinite(place.lng)),
+    () =>
+      places.filter(
+        (place) =>
+          place.lat != null &&
+          place.lng != null &&
+          Number.isFinite(place.lat) &&
+          Number.isFinite(place.lng)
+      ),
     [places]
   )
 
   useEffect(() => {
-    if (!containerRef.current || safePlaces.length === 0) return
+    if (!containerRef.current) return
     if (!apiKey) {
       setError('Не указан ключ Яндекс.Карт.')
       return
@@ -124,8 +140,9 @@ export function YandexRestaurantsMap({ places }: { places: MapPlace[] }) {
           map = new ymaps.Map(
             containerRef.current,
             {
-              center: [43.238949, 76.889709],
-              zoom: 12,
+              // Важно: Яндекс.Карты ожидают координаты в порядке [lng, lat].
+              center: ALMATY_CENTER_LNG_LAT,
+              zoom: DEFAULT_ZOOM,
               controls: ['zoomControl', 'geolocationControl'],
             },
             {
@@ -133,27 +150,43 @@ export function YandexRestaurantsMap({ places }: { places: MapPlace[] }) {
             }
           )
 
-          const clusterer = new ymaps.Clusterer({
-            preset: 'islands#invertedNightClusterIcons',
-            groupByCoordinates: false,
-          })
+          if (safePlaces.length > 0) {
+            const clusterer = new ymaps.Clusterer({
+              preset: 'islands#invertedNightClusterIcons',
+              groupByCoordinates: false,
+            })
 
-          const placemarks = safePlaces.map((place) => new ymaps.Placemark(
-            [place.lat, place.lng],
-            {
-              balloonContentBody: buildBalloonHtml(place),
-              hintContent: place.name,
-            },
-            {
-              preset: 'islands#blackCircleDotIcon',
+            // Координаты маркера: [lng, lat]
+            const placemarks = safePlaces.map(
+              (place) =>
+                new ymaps.Placemark(
+                  [place.lng as number, place.lat as number],
+                  {
+                    balloonContentBody: buildBalloonHtml(place as MapPlace),
+                    hintContent: place.name,
+                  },
+                  {
+                    preset: 'islands#blackCircleDotIcon',
+                  }
+                )
+            )
+
+            clusterer.add(placemarks)
+            map.geoObjects.add(clusterer)
+
+            // Fit bounds по всем точкам, с паддингом и ограничением по зуму.
+            const bounds = (clusterer as unknown as YClustererInstance).getBounds?.()
+            if (bounds) {
+              map.setBounds(bounds, { checkZoomRange: true, zoomMargin: FIT_PADDING })
+              const currentZoom = map.getZoom?.()
+              if (typeof currentZoom === 'number' && currentZoom > MAX_ZOOM) {
+                map.setZoom?.(MAX_ZOOM)
+              }
             }
-          ))
-
-          clusterer.add(placemarks)
-          map.geoObjects.add(clusterer)
-
-          const bounds = safePlaces.map((place) => [place.lat, place.lng])
-          map.setBounds(bounds, { checkZoomRange: true, zoomMargin: 24 })
+          } else {
+            // Если координат нет — остаёмся на Алматы.
+            map.setCenter?.(ALMATY_CENTER_LNG_LAT, DEFAULT_ZOOM)
+          }
         })
       })
       .catch((loadError: unknown) => {
@@ -175,14 +208,6 @@ export function YandexRestaurantsMap({ places }: { places: MapPlace[] }) {
     )
   }
 
-  if (safePlaces.length === 0) {
-    return (
-      <div className="flex h-full items-center justify-center rounded-2xl border border-dashed border-gray-300 bg-white p-6 text-sm text-gray-500">
-        Пока нет заведений с координатами.
-      </div>
-    )
-  }
-
   if (error) {
     return (
       <div className="flex h-full items-center justify-center rounded-2xl border border-red-200 bg-red-50 p-6 text-sm text-red-700">
@@ -191,5 +216,19 @@ export function YandexRestaurantsMap({ places }: { places: MapPlace[] }) {
     )
   }
 
-  return <div ref={containerRef} className="h-full w-full rounded-2xl" />
+  return (
+    <div className="relative h-full w-full">
+      <div ref={containerRef} className="h-full w-full rounded-2xl" />
+      {safePlaces.length === 0 ? (
+        <div className="pointer-events-none absolute left-4 top-4 rounded-xl border border-gray-200 bg-white/95 px-3 py-2 text-sm text-gray-700 shadow-sm backdrop-blur">
+          Нет координат у заведений — добавьте lat/lng в админке, пока карта центрируется на Алматы.
+        </div>
+      ) : null}
+      {process.env.NODE_ENV !== 'production' ? (
+        <div className="pointer-events-none absolute bottom-4 left-4 rounded-xl border border-gray-200 bg-white/90 px-3 py-2 text-xs text-gray-600 shadow-sm backdrop-blur">
+          Всего: {places.length} · с координатами: {safePlaces.length}
+        </div>
+      ) : null}
+    </div>
+  )
 }

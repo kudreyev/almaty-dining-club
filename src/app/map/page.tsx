@@ -24,6 +24,7 @@ type Restaurant = {
   id: string
   slug: string
   restaurant_name: string
+  address: string | null
   is_active: boolean
   cuisine: string
   cuisine_2: string | null
@@ -42,6 +43,7 @@ export default async function MapPage() {
       id,
       slug,
       restaurant_name,
+      address,
       is_active,
       cuisine,
       cuisine_2,
@@ -87,8 +89,10 @@ export default async function MapPage() {
 
       const offerChips = (restaurant.offers ?? [])
         .filter((offer) => offer.is_active)
-        .slice(0, 2)
+        .slice(0, 3)
         .map((offer) => formatOfferHeadline(offer.offer_type, offer.offer_title))
+
+      const activeOffersCount = (restaurant.offers ?? []).filter((offer) => offer.is_active).length
 
       const offerTypes = Array.from(
         new Set((restaurant.offers ?? []).filter((o) => o.is_active).map((o) => o.offer_type))
@@ -101,9 +105,11 @@ export default async function MapPage() {
       return {
         slug: restaurant.slug,
         name: restaurant.restaurant_name,
+        address: (restaurant.address ?? '').trim(),
         lat: primaryLocation?.lat ?? null,
         lng: primaryLocation?.lng ?? null,
         offerChips,
+        extraOffersCount: Math.max(activeOffersCount - 3, 0),
         offerTypes,
         cuisines,
         isOpen: openStatus.isOpen,

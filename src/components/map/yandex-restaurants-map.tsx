@@ -5,9 +5,11 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 type MapPlace = {
   slug: string
   name: string
+  address?: string
   lat: number | null
   lng: number | null
   offerChips: string[]
+  extraOffersCount?: number
   statusLine: string
 }
 
@@ -80,16 +82,25 @@ function buildBalloonHtml(place: MapPlace): string {
   const chips = place.offerChips
     .map((chip) => `<span style="display:inline-block;border-radius:9999px;background:#111827;color:#ffffff;padding:2px 8px;font-size:12px;line-height:18px;">${escapeHtml(chip)}</span>`)
     .join(' ')
+  const extraOffersText = place.extraOffersCount && place.extraOffersCount > 0
+    ? `<span style="font-size:12px;line-height:18px;color:#6b7280;">ещё ${place.extraOffersCount}</span>`
+    : ''
+  const safeAddress = place.address ? escapeHtml(place.address) : ''
 
   return `
-    <div style="min-width:220px;max-width:260px;padding:4px 2px;font-family:Inter,system-ui,-apple-system,sans-serif;">
+    <a
+      href="/r/${encodeURIComponent(place.slug)}"
+      style="display:block;min-width:220px;max-width:260px;padding:8px;border-radius:14px;font-family:Inter,system-ui,-apple-system,sans-serif;text-decoration:none;color:inherit;cursor:pointer;transition:background-color .15s ease, box-shadow .15s ease;"
+      onmouseover="this.style.backgroundColor='#f9fafb';this.style.boxShadow='0 1px 2px rgba(0,0,0,0.04)'"
+      onmouseout="this.style.backgroundColor='transparent';this.style.boxShadow='none'"
+      onmousedown="this.style.backgroundColor='#f3f4f6'"
+      onmouseup="this.style.backgroundColor='#f9fafb'"
+    >
       <div style="font-size:16px;font-weight:600;color:#111827;">${escapeHtml(place.name)}</div>
-      ${chips ? `<div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap;">${chips}</div>` : ''}
+      ${chips || extraOffersText ? `<div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;">${chips}${extraOffersText}</div>` : ''}
       <div style="margin-top:8px;font-size:13px;color:#4b5563;">${escapeHtml(place.statusLine)}</div>
-      <a href="/r/${encodeURIComponent(place.slug)}" style="margin-top:10px;display:inline-block;border-radius:10px;background:#111827;color:#ffffff;text-decoration:none;padding:8px 12px;font-size:13px;font-weight:500;">
-        Открыть заведение
-      </a>
-    </div>
+      ${safeAddress ? `<div style="margin-top:6px;font-size:13px;color:#4b5563;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${safeAddress}</div>` : ''}
+    </a>
   `
 }
 

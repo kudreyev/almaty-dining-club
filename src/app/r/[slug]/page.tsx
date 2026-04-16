@@ -132,15 +132,16 @@ export default async function RestaurantPage({ params }: PageProps) {
 
   return (
     <div className="mx-auto max-w-6xl px-5 py-8">
-      <div className="grid gap-8 lg:grid-cols-[1.2fr_0.8fr]">
-        {/* LEFT */}
-        <div className="space-y-6">
-          {/* GALLERY */}
+      <div className="flex flex-col gap-6 lg:grid lg:grid-cols-[1.2fr_0.8fr] lg:gap-8">
+        {/* GALLERY */}
+        <div className="order-1 lg:col-start-1 lg:row-start-1">
           <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
             <RestaurantPhotoGallery photoUrls={photoUrls} restaurantName={restaurant.restaurant_name} />
           </div>
+        </div>
 
-          {/* INFO */}
+        {/* INFO */}
+        <div className="order-2 lg:col-start-1 lg:row-start-2">
           <Card>
             <div className="flex flex-wrap gap-1.5">
               {cuisines.map((c) => (
@@ -158,7 +159,19 @@ export default async function RestaurantPage({ params }: PageProps) {
               <p className="mt-3 text-sm leading-6 text-gray-600 sm:text-base">{restaurant.address}</p>
             ) : null}
           </Card>
+        </div>
 
+        {/* RIGHT — OFFERS */}
+        <div className="order-3 lg:col-start-2 lg:row-start-1 lg:row-span-3 lg:sticky lg:top-20">
+          <OffersPanel
+            offers={offers ?? []}
+            restaurantId={restaurant.id}
+            hasSubscription={hasSubscription}
+          />
+        </div>
+
+        {/* DETAILS */}
+        <div className="order-4 lg:col-start-1 lg:row-start-3">
           <RestaurantMapCard
             addressLine={addressLine}
             staticMapUrl={staticMapUrl}
@@ -170,15 +183,6 @@ export default async function RestaurantPage({ params }: PageProps) {
             instagramUrl={restaurant.instagram_url}
             whatsappUrl={whatsappUrl}
             phone={restaurant.phone}
-          />
-        </div>
-
-        {/* RIGHT — OFFERS */}
-        <div className="lg:sticky lg:top-20">
-          <OffersPanel
-            offers={offers ?? []}
-            restaurantId={restaurant.id}
-            hasSubscription={hasSubscription}
           />
         </div>
       </div>

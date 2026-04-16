@@ -23,7 +23,6 @@ type Restaurant = {
   cuisine: string
   cuisine_2: string | null
   cuisine_3: string | null
-  short_description: string
   cover_photo_url?: string | null
 
   offers: Offer[]
@@ -86,7 +85,6 @@ export default async function HomePage({ searchParams }: PageProps) {
       cuisine,  
       cuisine_2,
       cuisine_3,
-      short_description,
       offers (
         offer_type,
         offer_title,

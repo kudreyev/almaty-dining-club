@@ -29,7 +29,6 @@ type RestaurantWithStatus = {
   cuisine: string
   cuisine_2: string | null
   cuisine_3: string | null
-  short_description: string
   cover_photo_url?: string | null
   offers: Offer[]
   openStatus: {
@@ -304,13 +303,7 @@ export function RestaurantListClient({
                   </div>
                 ) : null}
 
-                {r.address ? (
-                  <p className="mt-3 truncate text-base leading-6 text-gray-500">{r.address}</p>
-                ) : (
-                  <p className="mt-3 text-base leading-6 text-gray-500 line-clamp-2">
-                    {r.short_description}
-                  </p>
-                )}
+                {r.address ? <p className="mt-3 truncate text-base leading-6 text-gray-500">{r.address}</p> : null}
               </div>
             </Link>
           ))}

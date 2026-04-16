@@ -152,7 +152,6 @@ export async function createRestaurant(formData: FormData) {
     cuisine: String(formData.get('cuisine') || ''),
     cuisine_2: String(formData.get('cuisine_2') || '') || null,
     cuisine_3: String(formData.get('cuisine_3') || '') || null,
-    short_description: String(formData.get('short_description') || ''),
     is_active: formData.get('is_active') === 'on',
   }
 
@@ -207,7 +206,6 @@ export async function updateRestaurant(formData: FormData) {
     cuisine: String(formData.get('cuisine') || ''),
     cuisine_2: String(formData.get('cuisine_2') || '') || null,
     cuisine_3: String(formData.get('cuisine_3') || '') || null,
-    short_description: String(formData.get('short_description') || ''),
     is_active: formData.get('is_active') === 'on',
   }
 

@@ -27,7 +27,6 @@ type Restaurant = {
   cuisine: string
   cuisine_2: string | null
   cuisine_3: string | null
-  short_description: string
   is_active: boolean
   restaurant_hours?: RestaurantHour[]
 }
@@ -50,7 +49,7 @@ export default async function RestaurantPage({ params }: PageProps) {
     .select(`
       id, restaurant_name, slug, city, address, phone,
       instagram_url, website_url, two_gis_url,
-      cuisine, cuisine_2, cuisine_3, short_description,
+      cuisine, cuisine_2, cuisine_3,
       is_active,
       restaurant_hours ( day_of_week, is_closed, open_time, close_time, close_next_day )
     `)
@@ -147,10 +146,6 @@ export default async function RestaurantPage({ params }: PageProps) {
             <h1 className="mt-4 text-3xl font-bold tracking-tight sm:text-4xl">
               {restaurant.restaurant_name}
             </h1>
-
-            <p className="mt-3 text-base leading-6 text-gray-600">
-              {restaurant.short_description}
-            </p>
 
             <OpeningHoursDropdown status={openStatus} weekSchedule={hoursForWeek} />
 

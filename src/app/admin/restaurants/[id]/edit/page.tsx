@@ -28,6 +28,20 @@ type RestaurantPhoto = {
   sort_order: number
 }
 
+type RestaurantRecord = {
+  id: string
+  restaurant_name: string
+  slug: string
+  address: string
+  cuisine: string
+  cuisine_2: string | null
+  cuisine_3: string | null
+  instagram_url: string | null
+  two_gis_url: string | null
+  phone: string | null
+  is_active: boolean
+}
+
 export default async function AdminRestaurantEditPage({ params, searchParams }: PageProps) {
   const { id } = await params
   const { photoOk, photoError } = await searchParams
@@ -36,9 +50,21 @@ export default async function AdminRestaurantEditPage({ params, searchParams }: 
   const [{ data: r }, { data: restaurantHours }, { data: primaryLocation }, { data: photos }] = await Promise.all([
     supabase
       .from('restaurants')
-      .select('*')
+      .select(`
+        id,
+        restaurant_name,
+        slug,
+        address,
+        cuisine,
+        cuisine_2,
+        cuisine_3,
+        instagram_url,
+        two_gis_url,
+        phone,
+        is_active
+      `)
       .eq('id', id)
-      .single(),
+      .single<RestaurantRecord>(),
     supabase
       .from('restaurant_hours')
       .select('day_of_week, is_closed, open_time, close_time, close_next_day')
@@ -84,7 +110,6 @@ export default async function AdminRestaurantEditPage({ params, searchParams }: 
             <Input name="cuisine_2" label="Кухня 2" defaultValue={r.cuisine_2 ?? ''} placeholder="Опционально" />
             <Input name="cuisine_3" label="Кухня 3" defaultValue={r.cuisine_3 ?? ''} placeholder="Опционально" />
           </div>
-          <Input name="short_description" label="Описание" defaultValue={r.short_description} required />
           <Input name="instagram_url" label="Instagram" defaultValue={r.instagram_url ?? ''} />
           <Input name="two_gis_url" label="2GIS" defaultValue={r.two_gis_url ?? ''} placeholder="Ссылка 2GIS" />
           <div>

@@ -26,7 +26,6 @@ export default async function AdminRestaurantNewPage() {
             <Input name="cuisine_2" label="Кухня 2" placeholder="Опционально" />
             <Input name="cuisine_3" label="Кухня 3" placeholder="Опционально" />
           </div>
-          <Input name="short_description" label="Описание" placeholder="До 120 символов" required />
           <Input name="instagram_url" label="Instagram" placeholder="https://instagram.com/..." />
           <Input name="two_gis_url" label="2GIS" placeholder="Ссылка 2GIS" />
           <div>

@@ -21,7 +21,6 @@ type Restaurant = {
   cuisine: string
   cuisine_2: string | null
   cuisine_3: string | null
-  short_description: string
   cover_photo_url?: string | null
   offers: Offer[]
   restaurant_hours?: RestaurantHour[]
@@ -61,7 +60,6 @@ export default async function AlmatyPage({ searchParams }: PageProps) {
     .select(`
       id, restaurant_name, slug, address,
       cuisine, cuisine_2, cuisine_3,
-      short_description,
       offers ( id, offer_type, offer_title, offer_terms_short, estimated_value, cooldown_days, is_active ),
       restaurant_hours ( day_of_week, is_closed, open_time, close_time, close_next_day ),
       restaurant_locations ( lat, lng, is_active, sort_order )

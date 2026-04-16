@@ -2,7 +2,7 @@ import Link from 'next/link'
 import { createSupabasePublicClient } from '@/lib/supabase/public'
 import { formatOfferHeadline } from '@/lib/offers'
 import { DEFAULT_TZ, computeOpenStatus, type RestaurantHour } from '@/lib/opening-hours'
-import { YandexRestaurantsMap } from '@/components/map/yandex-restaurants-map'
+import { MapScreen } from './map-screen'
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 300
@@ -25,6 +25,9 @@ type Restaurant = {
   slug: string
   restaurant_name: string
   is_active: boolean
+  cuisine: string
+  cuisine_2: string | null
+  cuisine_3: string | null
   offers: Offer[]
   restaurant_hours: RestaurantHour[]
   restaurant_locations: RestaurantLocation[]
@@ -40,6 +43,9 @@ export default async function MapPage() {
       slug,
       restaurant_name,
       is_active,
+      cuisine,
+      cuisine_2,
+      cuisine_3,
       offers (
         offer_type,
         offer_title,
@@ -84,50 +90,38 @@ export default async function MapPage() {
         .slice(0, 2)
         .map((offer) => formatOfferHeadline(offer.offer_type, offer.offer_title))
 
+      const offerTypes = Array.from(
+        new Set((restaurant.offers ?? []).filter((o) => o.is_active).map((o) => o.offer_type))
+      )
+
+      const cuisines = [restaurant.cuisine, restaurant.cuisine_2, restaurant.cuisine_3]
+        .map((x) => (x ?? '').trim())
+        .filter(Boolean)
+
       return {
         slug: restaurant.slug,
         name: restaurant.restaurant_name,
         lat: primaryLocation?.lat ?? null,
         lng: primaryLocation?.lng ?? null,
         offerChips,
+        offerTypes,
+        cuisines,
+        isOpen: openStatus.isOpen,
         statusLine,
       }
     })
   
-  const coordsCount = places.filter((p) => p.lat != null && p.lng != null).length
-  const showDevCounts = process.env.NODE_ENV !== 'production'
-  const showSuspiciousCoordsDev =
-    showDevCounts &&
-    places.some((p) => {
-      if (p.lat == null || p.lng == null) return false
-      const lat = p.lat
-      const lng = p.lng
-      const worldBad = Math.abs(lat) > 90 || Math.abs(lng) > 180
-      const almatyBad = !(lat >= 41 && lat <= 46 && lng >= 72 && lng <= 82)
-      return worldBad || almatyBad
-    })
+  const allCuisineOptions = Array.from(
+    new Set(places.flatMap((p) => p.cuisines).map((x) => x.trim()).filter(Boolean))
+  ).sort((a, b) => a.localeCompare(b, 'ru'))
 
   return (
-    <div className="mx-auto max-w-6xl px-5 py-6">
-      <div className="mb-4 flex items-center justify-between gap-3">
+    <div className="mx-auto flex max-w-6xl flex-col sm:px-5 sm:py-6">
+      {/* Desktop header */}
+      <div className="hidden sm:mb-4 sm:flex sm:items-center sm:justify-between sm:gap-3">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">Карта заведений</h1>
           <p className="mt-1 text-sm text-gray-500">Нажмите на маркер, чтобы открыть карточку заведения.</p>
-          {coordsCount === 0 ? (
-            <p className="mt-2 text-sm text-gray-500">
-              Нет координат у заведений — добавьте lat/lng в админке, пока карта центрируется на Алматы.
-            </p>
-          ) : null}
-          {showDevCounts ? (
-            <p className="mt-1 text-xs text-gray-400">
-              dev: всего заведений {places.length}, с координатами {coordsCount}
-            </p>
-          ) : null}
-          {showSuspiciousCoordsDev ? (
-            <p className="mt-1 text-xs text-amber-600">
-              dev: есть точки с подозрительными координатами (возможен swap lat/lng)
-            </p>
-          ) : null}
         </div>
         <Link
           href="/"
@@ -137,8 +131,9 @@ export default async function MapPage() {
         </Link>
       </div>
 
-      <div className="h-[calc(100vh-10rem)] min-h-[420px] overflow-hidden rounded-2xl border border-gray-200 bg-gray-50">
-        <YandexRestaurantsMap places={places} />
+      {/* Mobile-first full-screen map below site header (h-14) */}
+      <div className="h-[calc(100dvh-3.5rem)] min-h-[420px] overflow-hidden sm:h-[calc(100dvh-10rem)] sm:rounded-2xl sm:border sm:border-gray-200 sm:bg-gray-50">
+        <MapScreen places={places} allCuisineOptions={allCuisineOptions} />
       </div>
     </div>
   )

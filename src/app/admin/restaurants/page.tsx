@@ -6,11 +6,11 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 
 export default async function AdminRestaurantsPage() {
-  const { supabase } = await requireAdmin()
+  const { supabase, user } = await requireAdmin()
 
-  const { data: restaurants } = await supabase
+  const { data: restaurants, error: restaurantsError } = await supabase
     .from('restaurants')
-    .select('id, restaurant_name, slug, district, is_active')
+    .select('id, restaurant_name, slug, address, is_active')
     .order('restaurant_name', { ascending: true })
 
   return (
@@ -25,6 +25,30 @@ export default async function AdminRestaurantsPage() {
         </Button>
       </div>
 
+      {process.env.NODE_ENV !== 'production' ? (
+        <div className="mb-4 rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-600">
+          <p>
+            debug: auth.uid={user.id} | role=admin | client=server-session-anon
+          </p>
+          <p>
+            debug: restaurants_error={restaurantsError ? restaurantsError.message : 'none'}
+          </p>
+        </div>
+      ) : null}
+
+      {restaurantsError ? (
+        <div className="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          Не удалось загрузить заведения: {restaurantsError.message}
+        </div>
+      ) : null}
+
+      {!restaurantsError && (!restaurants || restaurants.length === 0) ? (
+        <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+          Список пуст. Проверьте RLS policy на SELECT для admins и наличие записей в таблице
+          `public.restaurants`.
+        </div>
+      ) : null}
+
       <div className="space-y-3">
         {restaurants?.map((r) => (
           <Card key={r.id} padding="sm" hover>
@@ -36,7 +60,9 @@ export default async function AdminRestaurantsPage() {
                     {listingVisibilityLabel(!!r.is_active)}
                   </Badge>
                 </div>
-                <p className="mt-0.5 truncate text-sm text-gray-400">{r.district} · /{r.slug}</p>
+                <p className="mt-0.5 truncate text-sm text-gray-400">
+                  {(r.address ?? 'Адрес не указан')} · /{r.slug}
+                </p>
               </div>
               <Button href={`/admin/restaurants/${r.id}/edit`} variant="secondary" size="sm">
                 Изменить

@@ -127,7 +127,6 @@ export async function importCsvText(formData: FormData) {
       cuisine: row.cuisine || '',
       cuisine_2: row.cuisine_2 || null,
       cuisine_3: row.cuisine_3 || null,
-      price_level: (row.price_level || 'mid') as 'low' | 'mid' | 'high',
       is_active: parseBoolean(row.is_active, true),
     }
 

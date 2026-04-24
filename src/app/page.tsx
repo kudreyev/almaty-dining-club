@@ -1,5 +1,4 @@
 import { createSupabasePublicClient } from '@/lib/supabase/public'
-import { Button } from '@/components/ui/button'
 import { RestaurantListClient } from '@/components/restaurant-list-client'
 import { HomeMobileControls } from '@/components/home/home-mobile-controls'
 import { DEFAULT_TZ, computeOpenStatus, type RestaurantHour } from '@/lib/opening-hours'
@@ -188,7 +187,11 @@ export default async function HomePage({ searchParams }: PageProps) {
   })
 
   const totalVenues = restaurantsWithStatus.length
-  const totalActiveOffers = restaurantsWithStatus.reduce((sum, r) => sum + r.offers.length, 0)
+  const venuesWord = ruCountWord(totalVenues, ['заведении', 'заведениях', 'заведениях'])
+  const whatsappText = encodeURIComponent(
+    'Здравствуйте! Хочу подписку Kudaclub за 1 990 ₸'
+  )
+  const whatsappHref = `https://wa.me/77066059899?text=${whatsappText}`
 
   const coffeeCuisine = matchCuisine(cuisines, /кофе/, /кафе/, /coffee/)
   const brunchCuisine = matchCuisine(cuisines, /бранч/, /brunch/)
@@ -264,50 +267,138 @@ export default async function HomePage({ searchParams }: PageProps) {
   ]
 
   return (
-    <div className="mx-auto max-w-6xl px-5 py-8 pb-24 md:py-12 md:pb-12">
+    <>
       {/* HERO */}
-      <section className="relative -mx-5 mb-8 md:mx-0 md:mb-10">
-        <div className="bg-gradient-to-b from-stone-400/[0.07] via-orange-50/[0.025] to-background px-5 py-10 md:rounded-3xl md:px-8 md:py-12">
-          <p className="text-sm font-semibold uppercase tracking-widest text-gray-400">
-            Алматы
-          </p>
-          <h1 className="mt-3 max-w-3xl text-3xl font-semibold leading-tight tracking-tight text-gray-950 sm:text-4xl">
-            2за1 и подарки в ресторанах по&nbsp;подписке
+      <section className="px-5">
+        <div className="mx-auto max-w-3xl py-10 text-center md:py-16">
+          <span className="inline-block rounded-full bg-primary-light px-3 py-1 text-xs text-primary-dark">
+            От создателей Kudafest · Алматы
+          </span>
+
+          <h1 className="mt-6 text-3xl font-medium leading-[1.15] tracking-[-0.02em] text-neutral-900 md:text-5xl">
+            Ужин вдвоём
+            <br />
+            по цене <span className="text-primary">одного</span>
           </h1>
-          <p className="mt-4 max-w-xl text-base leading-6 text-gray-500">
-            Выбирай заведение, показывай код персоналу. Без купонов и распечаток.
+
+          <p className="mx-auto mt-5 max-w-[480px] text-sm text-neutral-600 md:text-base">
+            Подписка 1 990 ₸/мес → 2-за-1 и подарки в {totalVenues}{' '}
+            {venuesWord} Алматы. Окупается первым визитом.
           </p>
-          <p className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-1 text-base leading-6 text-gray-600">
-            <span>
-              <span className="font-semibold text-gray-900">{totalVenues}</span>
-              {' '}
-              {ruCountWord(totalVenues, ['заведение', 'заведения', 'заведений'])} в Алматы
-            </span>
-            <span className="hidden text-gray-300 sm:inline" aria-hidden>·</span>
-            <span>
-              <span className="font-semibold text-gray-900">{totalActiveOffers}</span>
-              {' '}
-              {ruCountWord(totalActiveOffers, [
-                'активное предложение',
-                'активных предложения',
-                'активных предложений',
-              ])}
-            </span>
-          </p>
-          <div className="mt-6 flex flex-wrap gap-3">
-            <Button href="/pricing" size="lg">
-              Оформить подписку
-            </Button>
-            <Button href="/pricing" variant="secondary" size="lg">
-              Как это работает
-            </Button>
+
+          <div className="mt-8 flex flex-col items-stretch gap-3 sm:flex-row sm:items-center sm:justify-center">
+            <a
+              href={whatsappHref}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center justify-center rounded-lg bg-primary px-6 py-3.5 text-base font-medium text-white transition-colors hover:bg-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2"
+            >
+              Попробовать за 1 990 ₸
+            </a>
+            <a
+              href="#venues"
+              className="inline-flex items-center justify-center rounded-lg border border-neutral-300 bg-transparent px-6 py-3.5 text-base font-medium text-neutral-900 transition-colors hover:border-neutral-400 hover:bg-neutral-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-300 focus-visible:ring-offset-2"
+            >
+              Смотреть заведения
+            </a>
+          </div>
+
+          <ul className="mt-6 flex flex-col items-center gap-2 text-xs text-neutral-500 sm:flex-row sm:justify-center sm:gap-6">
+            <li className="inline-flex items-center gap-1.5">
+              <CheckIcon />
+              1 визит окупает подписку
+            </li>
+            <li className="inline-flex items-center gap-1.5">
+              <CheckIcon />
+              Отмена в любой момент
+            </li>
+          </ul>
+        </div>
+      </section>
+
+      {/* ЭКОНОМИКА ПОДПИСКИ */}
+      <section className="bg-neutral-50 py-8 md:py-12">
+        <div className="mx-auto max-w-4xl px-5">
+          <div className="rounded-xl bg-primary-light px-5 py-6 md:px-7 md:py-8">
+            <p className="text-xs font-medium uppercase tracking-wide text-primary-dark">
+              Экономика подписки
+            </p>
+            <h2 className="mt-2 text-2xl font-medium leading-tight text-neutral-900">
+              1 подписка = 4 ужина по цене одного
+            </h2>
+            <p className="mt-2 text-sm text-neutral-600">
+              Подписка стоит 1 990 ₸. Одно 2-за-1 экономит в среднем 2 500 ₸.
+              Всё, что дальше — в плюс.
+            </p>
+
+            <div className="mt-6 grid grid-cols-1 gap-3 md:grid-cols-3">
+              <div className="rounded-lg bg-white p-4">
+                <p className="mb-1.5 text-xs font-medium uppercase tracking-wide text-primary-dark">
+                  Без Kudaclub
+                </p>
+                <p className="text-2xl font-medium text-neutral-900">6 000 ₸</p>
+                <p className="mt-1 text-xs text-neutral-600">Ужин на двоих</p>
+              </div>
+
+              <div className="rounded-lg bg-white p-4">
+                <p className="mb-1.5 text-xs font-medium uppercase tracking-wide text-primary-dark">
+                  С Kudaclub
+                </p>
+                <p className="text-2xl font-medium text-success">3 500 ₸</p>
+                <p className="mt-1 text-xs text-neutral-600">
+                  Каждый ужин +2 500 ₸ экономии
+                </p>
+              </div>
+
+              <div className="rounded-lg bg-white p-4">
+                <p className="mb-1.5 text-xs font-medium uppercase tracking-wide text-primary-dark">
+                  За месяц
+                </p>
+                <p className="text-2xl font-medium text-neutral-900">≈ 10 000 ₸</p>
+                <p className="mt-1 text-xs text-neutral-600">
+                  При 4 визитах в месяц
+                </p>
+              </div>
+            </div>
           </div>
         </div>
       </section>
 
-      <RestaurantListClient restaurants={filteredRestaurants} quickChips={quickChips} />
+      {/* СПИСОК ЗАВЕДЕНИЙ (не трогаем, только добавлен якорь #venues) */}
+      <div
+        id="venues"
+        className="mx-auto max-w-6xl px-5 py-8 pb-24 md:py-12 md:pb-12"
+      >
+        <RestaurantListClient
+          restaurants={filteredRestaurants}
+          quickChips={quickChips}
+        />
 
-      <HomeMobileControls cuisineOptions={cuisines} applyCount={filteredRestaurants.length} />
-    </div>
+        <HomeMobileControls
+          cuisineOptions={cuisines}
+          applyCount={filteredRestaurants.length}
+        />
+      </div>
+    </>
+  )
+}
+
+function CheckIcon() {
+  return (
+    <svg
+      width={14}
+      height={14}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={2}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      className="shrink-0"
+    >
+      <circle cx={12} cy={12} r={10} />
+      <path d="m9 12 2 2 4-4" />
+    </svg>
   )
 }

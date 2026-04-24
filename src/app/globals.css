@@ -15,6 +15,13 @@
   --color-accent:      #111111;
   --color-accent-dark: #000000;
   --color-accent-soft: #f3f4f6;
+
+  /* Kudaclub brand tokens (home page) */
+  --color-primary:       #D85A30;
+  --color-primary-hover: #BA4A26;
+  --color-primary-light: #FAECE7;
+  --color-primary-dark:  #712B13;
+  --color-success:       #0F6E56;
 }
 
 body {

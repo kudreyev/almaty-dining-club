@@ -1,6 +1,6 @@
 'use client'
 
-import { ArrowRight, CheckCircle2 } from 'lucide-react'
+import { CheckCircle2 } from 'lucide-react'
 
 const WHATSAPP_HREF = `https://wa.me/77066059899?text=${encodeURIComponent(
   'Здравствуйте! Хочу оформить подписку Kudaclub'
@@ -13,7 +13,7 @@ export function FinalCta() {
   }
 
   return (
-    <section className="mx-auto my-12 max-w-4xl px-4 md:my-16 md:px-6">
+    <section className="mx-auto my-12 max-w-6xl px-4 md:my-16 md:px-6">
       <div className="rounded-md bg-[#1a1a1a] px-8 py-12 text-center md:px-12 md:py-16">
         <h2 className="mb-3 text-[26px] font-medium leading-[1.2] tracking-tight text-white md:text-[32px]">
           Каждый ужин дешевле на <span className="text-[#FF8A5C]">~2 500 ₸</span>
@@ -29,10 +29,9 @@ export function FinalCta() {
           rel="noopener noreferrer"
           onClick={handleCtaClick}
           aria-label="Оформить подписку Kudaclub за 1 990 ₸"
-          className="inline-flex items-center gap-1.5 rounded-md bg-[#D85A30] px-7 py-3.5 text-[15px] font-medium text-white transition-all duration-150 hover:bg-[#BA4A26] focus-visible:outline focus-visible:outline-2 focus-visible:outline-white focus-visible:outline-offset-2"
+          className="inline-flex items-center rounded-md bg-[#D85A30] px-7 py-3.5 text-[15px] font-medium text-white transition-all duration-150 hover:bg-[#BA4A26] focus-visible:outline focus-visible:outline-2 focus-visible:outline-white focus-visible:outline-offset-2"
         >
           Попробовать за 1 990 ₸
-          <ArrowRight size={14} aria-hidden="true" />
         </a>
 
         <ul className="mt-5 flex flex-col items-center justify-center gap-2 text-xs text-white/50 sm:flex-row sm:gap-4">

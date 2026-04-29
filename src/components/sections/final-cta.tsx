@@ -3,7 +3,7 @@
 import { ArrowRight, CheckCircle2 } from 'lucide-react'
 
 const WHATSAPP_HREF = `https://wa.me/77066059899?text=${encodeURIComponent(
-  'Здравствуйте! Хочу оформить подписку Kudaclub за 1 990 ₸'
+  'Здравствуйте! Хочу оформить подписку Kudaclub'
 )}`
 
 export function FinalCta() {
@@ -16,7 +16,7 @@ export function FinalCta() {
     <section className="mx-auto my-12 max-w-4xl px-4 md:my-16 md:px-6">
       <div className="rounded-md bg-[#1a1a1a] px-8 py-12 text-center md:px-12 md:py-16">
         <h2 className="mb-3 text-[26px] font-medium leading-[1.2] tracking-tight text-white md:text-[32px]">
-          Каждый ужин дешевле на <span className="text-[#FF8A5C]">2 500 ₸</span>
+          Каждый ужин дешевле на <span className="text-[#FF8A5C]">~2 500 ₸</span>
         </h2>
 
         <p className="mx-auto mb-7 max-w-[480px] text-sm leading-[1.5] text-white/65 md:text-[15px]">

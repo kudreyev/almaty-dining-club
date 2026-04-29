@@ -29,3 +29,12 @@ export function formatDistance(distanceKm: number): string {
   }
   return `в ${distanceKm.toFixed(1)} км`
 }
+
+/** «1.5 км от вас» / «600 м от вас» — для карточки заведения. */
+export function formatDistanceFromUser(distanceKm: number): string {
+  const meters = distanceKm * 1000
+  if (meters < 1000) {
+    return `${Math.round(meters / 10) * 10} м от вас`
+  }
+  return `${distanceKm.toFixed(1)} км от вас`
+}

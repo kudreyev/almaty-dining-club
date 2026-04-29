@@ -2,12 +2,14 @@ export type OfferType = '2for1' | 'compliment'
 
 export type RestaurantFilters = {
   openNow: boolean
+  nearby: boolean
   offers: Set<OfferType>
   cuisines: Set<string>
 }
 
 export const DEFAULT_FILTERS: RestaurantFilters = {
   openNow: false,
+  nearby: false,
   offers: new Set<OfferType>(),
   cuisines: new Set<string>(),
 }
@@ -21,11 +23,10 @@ function parseCsv(value: string | null | undefined): string[] {
 }
 
 export function parseFiltersFromSearchParams(sp: URLSearchParams): RestaurantFilters {
-  const openNow =
-    sp.get('open') === '1' ||
-    sp.get('openNow') === '1'
+  const openNow = sp.get('open') === '1' || sp.get('openNow') === '1'
+  const nearby = sp.get('nearby') === '1'
 
-  const offersRaw = sp.get('type') ?? sp.get('offer') ?? sp.get('offers') ?? ''
+  const offersRaw = sp.get('offers') ?? sp.get('type') ?? sp.get('offer') ?? ''
   const offers = new Set<OfferType>()
   for (const x of parseCsv(offersRaw)) {
     if (x === '2for1' || x === 'compliment') offers.add(x)
@@ -34,7 +35,7 @@ export function parseFiltersFromSearchParams(sp: URLSearchParams): RestaurantFil
   const cuisinesRaw = sp.get('cuisine') ?? sp.get('cuisines') ?? ''
   const cuisines = new Set(parseCsv(cuisinesRaw))
 
-  return { openNow, offers, cuisines }
+  return { openNow, nearby, offers, cuisines }
 }
 
 export function serializeFiltersToSearchParams(
@@ -46,22 +47,30 @@ export function serializeFiltersToSearchParams(
   if (filters.openNow) sp.set('open', '1')
   else sp.delete('open')
 
-  if (filters.offers.size > 0) sp.set('type', Array.from(filters.offers).join(','))
-  else sp.delete('type')
+  if (filters.nearby) sp.set('nearby', '1')
+  else sp.delete('nearby')
+
+  if (filters.offers.size > 0) sp.set('offers', Array.from(filters.offers).join(','))
+  else sp.delete('offers')
 
   if (filters.cuisines.size > 0) sp.set('cuisine', Array.from(filters.cuisines).join(','))
   else sp.delete('cuisine')
 
-  // Back-compat keys cleanup
+  // Чистим устаревшие ключи.
   sp.delete('openNow')
   sp.delete('offer')
-  sp.delete('offers')
+  sp.delete('type')
   sp.delete('cuisines')
 
   return sp
 }
 
 export function hasAnyFilters(filters: RestaurantFilters): boolean {
-  return filters.openNow || filters.offers.size > 0 || filters.cuisines.size > 0
+  return (
+    filters.openNow
+    || filters.nearby
+    || filters.offers.size > 0
+    || filters.cuisines.size > 0
+  )
 }
 

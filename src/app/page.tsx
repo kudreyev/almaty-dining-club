@@ -1,21 +1,18 @@
 import { createSupabasePublicClient } from '@/lib/supabase/public'
-import { RestaurantListClient } from '@/components/restaurant-list-client'
+import { VenuesSection } from '@/components/home/venues-section'
 import { HomeMobileControls } from '@/components/home/home-mobile-controls'
-import { DEFAULT_TZ, computeOpenStatus, type RestaurantHour } from '@/lib/opening-hours'
+import {
+  DEFAULT_TZ,
+  computeOpenStatus,
+  type RestaurantHour,
+} from '@/lib/opening-hours'
+import { pluralizeRu } from '@/lib/ru-plural'
+import type { Offer, RestaurantWithStatus } from '@/lib/types'
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 300
 
-type Offer = {
-  offer_type: '2for1' | 'compliment'
-  offer_title: string
-  offer_terms_short: string
-  estimated_value?: number | null
-  cooldown_days?: number | null
-  is_active: boolean
-}
-
-type Restaurant = {
+type SupabaseRow = {
   id: string
   restaurant_name: string
   slug: string
@@ -23,8 +20,6 @@ type Restaurant = {
   cuisine: string
   cuisine_2: string | null
   cuisine_3: string | null
-  cover_photo_url?: string | null
-
   offers: Offer[]
   restaurant_hours?: RestaurantHour[]
   restaurant_locations?: {
@@ -35,53 +30,7 @@ type Restaurant = {
   }[]
 }
 
-type PageProps = {
-  searchParams: Promise<{
-    open?: string
-    type?: string
-    cuisine?: string
-    offer?: string
-    openNow?: string
-  }>
-}
-
-function matchCuisine(cuisinesSorted: string[], ...patterns: RegExp[]): string | null {
-  for (const c of cuisinesSorted) {
-    const l = c.toLowerCase()
-    if (patterns.some((re) => re.test(l))) return c
-  }
-  return null
-}
-
-function homeQuery(params: Record<string, string>) {
-  const u = new URLSearchParams()
-  for (const [k, v] of Object.entries(params)) {
-    if (v && v !== 'all') u.set(k, v)
-  }
-  const qs = u.toString()
-  return qs ? `/?${qs}` : '/'
-}
-
-/** Склонение для русских существительных (1, 21… / 2–4, 22–24… / остальные). */
-function ruCountWord(n: number, forms: [one: string, few: string, many: string]) {
-  const mod10 = n % 10
-  const mod100 = n % 100
-  if (mod10 === 1 && mod100 !== 11) return forms[0]
-  if (mod10 >= 2 && mod10 <= 4 && (mod100 < 10 || mod100 >= 20)) return forms[1]
-  return forms[2]
-}
-
-export default async function HomePage({ searchParams }: PageProps) {
-  const {
-    cuisine = 'all',
-    type,
-    offer: offerLegacy,
-    open,
-    openNow: openNowLegacy,
-  } = await searchParams
-
-  const offer = type ?? offerLegacy ?? 'all'
-  const openNow = (open ?? openNowLegacy ?? '0') === '1'
+export default async function HomePage() {
   const supabase = createSupabasePublicClient()
   const now = new Date()
 
@@ -92,7 +41,7 @@ export default async function HomePage({ searchParams }: PageProps) {
       restaurant_name,
       slug,
       address,
-      cuisine,  
+      cuisine,
       cuisine_2,
       cuisine_3,
       offers (
@@ -120,9 +69,9 @@ export default async function HomePage({ searchParams }: PageProps) {
     .eq('city', 'almaty')
     .eq('is_active', true)
     .order('restaurant_name', { ascending: true })
-    .returns<Restaurant[]>()
+    .returns<SupabaseRow[]>()
 
-  const safeRestaurants: Restaurant[] = (restaurants ?? []).map((r) => ({
+  const safeRestaurants: SupabaseRow[] = (restaurants ?? []).map((r) => ({
     ...r,
     offers: (r.offers ?? []).filter((o) => o.is_active),
     restaurant_hours: r.restaurant_hours ?? [],
@@ -146,125 +95,33 @@ export default async function HomePage({ searchParams }: PageProps) {
     }
   }
 
-  const restaurantsWithStatus = safeRestaurants.map((restaurant) => ({
+  const restaurantsWithStatus: RestaurantWithStatus[] = safeRestaurants.map((restaurant) => ({
     ...restaurant,
     cover_photo_url: photoByRestaurantId.get(restaurant.id) ?? null,
     openStatus: computeOpenStatus(restaurant.restaurant_hours ?? [], now, DEFAULT_TZ),
   }))
 
-  const cuisines = Array.from(
-    new Set(
-      safeRestaurants
-        .flatMap((r) => [r.cuisine, r.cuisine_2, r.cuisine_3])
-        .map((x) => (x || '').trim())
-        .filter(Boolean)
-    )
-  ).sort((a, b) => a.localeCompare(b, 'ru'))
-
-  const filteredRestaurants = restaurantsWithStatus.filter((r) => {
-    const cuisinesFilter = cuisine === 'all'
-      ? []
-      : cuisine.split(',').map((x) => x.trim()).filter(Boolean)
-    const offersFilter = offer === 'all'
-      ? []
-      : offer.split(',').map((x) => x.trim()).filter(Boolean)
-
-    const cuisineOk =
-      cuisinesFilter.length === 0
-        ? true
-        : [r.cuisine, r.cuisine_2, r.cuisine_3]
-            .filter(Boolean)
-            .some((c) => cuisinesFilter.includes(c as string))
-
-    const offerOk =
-      offersFilter.length === 0
-        ? true
-        : r.offers.some((o) => offersFilter.includes(o.offer_type))
-
-    const openNowOk = !openNow || r.openStatus.isOpen
-
-    return cuisineOk && offerOk && openNowOk
-  })
+  const cuisineFrequency = new Map<string, number>()
+  for (const r of safeRestaurants) {
+    for (const c of [r.cuisine, r.cuisine_2, r.cuisine_3]) {
+      const trimmed = (c ?? '').trim()
+      if (!trimmed) continue
+      cuisineFrequency.set(trimmed, (cuisineFrequency.get(trimmed) ?? 0) + 1)
+    }
+  }
+  const cuisineOptions = Array.from(cuisineFrequency.entries())
+    .sort((a, b) => {
+      if (b[1] !== a[1]) return b[1] - a[1]
+      return a[0].localeCompare(b[0], 'ru')
+    })
+    .map(([name]) => name)
 
   const totalVenues = restaurantsWithStatus.length
-  const venuesWord = ruCountWord(totalVenues, ['заведении', 'заведениях', 'заведениях'])
+  const venuesWord = pluralizeRu(totalVenues, ['заведении', 'заведениях', 'заведениях'])
   const whatsappText = encodeURIComponent(
     'Здравствуйте! Хочу подписку Kudaclub за 1 990 ₸'
   )
   const whatsappHref = `https://wa.me/77066059899?text=${whatsappText}`
-
-  const coffeeCuisine = matchCuisine(cuisines, /кофе/, /кафе/, /coffee/)
-  const brunchCuisine = matchCuisine(cuisines, /бранч/, /brunch/)
-  const sushiCuisine = matchCuisine(cuisines, /суши/, /sushi/, /японск/)
-  const veganCuisine = matchCuisine(cuisines, /веган/, /vegan/, /растител/, /вегетариан/)
-
-  type QuickChip = { label: string; href: string; isActive: boolean }
-
-  const quickChips: QuickChip[] = [
-    {
-      label: 'Открыто сейчас',
-      href: homeQuery({
-        cuisine,
-        type: offer,
-        open: openNow ? '' : '1',
-      }),
-      isActive: openNow,
-    },
-    {
-      label: '2за1',
-      href: homeQuery({
-        cuisine,
-        type: offer === '2for1' ? '' : '2for1',
-        open: openNow ? '1' : '',
-      }),
-      isActive: offer === '2for1',
-    },
-    {
-      label: 'В подарок',
-      href: homeQuery({
-        cuisine,
-        type: offer === 'compliment' ? '' : 'compliment',
-        open: openNow ? '1' : '',
-      }),
-      isActive: offer === 'compliment',
-    },
-    ...(coffeeCuisine
-      ? [
-          {
-            label: 'Кофе',
-            href: homeQuery({ cuisine: coffeeCuisine, open: openNow ? '1' : '', type: offer === 'all' ? '' : offer }),
-            isActive: cuisine === coffeeCuisine && offer === 'all',
-          },
-        ]
-      : []),
-    ...(brunchCuisine
-      ? [
-          {
-            label: 'Бранч',
-            href: homeQuery({ cuisine: brunchCuisine, open: openNow ? '1' : '', type: offer === 'all' ? '' : offer }),
-            isActive: cuisine === brunchCuisine && offer === 'all',
-          },
-        ]
-      : []),
-    ...(sushiCuisine
-      ? [
-          {
-            label: 'Суши',
-            href: homeQuery({ cuisine: sushiCuisine, open: openNow ? '1' : '', type: offer === 'all' ? '' : offer }),
-            isActive: cuisine === sushiCuisine && offer === 'all',
-          },
-        ]
-      : []),
-    ...(veganCuisine
-      ? [
-          {
-            label: 'Веган',
-            href: homeQuery({ cuisine: veganCuisine, open: openNow ? '1' : '', type: offer === 'all' ? '' : offer }),
-            isActive: cuisine === veganCuisine && offer === 'all',
-          },
-        ]
-      : []),
-  ]
 
   return (
     <>
@@ -364,19 +221,19 @@ export default async function HomePage({ searchParams }: PageProps) {
         </div>
       </section>
 
-      {/* СПИСОК ЗАВЕДЕНИЙ (не трогаем, только добавлен якорь #venues) */}
+      {/* СПИСОК ЗАВЕДЕНИЙ */}
       <div
         id="venues"
         className="mx-auto max-w-6xl px-5 py-8 pb-24 md:py-12 md:pb-12"
       >
-        <RestaurantListClient
-          restaurants={filteredRestaurants}
-          quickChips={quickChips}
+        <VenuesSection
+          restaurants={restaurantsWithStatus}
+          cuisineOptions={cuisineOptions}
         />
 
         <HomeMobileControls
-          cuisineOptions={cuisines}
-          applyCount={filteredRestaurants.length}
+          cuisineOptions={cuisineOptions}
+          applyCount={restaurantsWithStatus.length}
         />
       </div>
     </>

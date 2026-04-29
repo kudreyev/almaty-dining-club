@@ -133,10 +133,16 @@ export function RestaurantFiltersSheet({
               Открыто сейчас
             </FilterChip>
             <FilterChip
+              active={filters.nearby}
+              onClick={() => onChange({ ...filters, nearby: !filters.nearby })}
+            >
+              По близости
+            </FilterChip>
+            <FilterChip
               active={filters.offers.has('2for1')}
               onClick={() => onChange({ ...filters, offers: toggleOffer(filters.offers, '2for1') })}
             >
-              2за1
+              2 за 1
             </FilterChip>
             <FilterChip
               active={filters.offers.has('compliment')}
@@ -174,6 +180,7 @@ export function RestaurantFiltersSheet({
             onClick={() =>
               onChange({
                 openNow: false,
+                nearby: false,
                 offers: new Set(),
                 cuisines: new Set(),
               })

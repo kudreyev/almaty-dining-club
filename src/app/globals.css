@@ -22,6 +22,8 @@
   --color-primary-light: #FAECE7;
   --color-primary-dark:  #712B13;
   --color-success:       #0F6E56;
+  --color-success-light: #E0F0E8;
+  --color-success-dark:  #0F4A38;
 }
 
 body {

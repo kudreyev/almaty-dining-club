@@ -1,19 +1,10 @@
 export const revalidate = 300
 import { createSupabaseServerClient } from '@/lib/supabase/server'
-import { RestaurantListClient } from '@/components/restaurant-list-client'
+import { VenuesSection } from '@/components/home/venues-section'
 import { DEFAULT_TZ, computeOpenStatus, type RestaurantHour } from '@/lib/opening-hours'
+import type { Offer, RestaurantWithStatus } from '@/lib/types'
 
-type Offer = {
-  id: string
-  offer_type: '2for1' | 'compliment'
-  offer_title: string
-  offer_terms_short: string
-  estimated_value?: number | null
-  cooldown_days?: number | null
-  is_active: boolean
-}
-
-type Restaurant = {
+type SupabaseRow = {
   id: string
   restaurant_name: string
   slug: string
@@ -21,7 +12,6 @@ type Restaurant = {
   cuisine: string
   cuisine_2: string | null
   cuisine_3: string | null
-  cover_photo_url?: string | null
   offers: Offer[]
   restaurant_hours?: RestaurantHour[]
   restaurant_locations?: {
@@ -32,26 +22,7 @@ type Restaurant = {
   }[]
 }
 
-type PageProps = {
-  searchParams: Promise<{
-    q?: string
-    offer?: string
-    openNow?: string
-  }>
-}
-
-function almatyQuery(params: Record<string, string>) {
-  const u = new URLSearchParams()
-  for (const [k, v] of Object.entries(params)) {
-    if (v && v !== 'all') u.set(k, v)
-  }
-  const qs = u.toString()
-  return qs ? `/almaty?${qs}` : '/almaty'
-}
-
-export default async function AlmatyPage({ searchParams }: PageProps) {
-  const { q = '', offer = 'all', openNow: openNowRaw = '0' } = await searchParams
-  const openNow = openNowRaw === '1'
+export default async function AlmatyPage() {
   const supabase = await createSupabaseServerClient()
   const now = new Date()
 
@@ -60,7 +31,7 @@ export default async function AlmatyPage({ searchParams }: PageProps) {
     .select(`
       id, restaurant_name, slug, address,
       cuisine, cuisine_2, cuisine_3,
-      offers ( id, offer_type, offer_title, offer_terms_short, estimated_value, cooldown_days, is_active ),
+      offers ( offer_type, offer_title, offer_terms_short, estimated_value, cooldown_days, is_active ),
       restaurant_hours ( day_of_week, is_closed, open_time, close_time, close_next_day ),
       restaurant_locations ( lat, lng, is_active, sort_order )
     `)
@@ -77,8 +48,7 @@ export default async function AlmatyPage({ searchParams }: PageProps) {
     )
   }
 
-  const normalizedQuery = q.trim().toLowerCase()
-  const safeRestaurants = (restaurants as Restaurant[]) ?? []
+  const safeRestaurants = (restaurants as SupabaseRow[]) ?? []
   const photoByRestaurantId = new Map<string, string>()
 
   if (safeRestaurants.length > 0) {
@@ -98,7 +68,7 @@ export default async function AlmatyPage({ searchParams }: PageProps) {
     }
   }
 
-  const restaurantsWithStatus = safeRestaurants.map((restaurant) => ({
+  const restaurantsWithStatus: RestaurantWithStatus[] = safeRestaurants.map((restaurant) => ({
     ...restaurant,
     offers: (restaurant.offers ?? []).filter((item) => item.is_active),
     restaurant_hours: restaurant.restaurant_hours ?? [],
@@ -106,63 +76,26 @@ export default async function AlmatyPage({ searchParams }: PageProps) {
     openStatus: computeOpenStatus(restaurant.restaurant_hours ?? [], now, DEFAULT_TZ),
   }))
 
-  const filteredRestaurants = restaurantsWithStatus.filter((restaurant) => {
-    const matchesQuery =
-      !normalizedQuery ||
-      restaurant.restaurant_name.toLowerCase().includes(normalizedQuery) ||
-      [restaurant.cuisine, restaurant.cuisine_2, restaurant.cuisine_3]
-        .filter(Boolean)
-        .some((c) => c!.toLowerCase().includes(normalizedQuery))
-
-    const matchesOffer =
-      offer === 'all' || restaurant.offers.some((item) => item.offer_type === offer)
-    const matchesOpenNow = !openNow || restaurant.openStatus.isOpen
-
-    return matchesQuery && matchesOffer && matchesOpenNow
-  })
-
-  const quickChips = [
-    {
-      label: 'Открыто сейчас',
-      href: almatyQuery({
-        q,
-        offer,
-        openNow: openNow ? '' : '1',
-      }),
-      isActive: openNow,
-    },
-    {
-      label: '2за1',
-      href: almatyQuery({
-        q,
-        offer: offer === '2for1' ? '' : '2for1',
-        openNow: openNow ? '1' : '',
-      }),
-      isActive: offer === '2for1',
-    },
-    {
-      label: 'В подарок',
-      href: almatyQuery({
-        q,
-        offer: offer === 'compliment' ? '' : 'compliment',
-        openNow: openNow ? '1' : '',
-      }),
-      isActive: offer === 'compliment',
-    },
-  ]
+  const cuisineFrequency = new Map<string, number>()
+  for (const r of safeRestaurants) {
+    for (const c of [r.cuisine, r.cuisine_2, r.cuisine_3]) {
+      const trimmed = (c ?? '').trim()
+      if (!trimmed) continue
+      cuisineFrequency.set(trimmed, (cuisineFrequency.get(trimmed) ?? 0) + 1)
+    }
+  }
+  const cuisineOptions = Array.from(cuisineFrequency.entries())
+    .sort((a, b) => {
+      if (b[1] !== a[1]) return b[1] - a[1]
+      return a[0].localeCompare(b[0], 'ru')
+    })
+    .map(([name]) => name)
 
   return (
     <div className="mx-auto max-w-6xl px-5 py-8 md:py-12">
-      <div className="mb-8">
-        <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">Заведения Алматы</h1>
-        <p className="mt-2 text-base leading-6 text-gray-500">Партнёры с офферами 2за1 и в подарок.</p>
-      </div>
-
-      <RestaurantListClient
-        restaurants={filteredRestaurants}
-        quickChips={quickChips}
-        title="Заведения"
-        showMapLink
+      <VenuesSection
+        restaurants={restaurantsWithStatus}
+        cuisineOptions={cuisineOptions}
       />
     </div>
   )

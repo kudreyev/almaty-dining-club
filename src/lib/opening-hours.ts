@@ -105,6 +105,30 @@ export function formatHoursRange(hour: RestaurantHour | null | undefined): strin
   return `${open}-${close}`
 }
 
+/**
+ * Преобразует `OpenStatus.labelDetail` в короткую строку для карточки заведения.
+ * Примеры:
+ *  - «Работает до 23:00» → «до 23:00»
+ *  - «Откроется в 09:00» → «откроется в 09:00»
+ *  - «Откроется завтра в 09:00» → «откроется завтра в 09:00»
+ *  - «Откроется в чт в 09:00» → «откроется в чт в 09:00»
+ *  - null → null
+ */
+export function formatStatusForCard(status: OpenStatus): { label: 'Открыто' | 'Закрыто'; detail: string | null } {
+  const label = status.isOpen ? 'Открыто' : 'Закрыто'
+  if (!status.labelDetail) return { label, detail: null }
+
+  if (status.isOpen) {
+    const match = status.labelDetail.match(/Работает до\s+(.+)$/i)
+    if (match) return { label, detail: `до ${match[1]}` }
+  } else {
+    const lowered = status.labelDetail.charAt(0).toLowerCase() + status.labelDetail.slice(1)
+    return { label, detail: lowered }
+  }
+
+  return { label, detail: status.labelDetail }
+}
+
 export function computeOpenStatus(hoursForWeek: RestaurantHour[], now: Date, tz: string): OpenStatus {
   const todayDow = getTodayDow(now, tz)
   const yesterdayDow = ((todayDow + 5) % 7) + 1

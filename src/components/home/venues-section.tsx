@@ -355,15 +355,13 @@ export function VenuesSection({
       />
 
       {showCount ? (
-        <p className="mt-1 text-xs text-neutral-500 sm:hidden">{countLabel}</p>
+        <p className="-mt-3 mb-3 text-xs text-neutral-500 sm:hidden">{countLabel}</p>
       ) : null}
 
       {displayed.length === 0 ? (
-        <div className="mt-4">
-          <EmptyState title="Ничего не найдено" description="Попробуйте изменить фильтры" />
-        </div>
+        <EmptyState title="Ничего не найдено" description="Попробуйте изменить фильтры" />
       ) : (
-        <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           {displayed.map(({ restaurant, distanceKm }) => (
             <RestaurantCard
               key={restaurant.id}

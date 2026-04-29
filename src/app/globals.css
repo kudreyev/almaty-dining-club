@@ -48,3 +48,12 @@ body {
 html {
   scroll-behavior: smooth;
 }
+
+/* Скрываем нативный скроллбар у горизонтальных скроллеров (чипы и т.п.). */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}

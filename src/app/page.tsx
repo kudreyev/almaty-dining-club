@@ -224,7 +224,7 @@ export default async function HomePage() {
       {/* СПИСОК ЗАВЕДЕНИЙ */}
       <div
         id="venues"
-        className="mx-auto max-w-6xl px-5 py-8 pb-24 md:py-12 md:pb-12"
+        className="mx-auto max-w-6xl px-5 py-8 md:py-12"
       >
         <VenuesSection
           restaurants={restaurantsWithStatus}
@@ -236,6 +236,55 @@ export default async function HomePage() {
           applyCount={restaurantsWithStatus.length}
         />
       </div>
+
+      {/* КАК ЭТО РАБОТАЕТ */}
+      <section className="px-5 pb-24 md:pb-16">
+        <div className="mx-auto max-w-6xl">
+          <h2 className="text-2xl font-semibold tracking-tight text-neutral-900 sm:text-3xl">
+            Как это работает
+          </h2>
+          <p className="mt-2 text-sm text-neutral-600 md:text-base">
+            Три шага. Без купонов, без распечаток, без скидочных карт.
+          </p>
+
+          <div className="mt-8 grid grid-cols-1 gap-4 md:grid-cols-3">
+            {[
+              {
+                eyebrow: '01 — ПОДПИШИСЬ',
+                title: 'Активация через WhatsApp',
+                description: 'Одно сообщение — и ты в клубе. Подписка активируется сразу.',
+              },
+              {
+                eyebrow: '02 — ВЫБЕРИ МЕСТО',
+                title: 'Получи код в заведении',
+                description:
+                  'Нажми «Получить код» на странице заведения, когда уже готов сделать заказ, и покажи официанту.',
+              },
+              {
+                eyebrow: '03 — ПОКАЖИ КОД',
+                title: 'Официант активирует оффер',
+                description:
+                  'Получаешь второе блюдо бесплатно или подарок к основному. Без купонов, без объяснений.',
+              },
+            ].map((step) => (
+              <div
+                key={step.eyebrow}
+                className="rounded-md bg-neutral-50 px-5 py-[22px]"
+              >
+                <p className="mb-3 text-xs font-medium tracking-wider text-primary">
+                  {step.eyebrow}
+                </p>
+                <h3 className="mb-1.5 text-[15px] font-medium text-neutral-900">
+                  {step.title}
+                </h3>
+                <p className="text-[13px] leading-[1.55] text-neutral-600">
+                  {step.description}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
     </>
   )
 }

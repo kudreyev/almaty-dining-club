@@ -239,7 +239,7 @@ export default async function HomePage() {
       </div>
 
       {/* КАК ЭТО РАБОТАЕТ */}
-      <section className="px-5">
+      <section className="px-4 py-12 md:px-6 md:py-16">
         <div className="mx-auto max-w-6xl">
           <h2 className="text-2xl font-semibold tracking-tight text-neutral-900 sm:text-3xl">
             Как это работает
@@ -248,7 +248,7 @@ export default async function HomePage() {
             Три шага. Без купонов, без распечаток, без скидочных карт.
           </p>
 
-          <div className="mt-8 grid grid-cols-1 gap-4 md:grid-cols-3">
+          <div className="mt-8 grid grid-cols-1 gap-3.5 lg:grid-cols-3">
             {[
               {
                 eyebrow: '01 — ПОДПИШИСЬ',
@@ -270,12 +270,15 @@ export default async function HomePage() {
             ].map((step) => (
               <div
                 key={step.eyebrow}
-                className="rounded-md bg-neutral-50 px-5 py-[22px]"
+                className="flex flex-col rounded-xl bg-[#f5f2ea] p-6 md:p-7"
               >
-                <p className="mb-3 text-xs font-medium tracking-wider text-primary">
+                <p
+                  className="mb-3 text-[11px] font-medium uppercase text-primary"
+                  style={{ letterSpacing: '0.6px' }}
+                >
                   {step.eyebrow}
                 </p>
-                <h3 className="mb-1.5 text-[15px] font-medium text-neutral-900">
+                <h3 className="mb-1.5 text-[15px] font-medium leading-[1.3] text-neutral-900">
                   {step.title}
                 </h3>
                 <p className="text-[13px] leading-[1.55] text-neutral-600">

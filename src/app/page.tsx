@@ -1,6 +1,7 @@
 import { createSupabasePublicClient } from '@/lib/supabase/public'
 import { VenuesSection } from '@/components/home/venues-section'
 import { HomeMobileControls } from '@/components/home/home-mobile-controls'
+import { FinalCta } from '@/components/sections/final-cta'
 import {
   DEFAULT_TZ,
   computeOpenStatus,
@@ -238,7 +239,7 @@ export default async function HomePage() {
       </div>
 
       {/* КАК ЭТО РАБОТАЕТ */}
-      <section className="px-5 pb-24 md:pb-16">
+      <section className="px-5">
         <div className="mx-auto max-w-6xl">
           <h2 className="text-2xl font-semibold tracking-tight text-neutral-900 sm:text-3xl">
             Как это работает
@@ -285,6 +286,9 @@ export default async function HomePage() {
           </div>
         </div>
       </section>
+
+      {/* ФИНАЛЬНЫЙ CTA */}
+      <FinalCta />
     </>
   )
 }

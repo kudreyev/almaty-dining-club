@@ -1,10 +1,15 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { YandexRestaurantsMap } from '@/components/map/yandex-restaurants-map'
 import { FloatingMapSwitch } from '@/components/map/floating-map-switch'
 import { RestaurantFiltersSheet } from '@/components/restaurant-filters-sheet'
 import { useUrlRestaurantFilters } from '@/components/map/use-url-filters'
+import {
+  getStoredUserLocation,
+  persistUserLocation,
+  requestUserPosition,
+} from '@/lib/user-location'
 import type { RestaurantFilters } from '@/lib/restaurant-filters'
 
 type Place = {
@@ -50,37 +55,51 @@ export function MapScreen({
     [filteredPlaces]
   )
 
+  const handleFiltersChange = useCallback(
+    async (next: RestaurantFilters) => {
+      const turningOnNearby = next.nearby && !filters.nearby
+      if (turningOnNearby && !getStoredUserLocation()) {
+        const result = await requestUserPosition()
+        if (result.ok) {
+          persistUserLocation(result.lat, result.lng)
+          setGeoHint(null)
+        } else {
+          if (result.permissionDenied) {
+            setGeoHint('Геолокация отключена — поделитесь местоположением, чтобы фильтр работал.')
+          }
+          // Не включаем nearby, если локация недоступна.
+          setFilters({ ...next, nearby: false })
+          return
+        }
+      }
+      setFilters(next)
+    },
+    [filters.nearby, setFilters]
+  )
+
   useEffect(() => {
     if (typeof window === 'undefined') return
-    if (!window.matchMedia?.('(max-width: 639px)').matches) return
-    if (!navigator.geolocation) return
 
     const askedKey = 'kp:geoAskedAt'
-    const locKey = 'kp:userLocation'
-    const nextLocKey = 'kudapass_user_location'
     const askedAt = Number(localStorage.getItem(askedKey) ?? '0')
     const weekMs = 7 * 24 * 60 * 60 * 1000
     if (askedAt && Date.now() - askedAt < weekMs) return
 
     localStorage.setItem(askedKey, String(Date.now()))
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        const payload = {
-          lat: pos.coords.latitude,
-          lng: pos.coords.longitude,
-          ts: Date.now(),
-        }
-        const serialized = JSON.stringify(payload)
-        localStorage.setItem(locKey, serialized)
-        localStorage.setItem(nextLocKey, serialized)
-      },
-      (err) => {
-        if (err?.code === 1) {
-          setGeoHint('Геолокация отключена — показываем все заведения.')
-        }
-      },
-      { enableHighAccuracy: false, timeout: 6000, maximumAge: 300000 }
-    )
+
+    let cancelled = false
+    requestUserPosition().then((result) => {
+      if (cancelled) return
+      if (result.ok) {
+        persistUserLocation(result.lat, result.lng)
+      } else if (result.permissionDenied) {
+        setGeoHint('Геолокация отключена — показываем все заведения.')
+      }
+    })
+
+    return () => {
+      cancelled = true
+    }
   }, [])
 
   return (
@@ -103,7 +122,7 @@ export function MapScreen({
         open={sheetOpen}
         onClose={() => setSheetOpen(false)}
         filters={filters}
-        onChange={(next: RestaurantFilters) => setFilters(next)}
+        onChange={handleFiltersChange}
         cuisineOptions={allCuisineOptions}
         applyCount={filteredPlaces.length}
         geoHint={geoHint}

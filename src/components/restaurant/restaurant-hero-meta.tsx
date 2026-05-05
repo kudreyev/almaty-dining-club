@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { ChevronDown, Clock, MapPin, Star } from 'lucide-react'
 import {
   DEFAULT_TZ,
@@ -11,6 +11,7 @@ import {
   type RestaurantHour,
 } from '@/lib/opening-hours'
 import { haversineDistanceKm, formatDistanceFromUser } from '@/lib/distance'
+import { useUserLocation } from '@/lib/user-location'
 
 type ExternalRating = {
   rating: number
@@ -40,7 +41,7 @@ export function RestaurantHeroMeta({
   mapSectionId,
 }: RestaurantHeroMetaProps) {
   const [hoursExpanded, setHoursExpanded] = useState(false)
-  const [distanceLabel, setDistanceLabel] = useState<string | null>(null)
+  const userLocation = useUserLocation()
 
   const status = useMemo(
     () => computeOpenStatus(restaurantHours, new Date(), DEFAULT_TZ),
@@ -54,38 +55,17 @@ export function RestaurantHeroMeta({
     [restaurantHours]
   )
 
-  useEffect(() => {
-    if (restaurantLat == null || restaurantLng == null) return
-    if (typeof navigator === 'undefined' || !navigator.permissions?.query) return
-
-    let cancelled = false
-
-    navigator.permissions
-      .query({ name: 'geolocation' as PermissionName })
-      .then((permissionStatus) => {
-        if (cancelled || permissionStatus.state !== 'granted') return
-
-        navigator.geolocation.getCurrentPosition(
-          (pos) => {
-            if (cancelled) return
-            const km = haversineDistanceKm(
-              pos.coords.latitude,
-              pos.coords.longitude,
-              restaurantLat,
-              restaurantLng
-            )
-            setDistanceLabel(formatDistanceFromUser(km))
-          },
-          () => {},
-          { enableHighAccuracy: false, timeout: 5000, maximumAge: 300000 }
-        )
-      })
-      .catch(() => {})
-
-    return () => {
-      cancelled = true
-    }
-  }, [restaurantLat, restaurantLng])
+  const distanceLabel = useMemo(() => {
+    if (restaurantLat == null || restaurantLng == null) return null
+    if (!userLocation) return null
+    const km = haversineDistanceKm(
+      userLocation.lat,
+      userLocation.lng,
+      restaurantLat,
+      restaurantLng
+    )
+    return formatDistanceFromUser(km)
+  }, [userLocation, restaurantLat, restaurantLng])
 
   const handleScrollToMap = () => {
     if (typeof document === 'undefined') return

@@ -11,27 +11,24 @@ import { haversineDistanceKm } from '@/lib/distance'
 import { getMaxBenefit } from '@/lib/offers'
 import { pluralizeRu } from '@/lib/ru-plural'
 import {
+  getStoredGeolocationPermissionState,
+  persistUserLocation,
+  requestUserPosition,
+  useUserLocation,
+  type GeoPermissionState,
+} from '@/lib/user-location'
+import {
   hasAnyActiveFilter,
   type FilterState,
   type OfferType,
   type RestaurantWithStatus,
 } from '@/lib/types'
 
-const USER_LOCATION_STORAGE_KEY = 'kudapass_user_location'
-const LEGACY_USER_LOCATION_STORAGE_KEY = 'kp:userLocation'
-const USER_LOCATION_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000
-
 type Props = {
   restaurants: RestaurantWithStatus[]
   cuisineOptions: string[]
   title?: string
 }
-
-type GeoPermissionState = 'unknown' | 'prompt' | 'granted' | 'denied'
-
-type GeoRequestResult =
-  | { ok: true; lat: number; lng: number }
-  | { ok: false; permissionDenied: boolean }
 
 function parseFilters(sp: URLSearchParams): FilterState {
   const openNow = sp.get('open') === '1'
@@ -77,76 +74,6 @@ function serializeFilters(filters: FilterState, base: URLSearchParams): URLSearc
   return sp
 }
 
-async function getStoredGeolocationPermissionState(): Promise<GeoPermissionState> {
-  if (typeof navigator === 'undefined' || !navigator.permissions?.query) {
-    return 'unknown'
-  }
-  try {
-    const status = await navigator.permissions.query({ name: 'geolocation' as PermissionName })
-    if (status.state === 'denied') return 'denied'
-    if (status.state === 'granted') return 'granted'
-    return 'prompt'
-  } catch {
-    return 'unknown'
-  }
-}
-
-function requestUserPosition(): Promise<GeoRequestResult> {
-  if (typeof navigator === 'undefined' || !navigator.geolocation) {
-    return Promise.resolve({ ok: false, permissionDenied: false })
-  }
-
-  return new Promise((resolve) => {
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        resolve({
-          ok: true,
-          lat: position.coords.latitude,
-          lng: position.coords.longitude,
-        })
-      },
-      (err) => {
-        resolve({ ok: false, permissionDenied: err?.code === 1 })
-      },
-      { enableHighAccuracy: true, timeout: 10000, maximumAge: 120000 }
-    )
-  })
-}
-
-function getStoredUserLocation(): { lat: number; lng: number } | null {
-  if (typeof window === 'undefined') return null
-
-  const raw =
-    window.localStorage.getItem(USER_LOCATION_STORAGE_KEY)
-    ?? window.localStorage.getItem(LEGACY_USER_LOCATION_STORAGE_KEY)
-  if (!raw) return null
-
-  try {
-    const parsed = JSON.parse(raw) as { lat?: number; lng?: number; ts?: number }
-    if (
-      typeof parsed.lat !== 'number'
-      || typeof parsed.lng !== 'number'
-      || !Number.isFinite(parsed.lat)
-      || !Number.isFinite(parsed.lng)
-    ) {
-      return null
-    }
-    if (typeof parsed.ts === 'number' && Date.now() - parsed.ts > USER_LOCATION_MAX_AGE_MS) {
-      return null
-    }
-    return { lat: parsed.lat, lng: parsed.lng }
-  } catch {
-    return null
-  }
-}
-
-function persistUserLocation(lat: number, lng: number) {
-  if (typeof window === 'undefined') return
-  const payload = JSON.stringify({ lat, lng, ts: Date.now() })
-  window.localStorage.setItem(USER_LOCATION_STORAGE_KEY, payload)
-  window.localStorage.setItem(LEGACY_USER_LOCATION_STORAGE_KEY, payload)
-}
-
 function getRestaurantPrimaryCoords(restaurant: RestaurantWithStatus): { lat: number; lng: number } | null {
   const primary = (restaurant.restaurant_locations ?? [])
     .filter((location) => location.is_active)
@@ -169,13 +96,10 @@ export function VenuesSection({
     [searchParams]
   )
 
-  const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null)
+  const userLocation = useUserLocation()
   const [geoPermission, setGeoPermission] = useState<GeoPermissionState>('unknown')
 
   useEffect(() => {
-    const stored = getStoredUserLocation()
-    if (stored) setUserLocation(stored)
-
     let cancelled = false
     getStoredGeolocationPermissionState().then((state) => {
       if (!cancelled) setGeoPermission(state)
@@ -219,7 +143,6 @@ export function VenuesSection({
     const result = await requestUserPosition()
     if (result.ok) {
       persistUserLocation(result.lat, result.lng)
-      setUserLocation({ lat: result.lat, lng: result.lng })
       setGeoPermission('granted')
       updateFilters({ ...filters, nearby: true })
       return
@@ -366,9 +289,7 @@ export function VenuesSection({
             <RestaurantCard
               key={restaurant.id}
               restaurant={restaurant}
-              distanceKm={
-                filters.nearby && userLocation && distanceKm !== null ? distanceKm : null
-              }
+              distanceKm={userLocation && distanceKm !== null ? distanceKm : null}
             />
           ))}
         </div>

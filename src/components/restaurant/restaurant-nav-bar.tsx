@@ -42,7 +42,7 @@ export function RestaurantNavBar({
 
   return (
     <div
-      className="sticky top-0 z-10 border-b border-neutral-200/70 bg-white/95 backdrop-blur"
+      className="sticky top-0 z-30 border-b border-neutral-200/70 bg-white/95 backdrop-blur"
       style={{ borderBottomWidth: '0.5px' }}
     >
       <div className="mx-auto flex max-w-3xl items-center justify-between px-5 py-3">

@@ -6,7 +6,10 @@ import { usePathname } from 'next/navigation'
 export function Footer() {
   const pathname = usePathname()
   const hideOnMobile = pathname === '/map'
+  const isHidden = pathname?.startsWith('/r/') ?? false
   const year = new Date().getFullYear()
+
+  if (isHidden) return null
 
   return (
     <footer className={hideOnMobile ? 'hidden sm:block' : ''}>

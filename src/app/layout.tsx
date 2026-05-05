@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
 import './globals.css'
 import { Header } from '@/components/header'
+import { HeaderShell } from '@/components/header-shell'
 import { Footer } from '@/components/footer'
 
 const inter = Inter({
@@ -22,7 +23,9 @@ export default function RootLayout({
     <html lang="ru">
       <body className={inter.className}>
         <div className="flex min-h-screen flex-col bg-[#fafaf9] text-gray-900">
-          <Header />
+          <HeaderShell>
+            <Header />
+          </HeaderShell>
           <main className="flex-1">{children}</main>
           <Footer />
         </div>

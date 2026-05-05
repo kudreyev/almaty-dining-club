@@ -1,12 +1,11 @@
 'use client'
 
 import { useState } from 'react'
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { PhoneInput, normalizeToE164Like } from '@/components/phone-input'
 import { formatPhoneForDisplay } from '@/lib/kz-phone'
 import { sendWhatsAppLogin, verifyWhatsAppLoginCode } from './actions'
-import { Button } from '@/components/ui/button'
-import { Card } from '@/components/ui/card'
 
 export function LoginForm({
   safeNext,
@@ -94,17 +93,48 @@ export function LoginForm({
     await submitWhatsAppCode(otpCode)
   }
 
+  const inputClassName =
+    'w-full bg-white text-base text-neutral-900 outline-none transition-colors placeholder:text-neutral-400 focus:border-[#D85A30]'
+  const inputStyle: React.CSSProperties = {
+    borderWidth: '0.5px',
+    borderStyle: 'solid',
+    borderColor: 'rgb(229 229 229)',
+    borderRadius: '8px',
+    padding: '11px 14px',
+  }
+
   return (
     <div className="flex min-h-[60vh] items-center justify-center px-5 py-12">
-      <Card className="w-full max-w-sm" padding="lg">
-        <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">Вход через WhatsApp</h1>
-        <p className="mt-2 text-base leading-6 text-gray-500">
+      <div
+        className="relative w-full max-w-sm bg-white"
+        style={{
+          borderWidth: '0.5px',
+          borderStyle: 'solid',
+          borderColor: 'rgb(229 229 229)',
+          borderRadius: '12px',
+          padding: '24px',
+        }}
+      >
+        <h1
+          className="font-medium text-neutral-900"
+          style={{ fontSize: '20px', lineHeight: 1.3, letterSpacing: '-0.2px' }}
+        >
+          Вход через WhatsApp
+        </h1>
+        <p
+          className="text-neutral-500"
+          style={{ fontSize: '13px', lineHeight: 1.5, marginTop: '6px' }}
+        >
           Введите номер и подтвердите код из WhatsApp.
         </p>
 
-        <form onSubmit={handleWhatsAppLogin} className="mt-6 space-y-4">
+        <form onSubmit={handleWhatsAppLogin} style={{ marginTop: '20px' }}>
           <div>
-            <label htmlFor="phone" className="mb-1.5 block text-base font-medium text-gray-700">
+            <label
+              htmlFor="phone"
+              className="block font-medium text-neutral-700"
+              style={{ fontSize: '13px', marginBottom: '6px' }}
+            >
               Номер телефона
             </label>
             <PhoneInput
@@ -113,32 +143,50 @@ export function LoginForm({
               onSubscriberChange={setSubscriber}
               readOnly={isPhoneLocked}
               placeholder="Например: +77001234567"
-              className="w-full rounded-xl border border-gray-200 px-4 py-3 text-base outline-none transition-colors placeholder:text-gray-500 focus:border-accent"
+              className={inputClassName}
+              style={inputStyle}
             />
             {isPhoneLocked ? (
-              <p className="mt-1 text-sm text-gray-400">
+              <p
+                className="text-neutral-500"
+                style={{ fontSize: '12px', marginTop: '6px', lineHeight: 1.5 }}
+              >
                 Войдите с номера {formatPhoneForDisplay(subscriber)}
               </p>
             ) : (
-              <p className="mt-1 text-sm leading-6 text-gray-400">
+              <p
+                className="text-neutral-500"
+                style={{ fontSize: '12px', marginTop: '6px', lineHeight: 1.5 }}
+              >
                 Для Казахстана можно +7…, 8… или 7… (11 цифр). Для других стран — с «+» и кодом.
               </p>
             )}
           </div>
 
-          <Button
+          <button
             type="submit"
             disabled={whatsAppLoading}
-            className="w-full"
+            className="flex w-full items-center justify-center font-medium text-white transition-opacity hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-60"
+            style={{
+              background: '#D85A30',
+              borderRadius: '8px',
+              padding: '11px 20px',
+              fontSize: '14px',
+              marginTop: '16px',
+            }}
           >
-            {whatsAppLoading ? 'Отправка...' : 'Получить код'}
-          </Button>
+            {whatsAppLoading ? 'Отправка…' : 'Получить код'}
+          </button>
         </form>
 
         {codeRequested ? (
-          <form onSubmit={handleVerifyWhatsAppCode} className="mt-4 space-y-4">
+          <form onSubmit={handleVerifyWhatsAppCode} style={{ marginTop: '16px' }}>
             <div>
-              <label htmlFor="otp" className="mb-1.5 block text-base font-medium text-gray-700">
+              <label
+                htmlFor="otp"
+                className="block font-medium text-neutral-700"
+                style={{ fontSize: '13px', marginBottom: '6px' }}
+              >
                 Код из WhatsApp
               </label>
               <input
@@ -164,32 +212,78 @@ export function LoginForm({
                   if (!otpLoading && next.length === 6) await submitWhatsAppCode(next)
                 }}
                 placeholder="123456"
-                className="w-full rounded-xl border border-gray-200 px-4 py-3 text-center text-base tracking-[0.3em] outline-none transition-colors placeholder:text-gray-500 focus:border-accent"
+                className="w-full bg-white text-center text-neutral-900 outline-none transition-colors placeholder:text-neutral-300 focus:border-[#D85A30]"
+                style={{
+                  ...inputStyle,
+                  letterSpacing: '0.3em',
+                  fontSize: '16px',
+                }}
               />
             </div>
 
-            <Button
+            <button
               type="submit"
-              variant="secondary"
               disabled={otpLoading}
-              className="w-full"
+              className="flex w-full items-center justify-center bg-white font-medium text-neutral-700 transition-colors hover:bg-neutral-50 disabled:cursor-not-allowed disabled:opacity-60"
+              style={{
+                borderWidth: '0.5px',
+                borderStyle: 'solid',
+                borderColor: 'rgb(229 229 229)',
+                borderRadius: '8px',
+                padding: '11px 20px',
+                fontSize: '14px',
+                marginTop: '16px',
+              }}
             >
-              {otpLoading ? 'Проверка...' : 'Подтвердить'}
-            </Button>
+              {otpLoading ? 'Проверка…' : 'Подтвердить'}
+            </button>
           </form>
         ) : null}
 
         {message ? (
-          <div className="mt-4 rounded-lg bg-emerald-50 px-3 py-2.5 text-base leading-6 text-emerald-700">
+          <div
+            className="text-emerald-700"
+            style={{
+              background: '#ECFDF5',
+              borderRadius: '8px',
+              padding: '10px 12px',
+              fontSize: '13px',
+              lineHeight: 1.5,
+              marginTop: '16px',
+            }}
+          >
             {message}
           </div>
         ) : null}
         {error ? (
-          <div className="mt-4 rounded-lg bg-red-50 px-3 py-2.5 text-base leading-6 text-red-700">
+          <div
+            className="text-red-700"
+            style={{
+              background: '#FEF2F2',
+              borderRadius: '8px',
+              padding: '10px 12px',
+              fontSize: '13px',
+              lineHeight: 1.5,
+              marginTop: '16px',
+            }}
+          >
             {error}
           </div>
         ) : null}
-      </Card>
+
+        <div
+          className="text-center"
+          style={{ marginTop: '20px' }}
+        >
+          <Link
+            href="/staff/login"
+            className="text-neutral-400 underline-offset-2 transition-colors hover:text-neutral-700 hover:underline"
+            style={{ fontSize: '12px' }}
+          >
+            Вход для персонала
+          </Link>
+        </div>
+      </div>
     </div>
   )
 }

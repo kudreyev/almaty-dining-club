@@ -2,7 +2,6 @@ import Link from 'next/link'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { LogoutButton } from '@/components/logout-button'
 import { MobileMenu } from '@/components/mobile-menu'
-import { Button } from '@/components/ui/button'
 
 export async function Header() {
   const supabase = await createSupabaseServerClient()
@@ -42,8 +41,12 @@ export async function Header() {
   return (
     <header className="sticky top-0 z-50 border-b border-gray-200/80 bg-white/90 backdrop-blur-lg">
       <div className="mx-auto flex h-14 max-w-6xl items-center justify-between gap-4 px-5">
-        <Link href="/" className="text-lg font-bold tracking-tight text-accent">
-          Kudaclub
+        <Link
+          href="/"
+          className="font-semibold text-neutral-900"
+          style={{ fontSize: '18px', letterSpacing: '-0.4px' }}
+        >
+          Kuda<span style={{ color: '#D85A30' }}>club</span>
         </Link>
 
         <nav className="hidden items-center gap-1 md:flex">
@@ -74,14 +77,32 @@ export async function Header() {
 
         <div className="flex items-center gap-2">
           {!user ? (
-            <Button href="/login" size="sm">
+            <Link
+              href="/login"
+              className="inline-flex items-center justify-center font-medium text-white transition-opacity hover:opacity-95"
+              style={{
+                background: '#D85A30',
+                borderRadius: '8px',
+                padding: '7px 14px',
+                fontSize: '13px',
+              }}
+            >
               Войти
-            </Button>
+            </Link>
           ) : (
             <>
-              <Button href="/app/me" size="sm">
+              <Link
+                href="/app/me"
+                className="inline-flex items-center justify-center font-medium text-white transition-opacity hover:opacity-95"
+                style={{
+                  background: '#D85A30',
+                  borderRadius: '8px',
+                  padding: '7px 14px',
+                  fontSize: '13px',
+                }}
+              >
                 Кабинет
-              </Button>
+              </Link>
               <LogoutButton />
             </>
           )}

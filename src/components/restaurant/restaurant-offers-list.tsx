@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useState } from 'react'
-import { Clock } from 'lucide-react'
+import { Clock, UtensilsCrossed } from 'lucide-react'
 import { PaywallModal } from '@/components/paywall-modal'
 import {
   formatEstimatedValue,
@@ -106,7 +106,7 @@ function OfferCard({
     >
       {/* LEFT: photo */}
       <div
-        className="relative shrink-0"
+        className="relative shrink-0 overflow-hidden"
         style={{ width: 'clamp(100px, 30vw, 120px)' }}
       >
         {offer.dish_photo_url ? (
@@ -117,13 +117,7 @@ function OfferCard({
             className="h-full w-full object-cover"
           />
         ) : (
-          <div
-            className="h-full w-full"
-            style={{
-              background: 'linear-gradient(135deg, #FAECE7 0%, #E8C9B8 100%)',
-            }}
-            aria-hidden="true"
-          />
+          <DishPhotoPlaceholder offerType={offer.offer_type} />
         )}
 
         <span
@@ -135,6 +129,7 @@ function OfferCard({
             padding: '3px 7px',
             borderRadius: '4px',
             background: typeBadge.bg,
+            zIndex: 1,
           }}
         >
           {typeBadge.label}
@@ -253,4 +248,42 @@ function formatTypeBadge(offerType: OfferType): { label: string; bg: string } {
     return { label: '2 за 1', bg: '#D85A30' }
   }
   return { label: 'В подарок', bg: '#0F6E56' }
+}
+
+function DishPhotoPlaceholder({ offerType }: { offerType: OfferType }) {
+  const palette =
+    offerType === '2for1'
+      ? {
+          background: 'linear-gradient(135deg, #FAECE7 0%, #F2D4C4 100%)',
+          iconColor: '#C9612E',
+          patternColor: '#C9612E',
+        }
+      : {
+          background: 'linear-gradient(135deg, #E0F0E8 0%, #C2DCD0 100%)',
+          iconColor: '#0F6E56',
+          patternColor: '#0F6E56',
+        }
+
+  return (
+    <div
+      className="relative flex h-full w-full items-center justify-center"
+      style={{ background: palette.background }}
+      aria-hidden="true"
+    >
+      {/* мягкий точечный паттерн на фоне для текстуры */}
+      <div
+        className="pointer-events-none absolute inset-0"
+        style={{
+          backgroundImage: `radial-gradient(${palette.patternColor}22 1px, transparent 1px)`,
+          backgroundSize: '12px 12px',
+          opacity: 0.5,
+        }}
+      />
+      <UtensilsCrossed
+        size={32}
+        strokeWidth={1.5}
+        style={{ color: palette.iconColor, opacity: 0.55, position: 'relative' }}
+      />
+    </div>
+  )
 }

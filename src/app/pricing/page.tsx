@@ -1,141 +1,191 @@
-import { Button } from '@/components/ui/button'
-import { Card } from '@/components/ui/card'
-import { FaqAccordion } from '@/components/faq-accordion'
-import { RESTAURANT_REDEEM_COOLDOWN_DAYS } from '@/lib/redeem-policy'
+import type { Metadata } from 'next'
+import {
+  ArrowLeftRight,
+  CheckCircle,
+  Clock,
+  ShieldCheck,
+} from 'lucide-react'
+import { PricingFaq } from './pricing-faq'
 
 export const runtime = 'edge'
 
-const WHATSAPP_SUBSCRIBE_URL =
-  'https://wa.me/77066059899?text=%D0%97%D0%B4%D1%80%D0%B0%D0%B2%D1%81%D1%82%D0%B2%D1%83%D0%B9%D1%82%D0%B5%21%20%D0%A5%D0%BE%D1%87%D1%83%20%D0%BF%D0%BE%D0%B4%D0%BF%D0%B8%D1%81%D0%BA%D1%83%20KudaPass%20%D0%BD%D0%B0%20%D0%BE%D0%B4%D0%B8%D0%BD%20%D0%BC%D0%B5%D1%81%D1%8F%D1%86'
+export const metadata: Metadata = {
+  title: 'Kudaclub — подписка 1 990 ₸/мес',
+  description:
+    'Подписка Kudaclub: 2-за-1 на главные блюда и подарки к заказу. Без купонов, без распечаток, без скидочных карт.',
+}
+
+const WHATSAPP_HREF = `https://wa.me/77066059899?text=${encodeURIComponent(
+  'Здравствуйте! Хочу подписку Kudaclub'
+)}`
 
 const FAQ_ITEMS = [
   {
-    q: 'Сколько раз можно использовать подписку?',
-    a: `Вы можете пользоваться офферами в течение действия подписки, но по каждому ресторану действует ограничение: не чаще 1 раза в ${RESTAURANT_REDEEM_COOLDOWN_DAYS} дней. Каждый раз — новый одноразовый код.`,
+    q: 'Как отменить подписку?',
+    a: 'Никак — она отменяется сама. Через 30 дней доступ просто закончится. Чтобы продолжить, напишешь нам в WhatsApp. Мы НЕ списываем деньги автоматически.',
   },
   {
-    q: 'Как работает 2за1?',
-    a: 'Закажите два одинаковых блюда — второе будет бесплатно. Конкретные условия зависят от ресторана и указаны в описании оффера.',
+    q: 'Как работает 2 за 1?',
+    a: 'Закажи два одинаковых блюда — второе будет бесплатно. Конкретные условия зависят от ресторана и указаны в описании оффера.',
   },
   {
-    q: 'А если я не воспользуюсь подпиской?',
-    a: 'Подписка действует 30 дней с момента активации. Мы не возвращаем оплату за неиспользованный период, но всегда можно написать нам — найдём решение.',
-  },
-  {
-    q: 'Нужно ли бронировать стол заранее?',
-    a: 'Бронирование не обязательно, но рекомендуется для популярных заведений. Вы можете прийти без брони и активировать оффер на месте.',
+    q: 'А если рестораны мне не подойдут?',
+    a: 'Список заведений можно посмотреть прямо сейчас на странице «Заведения» — посмотри перед оплатой. Если что-то пошло не так после оплаты, напиши нам в WhatsApp — найдём решение.',
   },
   {
     q: 'Можно ли перенести подписку на другой номер?',
-    a: 'Да, напишите нам в WhatsApp — мы перенесём подписку на другой номер.',
+    a: 'Да, напиши нам в WhatsApp — перенесём подписку на другой номер.',
+  },
+  {
+    q: 'Можно подарить подписку?',
+    a: 'Да. Напиши нам — оформим как подарок с твоим персональным сообщением. Подходит для дней рождения и просто как приятный жест.',
+  },
+]
+
+const GUARANTEES = [
+  {
+    Icon: ArrowLeftRight,
+    title: 'Нет автосписаний',
+    description:
+      'Через 30 дней подписка просто закончится. Хочешь продолжить — пишешь нам.',
+  },
+  {
+    Icon: Clock,
+    title: 'Ручная поддержка',
+    description:
+      'В WhatsApp отвечает живой человек, не бот. Решим любой вопрос — от оплаты до переноса подписки.',
+  },
+  {
+    Icon: ShieldCheck,
+    title: 'Прозрачные условия',
+    description:
+      'Одна цена, никаких скрытых платежей или комиссий за активацию.',
   },
 ]
 
 export default function PricingPage() {
   return (
     <>
-      <div className="mx-auto max-w-3xl px-5 py-10 pb-28 sm:pb-16 md:py-16 md:pb-16">
-        {/* HERO */}
-        <section className="text-center">
-          <p className="text-sm font-medium uppercase tracking-widest text-gray-400">
-            Подписка
-          </p>
-          <h1 className="mt-3 text-3xl font-semibold tracking-tight sm:text-4xl">
-            Все рестораны — одна подписка
-          </h1>
-          <p className="mx-auto mt-4 max-w-lg text-base leading-relaxed text-gray-500">
-            Получите доступ ко всем офферам 2за1 и в подарок в ресторанах Алматы. Без ограничений, без купонов.
-          </p>
-        </section>
+      {/* SECTION 1 — HERO */}
+      <section className="px-5 pt-10 pb-12 md:pt-16 md:pb-16">
+        <div className="mx-auto max-w-[480px] text-center">
+          <span className="mb-4 inline-block rounded-full bg-primary-light px-2.5 py-1 text-[11px] tracking-wider text-primary-dark">
+            Подписка · 1 990 ₸/мес
+          </span>
 
-        {/* PRICE CARD */}
-        <Card className="mt-10" padding="none">
-          <div className="p-6 md:p-8">
-            <div className="flex items-baseline gap-2">
-              <span className="text-4xl font-bold tracking-tight">1 990 ₸</span>
-              <span className="text-base text-gray-400">/ 30 дней</span>
+          <h1 className="mb-3 text-[28px] font-medium leading-[1.2] tracking-[-0.4px] text-neutral-900 md:text-[32px]">
+            Один ужин — и подписка уже{' '}
+            <span className="text-primary">в плюсе</span>
+          </h1>
+
+          <p className="mx-auto mb-7 text-sm leading-[1.55] text-neutral-600">
+            2-за-1 на главные блюда и подарки к заказу. Без купонов, без
+            распечаток, без скидочных карт.
+          </p>
+
+          {/* PRICE CARD */}
+          <div className="rounded-xl border-[0.5px] border-neutral-200 bg-white px-6 py-7 text-left">
+            {/* Price + Savings */}
+            <div className="flex items-baseline justify-between gap-3">
+              <div>
+                <div className="text-4xl font-medium leading-none text-neutral-900">
+                  1 990 ₸
+                </div>
+                <div className="mt-1.5 text-[11px] text-neutral-500">
+                  за 30 дней доступа
+                </div>
+              </div>
+              <span className="shrink-0 rounded-md bg-success-light px-2 py-[3px] text-[11px] font-medium text-success-dark">
+                Экономия от ~2 500 ₸/визит
+              </span>
             </div>
 
-            <ul className="mt-6 space-y-3">
-              {[
-                'Все рестораны и кафе Алматы',
-                'Офферы 2за1 и в подарок',
-                'Неограниченное использование',
-                'Одноразовый код на каждый визит',
-                'Подписка через WhatsApp за 2 минуты',
-              ].map((item) => (
-                <li key={item} className="flex items-start gap-3 text-base leading-6 text-gray-700">
-                  <svg className="mt-0.5 h-4 w-4 shrink-0 text-emerald-500" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
-                  </svg>
-                  {item}
-                </li>
-              ))}
+            {/* Math block */}
+            <p className="mt-5 mb-[18px] rounded-md bg-neutral-100 px-3 py-2.5 text-[13px] leading-[1.55] text-neutral-600">
+              Подписка = 65 ₸ в день. Один поход в ресторан с 2-за-1 экономит
+              ~2 500 ₸. Дальше — каждый последующий поход в плюс.
+            </p>
+
+            {/* Features */}
+            <ul className="mb-[18px]">
+              <li className="flex items-start gap-2.5 py-1.5 text-[13px] leading-[1.5] text-neutral-900">
+                <CheckCircle
+                  size={14}
+                  className="mt-[3px] shrink-0 text-success"
+                  aria-hidden="true"
+                />
+                2-за-1 на блюда и подарки к заказу
+              </li>
+              <li className="flex items-start gap-2.5 py-1.5 text-[13px] leading-[1.5] text-neutral-900">
+                <CheckCircle
+                  size={14}
+                  className="mt-[3px] shrink-0 text-success"
+                  aria-hidden="true"
+                />
+                Быстрая активация через WhatsApp
+              </li>
+              <li className="flex items-start gap-2.5 py-1.5 text-[13px] leading-[1.5] text-neutral-600">
+                <CheckCircle
+                  size={14}
+                  className="mt-[3px] shrink-0 text-success"
+                  aria-hidden="true"
+                />
+                Новые заведения добавляются каждый месяц
+              </li>
             </ul>
 
-            <Button
-              href={WHATSAPP_SUBSCRIBE_URL}
-              size="lg"
-              className="mt-8 w-full"
+            {/* CTA */}
+            <a
+              href={WHATSAPP_HREF}
               target="_blank"
-              rel="noreferrer"
+              rel="noopener noreferrer"
+              className="block w-full rounded-md bg-primary px-5 py-[13px] text-center text-[15px] font-medium text-white transition-colors hover:bg-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2"
             >
-              Оформить в WhatsApp
-            </Button>
+              Попробовать за 1 990 ₸
+            </a>
 
-            <p className="mt-3 text-center text-sm text-gray-400">
-              Ответим за 5 минут, выставим счёт и активируем подписку.
+            <p className="mt-2.5 text-center text-[11px] text-neutral-500">
+              Ответим в WhatsApp за 5 минут · Активация в то же время
             </p>
           </div>
-        </Card>
-
-        {/* HOW IT WORKS */}
-        <section className="mt-14">
-          <h2 className="text-center text-xl font-semibold sm:text-2xl">Как это работает</h2>
-
-          <div className="mt-8 grid gap-4 sm:grid-cols-3">
-            {[
-              { step: '1', title: 'Оформи подписку', desc: 'Напиши нам в WhatsApp — активируем за 5 минут.' },
-              { step: '2', title: 'Выбери ресторан', desc: 'Открой оффер и нажми «Получить» — получишь код.' },
-              { step: '3', title: 'Покажи код', desc: 'Персонал проверит код — предложение применят к заказу.' },
-            ].map((s) => (
-              <Card key={s.step} padding="md">
-                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-accent text-base font-bold text-white">
-                  {s.step}
-                </div>
-                <p className="mt-3 text-base font-semibold">{s.title}</p>
-                <p className="mt-1 text-base leading-6 text-gray-500">{s.desc}</p>
-              </Card>
-            ))}
-          </div>
-        </section>
-
-        {/* FAQ */}
-        <section className="mt-14">
-          <h2 className="text-center text-xl font-semibold sm:text-2xl">Частые вопросы</h2>
-          <div className="mt-8">
-            <FaqAccordion items={FAQ_ITEMS} />
-          </div>
-        </section>
-      </div>
-
-      {/* STICKY CTA — mobile only */}
-      <div className="fixed bottom-0 left-0 right-0 z-40 border-t border-gray-200 bg-white/95 px-4 py-3 backdrop-blur-sm sm:hidden">
-        <div className="flex items-center gap-3">
-          <div className="min-w-0 flex-1">
-            <p className="text-base font-bold leading-tight">1 990 ₸</p>
-            <p className="text-sm text-gray-500">/ 30 дней</p>
-          </div>
-          <a
-            href={WHATSAPP_SUBSCRIBE_URL}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex shrink-0 items-center justify-center rounded-2xl bg-gray-900 px-5 py-3 text-base font-semibold text-white transition-colors hover:bg-black active:scale-[0.98]"
-          >
-            Оформить в WhatsApp
-          </a>
         </div>
-      </div>
+      </section>
+
+      {/* SECTION 2 — GUARANTEES */}
+      <section className="bg-neutral-50 px-6 py-7">
+        <h2 className="mb-[18px] text-center text-[19px] font-medium text-neutral-900">
+          Никаких сюрпризов в выписке банка
+        </h2>
+        <div className="mx-auto grid max-w-[720px] grid-cols-1 gap-3 md:grid-cols-3">
+          {GUARANTEES.map(({ Icon, title, description }) => (
+            <div key={title} className="rounded-md bg-white p-4">
+              <div className="mb-2.5 flex h-7 w-7 items-center justify-center rounded-lg bg-primary-light">
+                <Icon
+                  size={14}
+                  className="text-[#993C1D]"
+                  aria-hidden="true"
+                />
+              </div>
+              <h3 className="mb-1 text-[13px] font-medium text-neutral-900">
+                {title}
+              </h3>
+              <p className="text-xs leading-[1.5] text-neutral-600">
+                {description}
+              </p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* SECTION 3 — FAQ */}
+      <section className="px-5 py-8">
+        <h2 className="mb-4 text-center text-[19px] font-medium text-neutral-900">
+          Частые вопросы
+        </h2>
+        <div className="mx-auto max-w-[640px]">
+          <PricingFaq items={FAQ_ITEMS} />
+        </div>
+      </section>
     </>
   )
 }

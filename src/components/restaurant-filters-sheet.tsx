@@ -23,9 +23,30 @@ function FilterChip({
     <button
       type="button"
       onClick={onClick}
-      className={`rounded-full border px-3.5 py-1.5 text-sm font-medium transition-colors ${
-        active ? 'border-gray-900 bg-black text-white' : 'border-gray-200 bg-white text-gray-700 hover:bg-gray-50'
-      }`}
+      className="font-medium transition-colors"
+      style={
+        active
+          ? {
+              background: '#D85A30',
+              color: '#ffffff',
+              borderWidth: '0.5px',
+              borderStyle: 'solid',
+              borderColor: '#D85A30',
+              borderRadius: '9999px',
+              padding: '6px 14px',
+              fontSize: '13px',
+            }
+          : {
+              background: '#ffffff',
+              color: 'rgb(64 64 64)',
+              borderWidth: '0.5px',
+              borderStyle: 'solid',
+              borderColor: 'rgb(229 229 229)',
+              borderRadius: '9999px',
+              padding: '6px 14px',
+              fontSize: '13px',
+            }
+      }
     >
       {children}
     </button>
@@ -49,9 +70,16 @@ function BottomSheet({
 
   return (
     <div className="fixed inset-0 z-50">
-      <div className="absolute inset-0 bg-black/40" onClick={onClose} aria-hidden="true" />
+      <div className="absolute inset-0 bg-black/45 backdrop-blur-sm" onClick={onClose} aria-hidden="true" />
       <div
-        className="absolute inset-x-0 bottom-0 rounded-t-3xl border border-gray-200 bg-white shadow-xl"
+        className="absolute inset-x-0 bottom-0 bg-white shadow-xl"
+        style={{
+          borderTopLeftRadius: '16px',
+          borderTopRightRadius: '16px',
+          borderTopWidth: '0.5px',
+          borderTopStyle: 'solid',
+          borderTopColor: 'rgb(229 229 229)',
+        }}
         role="dialog"
         aria-modal="true"
         aria-label={title}
@@ -68,20 +96,37 @@ function BottomSheet({
           startY.current = null
         }}
       >
-        <div className="mx-auto w-full max-w-lg p-5 sm:p-6">
-          <div className="mb-4 flex items-center justify-between gap-3">
-            <p className="text-lg font-semibold tracking-tight text-gray-950">{title}</p>
+        <div
+          aria-hidden="true"
+          className="mx-auto"
+          style={{
+            width: '36px',
+            height: '4px',
+            borderRadius: '9999px',
+            background: 'rgb(229 229 229)',
+            marginTop: '8px',
+          }}
+        />
+        <div className="mx-auto w-full max-w-lg" style={{ padding: '16px 20px 20px' }}>
+          <div className="flex items-center justify-between" style={{ gap: '12px', marginBottom: '20px' }}>
+            <p
+              className="font-medium text-neutral-900"
+              style={{ fontSize: '18px', letterSpacing: '-0.2px' }}
+            >
+              {title}
+            </p>
             <button
               type="button"
               onClick={onClose}
-              className="inline-flex h-9 w-9 items-center justify-center rounded-full text-gray-500 hover:bg-gray-100"
+              className="inline-flex items-center justify-center rounded-full text-neutral-400 transition-colors hover:bg-neutral-100 hover:text-neutral-700"
+              style={{ height: '32px', width: '32px' }}
               aria-label="Закрыть"
             >
-              <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" style={{ width: '16px', height: '16px' }} aria-hidden="true">
                 <path
                   d="M6 6l12 12M18 6 6 18"
                   stroke="currentColor"
-                  strokeWidth="2"
+                  strokeWidth="1.8"
                   strokeLinecap="round"
                 />
               </svg>
@@ -122,10 +167,15 @@ export function RestaurantFiltersSheet({
 
   return (
     <BottomSheet open={open} title="Фильтры" onClose={onClose}>
-      <div className="space-y-5">
+      <div className="flex flex-col" style={{ gap: '20px' }}>
         <div>
-          <p className="text-sm font-medium text-gray-700">Быстрые фильтры</p>
-          <div className="mt-3 flex flex-wrap gap-2">
+          <p
+            className="font-medium text-neutral-700"
+            style={{ fontSize: '13px', marginBottom: '10px' }}
+          >
+            Быстрые фильтры
+          </p>
+          <div className="flex flex-wrap" style={{ gap: '8px' }}>
             <FilterChip
               active={filters.openNow}
               onClick={() => onChange({ ...filters, openNow: !filters.openNow })}
@@ -155,8 +205,13 @@ export function RestaurantFiltersSheet({
 
         {cuisineList.length > 0 ? (
           <div>
-            <p className="text-sm font-medium text-gray-700">Кухня</p>
-            <div className="mt-3 flex flex-wrap gap-2">
+            <p
+              className="font-medium text-neutral-700"
+              style={{ fontSize: '13px', marginBottom: '10px' }}
+            >
+              Кухня
+            </p>
+            <div className="flex flex-wrap" style={{ gap: '8px' }}>
               {cuisineList.map((c) => (
                 <FilterChip
                   key={c}
@@ -171,10 +226,10 @@ export function RestaurantFiltersSheet({
         ) : null}
 
         {geoHint ? (
-          <p className="text-sm leading-6 text-gray-500">{geoHint}</p>
+          <p className="text-neutral-500" style={{ fontSize: '12px', lineHeight: 1.5 }}>{geoHint}</p>
         ) : null}
 
-        <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center justify-between" style={{ gap: '12px' }}>
           <button
             type="button"
             onClick={() =>
@@ -185,7 +240,8 @@ export function RestaurantFiltersSheet({
                 cuisines: new Set(),
               })
             }
-            className="text-sm font-medium text-gray-600 hover:text-gray-900"
+            className="font-medium text-neutral-500 transition-colors hover:text-neutral-900"
+            style={{ fontSize: '13px' }}
           >
             Сбросить
           </button>
@@ -193,7 +249,13 @@ export function RestaurantFiltersSheet({
           <button
             type="button"
             onClick={onClose}
-            className="inline-flex items-center justify-center rounded-2xl bg-gray-900 px-5 py-3 text-base font-semibold text-white transition-colors hover:bg-black"
+            className="inline-flex items-center justify-center font-medium text-white transition-opacity hover:opacity-95"
+            style={{
+              background: '#D85A30',
+              borderRadius: '8px',
+              padding: '11px 20px',
+              fontSize: '14px',
+            }}
           >
             Применить ({applyCount})
           </button>

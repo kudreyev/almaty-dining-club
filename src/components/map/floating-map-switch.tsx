@@ -15,19 +15,41 @@ export function FloatingMapSwitch({
 }) {
   return (
     <div className="pointer-events-none fixed inset-x-0 bottom-4 z-40 flex justify-center px-4 sm:hidden">
-      <div className="pointer-events-auto flex items-center gap-2 rounded-3xl border border-gray-200 bg-white/90 p-1 shadow-sm backdrop-blur">
+      <div
+        className="pointer-events-auto flex items-center bg-white/95 backdrop-blur"
+        style={{
+          gap: '4px',
+          padding: '4px',
+          borderRadius: '9999px',
+          borderWidth: '0.5px',
+          borderStyle: 'solid',
+          borderColor: 'rgb(229 229 229)',
+          boxShadow: '0 4px 12px rgba(0,0,0,0.06)',
+        }}
+      >
         <button
           type="button"
           onPointerDown={(e) => e.stopPropagation()}
           onClick={onLeftClick}
-          className="inline-flex items-center justify-center rounded-2xl px-4 py-2.5 text-sm font-medium text-gray-900 transition-colors hover:bg-gray-100"
+          className="inline-flex items-center justify-center font-medium text-neutral-700 transition-colors hover:bg-neutral-100"
+          style={{
+            borderRadius: '9999px',
+            padding: '8px 18px',
+            fontSize: '13px',
+          }}
         >
           {leftLabel}
         </button>
         <Link
           href={rightHref}
           onPointerDown={(e) => e.stopPropagation()}
-          className="inline-flex items-center justify-center rounded-2xl bg-gray-900 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-black"
+          className="inline-flex items-center justify-center font-medium text-white transition-opacity hover:opacity-95"
+          style={{
+            background: '#D85A30',
+            borderRadius: '9999px',
+            padding: '8px 18px',
+            fontSize: '13px',
+          }}
         >
           {rightLabel}
         </Link>
@@ -35,4 +57,3 @@ export function FloatingMapSwitch({
     </div>
   )
 }
-

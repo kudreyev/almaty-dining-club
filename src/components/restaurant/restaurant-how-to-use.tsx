@@ -8,7 +8,14 @@ const RULES = [
 
 export function RestaurantHowToUse() {
   return (
-    <section style={{ padding: '24px 20px' }}>
+    <section
+      style={{
+        padding: '24px 20px',
+        borderTopWidth: '0.5px',
+        borderTopStyle: 'solid',
+        borderTopColor: '#f0f0f0',
+      }}
+    >
       <h2
         className="font-medium text-neutral-900"
         style={{ fontSize: '18px', marginBottom: '16px' }}

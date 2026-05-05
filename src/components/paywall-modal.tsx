@@ -1,11 +1,18 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 import Link from 'next/link'
+import { Check, X } from 'lucide-react'
 import { KUDACLUB_SUBSCRIBE_WHATSAPP_URL } from '@/lib/whatsapp'
 
 const WHATSAPP_SUBSCRIBE_URL = KUDACLUB_SUBSCRIBE_WHATSAPP_URL
+
+const BULLETS = [
+  'Доступ ко всем предложениям в Алматы',
+  'Активация занимает 5 минут через WhatsApp',
+  'Использование: 1 раз в 7 дней на заведение',
+]
 
 type PaywallModalProps = {
   onClose: () => void
@@ -13,10 +20,8 @@ type PaywallModalProps = {
 
 export function PaywallModal({ onClose }: PaywallModalProps) {
   const [mounted, setMounted] = useState(false)
-  const portalRef = useRef<HTMLElement | null>(null)
 
   useEffect(() => {
-    portalRef.current = document.body
     setMounted(true)
 
     const prev = document.body.style.overflow
@@ -33,7 +38,7 @@ export function PaywallModal({ onClose }: PaywallModalProps) {
     }
   }, [onClose])
 
-  if (!mounted || !portalRef.current) return null
+  if (!mounted || typeof document === 'undefined') return null
 
   return createPortal(
     <div
@@ -44,74 +49,98 @@ export function PaywallModal({ onClose }: PaywallModalProps) {
     >
       {/* Overlay */}
       <div
-        className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+        className="absolute inset-0 bg-black/45 backdrop-blur-sm"
         onClick={onClose}
         aria-hidden="true"
       />
 
       {/* Card */}
-      <div className="relative w-full max-w-sm rounded-3xl bg-white p-7 shadow-2xl">
+      <div
+        className="relative w-full max-w-sm bg-white shadow-2xl"
+        style={{ borderRadius: '12px', padding: '24px' }}
+      >
         {/* Close button */}
         <button
           type="button"
           onClick={onClose}
           aria-label="Закрыть"
-          className="absolute right-4 top-4 flex h-8 w-8 items-center justify-center rounded-full text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
+          className="absolute flex items-center justify-center rounded-full text-neutral-400 transition-colors hover:bg-neutral-100 hover:text-neutral-700"
+          style={{ top: '12px', right: '12px', height: '32px', width: '32px' }}
         >
-          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-          </svg>
+          <X size={16} strokeWidth={1.8} />
         </button>
 
-        <h2 id="paywall-title" className="text-lg font-bold leading-snug">
+        <h2
+          id="paywall-title"
+          className="font-medium text-neutral-900"
+          style={{ fontSize: '18px', lineHeight: 1.3, letterSpacing: '-0.2px' }}
+        >
           Нужна подписка Kudaclub
         </h2>
-        <p className="mt-1.5 text-sm text-gray-500">
+
+        <p
+          className="text-neutral-500"
+          style={{ fontSize: '13px', lineHeight: 1.5, marginTop: '6px' }}
+        >
           Оформите подписку — и получите доступ ко всем заведениям.
         </p>
 
         {/* Bullets */}
-        <ul className="mt-5 space-y-2.5">
-          {[
-            'Доступ ко всем предложениям в Алматы',
-            'Активация занимает 5 минут через WhatsApp',
-            'Использование: 1 раз в 7 дней на заведение',
-          ].map((text) => (
-            <li key={text} className="flex items-start gap-2.5 text-sm text-gray-700">
-              <svg
-                className="mt-0.5 h-4 w-4 shrink-0 text-gray-400"
-                fill="none"
-                viewBox="0 0 24 24"
-                strokeWidth={2.5}
-                stroke="currentColor"
-              >
-                <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
-              </svg>
-              {text}
+        <ul
+          className="flex list-none flex-col"
+          style={{ marginTop: '20px', gap: '10px' }}
+        >
+          {BULLETS.map((text) => (
+            <li
+              key={text}
+              className="flex items-start text-neutral-700"
+              style={{ fontSize: '13px', lineHeight: 1.5, gap: '10px' }}
+            >
+              <Check
+                size={14}
+                strokeWidth={2}
+                style={{ color: '#a3a3a3', marginTop: '3px', flexShrink: 0 }}
+                aria-hidden="true"
+              />
+              <span>{text}</span>
             </li>
           ))}
         </ul>
 
         {/* Actions */}
-        <div className="mt-7 flex flex-col gap-2.5">
+        <div className="flex flex-col" style={{ marginTop: '24px', gap: '8px' }}>
           <a
             href={WHATSAPP_SUBSCRIBE_URL}
             target="_blank"
             rel="noopener noreferrer"
-            className="flex w-full items-center justify-center rounded-2xl bg-black px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-gray-800 active:scale-[0.98]"
+            className="flex w-full items-center justify-center font-medium text-white transition-opacity hover:opacity-95"
+            style={{
+              background: '#D85A30',
+              borderRadius: '8px',
+              padding: '11px 20px',
+              fontSize: '14px',
+            }}
           >
             Оформить в WhatsApp
           </a>
           <Link
             href="/pricing"
             onClick={onClose}
-            className="flex w-full items-center justify-center rounded-2xl border border-gray-200 px-5 py-3 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50"
+            className="flex w-full items-center justify-center bg-white font-medium text-neutral-700 transition-colors hover:bg-neutral-50"
+            style={{
+              borderWidth: '0.5px',
+              borderStyle: 'solid',
+              borderColor: 'rgb(229 229 229)',
+              borderRadius: '8px',
+              padding: '11px 20px',
+              fontSize: '14px',
+            }}
           >
             Подробнее о подписке
           </Link>
         </div>
       </div>
     </div>,
-    portalRef.current,
+    document.body,
   )
 }

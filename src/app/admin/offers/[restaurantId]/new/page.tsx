@@ -39,6 +39,12 @@ export default async function AdminOfferNewPage({ params }: PageProps) {
 
           <Input name="offer_title" label="Название предложения" placeholder="Например: Паста" required />
           <Input name="offer_terms_short" label="Краткие условия" placeholder="1 строка" required />
+          <Input
+            name="dish_photo_url"
+            label="Фото блюда (URL)"
+            placeholder="https://..."
+            hint="Опционально. Используется как превью в карточке оффера."
+          />
 
           <div className="grid gap-4 sm:grid-cols-2">
             <Input name="estimated_value" type="number" min={0} label="Примерная выгода (₸)" placeholder="3500" />

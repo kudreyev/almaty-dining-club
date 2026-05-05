@@ -89,6 +89,45 @@ function parseOptionalCoordinate(value: FormDataEntryValue | null): number | nul
   return parsed
 }
 
+function parseOptionalExternalRating(value: FormDataEntryValue | null): number | null {
+  const raw = String(value || '').trim()
+  if (!raw) return null
+  const parsed = Number(raw.replace(',', '.'))
+  if (!Number.isFinite(parsed)) {
+    throw new Error('Рейтинг должен быть числом.')
+  }
+  if (parsed < 1 || parsed > 5) {
+    throw new Error('Рейтинг должен быть в диапазоне от 1.0 до 5.0.')
+  }
+  return Math.round(parsed * 10) / 10
+}
+
+function parseOptionalExternalReviewsCount(value: FormDataEntryValue | null): number | null {
+  const raw = String(value || '').trim()
+  if (!raw) return null
+  const parsed = Number.parseInt(raw, 10)
+  if (!Number.isFinite(parsed)) {
+    throw new Error('Количество отзывов должно быть целым числом.')
+  }
+  if (parsed < 0) {
+    throw new Error('Количество отзывов не может быть отрицательным.')
+  }
+  return parsed
+}
+
+function parseTagsList(value: FormDataEntryValue | null): string[] {
+  const raw = String(value || '').trim()
+  if (!raw) return []
+  return Array.from(
+    new Set(
+      raw
+        .split(',')
+        .map((item) => item.trim())
+        .filter((item) => item.length > 0)
+    )
+  )
+}
+
 async function syncPrimaryLocationCoords(
   supabase: Awaited<ReturnType<typeof requireAdmin>>['supabase'],
   restaurantId: string,
@@ -152,9 +191,12 @@ export async function createRestaurant(formData: FormData) {
     instagram_url: String(formData.get('instagram_url') || '') || null,
     website_url: String(formData.get('website_url') || '') || null,
     two_gis_url: String(formData.get('two_gis_url') || '') || null,
+    external_rating: parseOptionalExternalRating(formData.get('external_rating')),
+    external_reviews_count: parseOptionalExternalReviewsCount(formData.get('external_reviews_count')),
     cuisine: String(formData.get('cuisine') || ''),
     cuisine_2: String(formData.get('cuisine_2') || '') || null,
     cuisine_3: String(formData.get('cuisine_3') || '') || null,
+    tags: parseTagsList(formData.get('tags')),
     is_active: formData.get('is_active') === 'on',
   }
 
@@ -209,9 +251,12 @@ export async function updateRestaurant(formData: FormData) {
     instagram_url: String(formData.get('instagram_url') || '') || null,
     website_url: String(formData.get('website_url') || '') || null,
     two_gis_url: String(formData.get('two_gis_url') || '') || null,
+    external_rating: parseOptionalExternalRating(formData.get('external_rating')),
+    external_reviews_count: parseOptionalExternalReviewsCount(formData.get('external_reviews_count')),
     cuisine: String(formData.get('cuisine') || ''),
     cuisine_2: String(formData.get('cuisine_2') || '') || null,
     cuisine_3: String(formData.get('cuisine_3') || '') || null,
+    tags: parseTagsList(formData.get('tags')),
     is_active: formData.get('is_active') === 'on',
   }
 

@@ -10,6 +10,13 @@ export function formatOfferHeadline(offerType: OfferType, offerTitle: string): s
     : `${offerTitle} в подарок`
 }
 
+/** Развёрнутый заголовок оффера с пробелами: «2 за 1 · {название}» / «{название} в подарок». */
+export function formatOfferTitle(offerType: OfferType, offerTitle: string): string {
+  return offerType === '2for1'
+    ? `2 за 1 · ${offerTitle}`
+    : `${offerTitle} в подарок`
+}
+
 /** Лейбл плашки оффера на карточке заведения. */
 export function formatOfferChipLabel(offerType: OfferType, offerTitle: string): string {
   return offerType === '2for1'

@@ -114,6 +114,32 @@ export async function importCsvText(formData: FormData) {
     if (!slug || !name) continue
 
     // 1) Upsert restaurant by slug
+    const tagsRaw = (row.tags || '').trim()
+    const tagsList = tagsRaw
+      ? Array.from(
+          new Set(
+            tagsRaw
+              .split(',')
+              .map((item: string) => item.trim())
+              .filter((item: string) => item.length > 0)
+          )
+        )
+      : null
+
+    const externalRatingRaw = (row.external_rating || '').toString().trim()
+    const externalRating = (() => {
+      if (!externalRatingRaw) return null
+      const parsed = Number(externalRatingRaw.replace(',', '.'))
+      if (!Number.isFinite(parsed)) return null
+      if (parsed < 1 || parsed > 5) return null
+      return Math.round(parsed * 10) / 10
+    })()
+    const externalReviewsCount = (() => {
+      const value = parseOptionalInteger(row.external_reviews_count)
+      if (value == null) return null
+      return value < 0 ? null : value
+    })()
+
     const restaurantPayload: any = {
       restaurant_name: name,
       slug,
@@ -124,11 +150,14 @@ export async function importCsvText(formData: FormData) {
       instagram_url: row.instagram_url || null,
       website_url: row.website_url || null,
       two_gis_url: row.two_gis_url || null,
+      external_rating: externalRating,
+      external_reviews_count: externalReviewsCount,
       cuisine: row.cuisine || '',
       cuisine_2: row.cuisine_2 || null,
       cuisine_3: row.cuisine_3 || null,
       is_active: parseBoolean(row.is_active, true),
     }
+    if (tagsList) restaurantPayload.tags = tagsList
 
     const { data: restaurantUpsert, error: restError } = await supabase
       .from('restaurants')
@@ -171,6 +200,7 @@ export async function importCsvText(formData: FormData) {
         if (value > 365) return 365
         return value
       })(),
+      dish_photo_url: (row.dish_photo_url || '').trim() || null,
       is_active: parseBoolean(row.is_active, true),
     }
 

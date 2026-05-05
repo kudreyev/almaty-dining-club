@@ -28,7 +28,7 @@ function waMeDigits(phoneE164: string) {
 }
 
 function buildManagerWhatsAppHref(phoneTarget: string, publicUrl: string) {
-  const text = `Здравствуйте! Вот ссылка для активации подписки KudaPass на 1 месяц: ${publicUrl}\nВажно: войдите с номера ${phoneTarget}`
+  const text = `Здравствуйте! Вот ссылка для активации подписки Kudaclub на 1 месяц: ${publicUrl}\nВажно: войдите с номера ${phoneTarget}`
   const digits = waMeDigits(phoneTarget)
   return `https://wa.me/${digits}?text=${encodeURIComponent(text)}`
 }

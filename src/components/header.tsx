@@ -43,7 +43,7 @@ export async function Header() {
     <header className="sticky top-0 z-50 border-b border-gray-200/80 bg-white/90 backdrop-blur-lg">
       <div className="mx-auto flex h-14 max-w-6xl items-center justify-between gap-4 px-5">
         <Link href="/" className="text-lg font-bold tracking-tight text-accent">
-          KudaPass
+          Kudaclub
         </Link>
 
         <nav className="hidden items-center gap-1 md:flex">

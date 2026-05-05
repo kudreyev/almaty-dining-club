@@ -50,6 +50,13 @@ export default async function AdminOfferEditPage({ params }: PageProps) {
 
           <Input name="offer_title" label="Название предложения" defaultValue={offer.offer_title ?? ''} required />
           <Input name="offer_terms_short" label="Краткие условия" defaultValue={offer.offer_terms_short} required />
+          <Input
+            name="dish_photo_url"
+            label="Фото блюда (URL)"
+            placeholder="https://..."
+            defaultValue={offer.dish_photo_url ?? ''}
+            hint="Опционально. Используется как превью в карточке оффера."
+          />
 
           <div className="grid gap-4 sm:grid-cols-2">
             <Input

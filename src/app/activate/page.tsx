@@ -71,7 +71,7 @@ export default async function ActivatePage({
         <div className="rounded-3xl border border-gray-200 bg-white p-8 shadow-sm">
           <h1 className="text-xl font-semibold">Ссылка недействительна</h1>
           <p className="mt-3 text-sm text-gray-600">
-            Проверьте ссылку или запросите новую у менеджера KudaPass.
+            Проверьте ссылку или запросите новую у менеджера Kudaclub.
           </p>
           <CtaRow primaryHref="/" primaryText="Перейти к заведениям" />
         </div>

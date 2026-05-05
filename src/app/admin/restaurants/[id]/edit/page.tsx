@@ -36,8 +36,11 @@ type RestaurantRecord = {
   cuisine: string
   cuisine_2: string | null
   cuisine_3: string | null
+  tags: string[] | null
   instagram_url: string | null
   two_gis_url: string | null
+  external_rating: number | null
+  external_reviews_count: number | null
   phone: string | null
   whatsapp_phone: string | null
   is_active: boolean
@@ -59,8 +62,11 @@ export default async function AdminRestaurantEditPage({ params, searchParams }: 
         cuisine,
         cuisine_2,
         cuisine_3,
+        tags,
         instagram_url,
         two_gis_url,
+        external_rating,
+        external_reviews_count,
         phone,
         whatsapp_phone,
         is_active
@@ -112,8 +118,50 @@ export default async function AdminRestaurantEditPage({ params, searchParams }: 
             <Input name="cuisine_2" label="Кухня 2" defaultValue={r.cuisine_2 ?? ''} placeholder="Опционально" />
             <Input name="cuisine_3" label="Кухня 3" defaultValue={r.cuisine_3 ?? ''} placeholder="Опционально" />
           </div>
+          <Input
+            name="tags"
+            label="Теги (через запятую)"
+            defaultValue={(r.tags ?? []).join(', ')}
+            placeholder="Ужины, Свидания, Винная карта"
+          />
           <Input name="instagram_url" label="Instagram" defaultValue={r.instagram_url ?? ''} />
-          <Input name="two_gis_url" label="2GIS" defaultValue={r.two_gis_url ?? ''} placeholder="Ссылка 2GIS" />
+
+          <fieldset className="rounded-xl border border-gray-200 p-4">
+            <legend className="px-2 text-sm font-medium text-gray-700">Информация из 2GIS</legend>
+            <div className="space-y-4">
+              <Input
+                name="two_gis_url"
+                label="Ссылка 2GIS"
+                defaultValue={r.two_gis_url ?? ''}
+                placeholder="https://2gis.kz/almaty/firm/..."
+              />
+              <div className="grid gap-4 sm:grid-cols-2">
+                <Input
+                  name="external_rating"
+                  type="number"
+                  step={0.1}
+                  min={1}
+                  max={5}
+                  label="Рейтинг 2GIS"
+                  placeholder="4.7"
+                  defaultValue={r.external_rating == null ? '' : String(r.external_rating)}
+                />
+                <Input
+                  name="external_reviews_count"
+                  type="number"
+                  step={1}
+                  min={0}
+                  label="Количество отзывов 2GIS"
+                  placeholder="312"
+                  defaultValue={r.external_reviews_count == null ? '' : String(r.external_reviews_count)}
+                />
+              </div>
+              <p className="text-sm text-gray-500">
+                Все три поля опциональные. Рейтинг будет показан на странице заведения только если все три поля заполнены.
+              </p>
+            </div>
+          </fieldset>
+
           <div>
             <label className="mb-1.5 block text-base font-medium text-gray-700">Телефон</label>
             <PhoneInput name="phone" defaultValue={r.phone ?? ''} className="w-full rounded-xl border border-gray-200 px-4 py-3 text-base outline-none transition-colors focus:border-accent" />

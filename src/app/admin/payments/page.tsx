@@ -1,6 +1,10 @@
 import { redirect } from 'next/navigation'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
-import { approvePaymentRequest, rejectPaymentRequest } from './actions'
+import {
+  approvePaymentRequest,
+  editPaymentRequestAmount,
+  rejectPaymentRequest,
+} from './actions'
 import { paymentStatusLabel } from '@/lib/labels'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -107,11 +111,27 @@ export default async function AdminPaymentsPage() {
                 </div>
 
                 {item.status === 'pending' ? (
-                  <div className="flex shrink-0 gap-2 sm:flex-col">
+                  <div className="flex shrink-0 flex-col gap-3 sm:w-48">
+                    <form action={editPaymentRequestAmount} className="flex flex-col gap-2">
+                      <input type="hidden" name="paymentRequestId" value={item.id} />
+                      <label className="text-xs text-gray-500">
+                        Сумма (₸)
+                        <input
+                          name="newAmount"
+                          type="number"
+                          min={1}
+                          step={1}
+                          defaultValue={item.amount}
+                          required
+                          className="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2 text-sm"
+                        />
+                      </label>
+                      <Button type="submit" variant="secondary" size="sm" className="w-full">
+                        Сохранить сумму
+                      </Button>
+                    </form>
                     <form action={approvePaymentRequest}>
                       <input type="hidden" name="paymentRequestId" value={item.id} />
-                      <input type="hidden" name="userId" value={item.user_id} />
-                      <input type="hidden" name="amount" value={item.amount} />
                       <Button type="submit" size="sm" className="w-full">
                         Подтвердить
                       </Button>

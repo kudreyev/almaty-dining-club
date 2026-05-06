@@ -181,7 +181,7 @@ export function YandexRestaurantsMap({ places }: { places: MapPlace[] }) {
 
           if (safePlaces.length > 0) {
             const clusterer = new ymaps.Clusterer({
-              preset: 'islands#invertedNightClusterIcons',
+              preset: 'islands#darkOrangeClusterIcons',
               groupByCoordinates: false,
             })
 
@@ -197,7 +197,7 @@ export function YandexRestaurantsMap({ places }: { places: MapPlace[] }) {
                     hintContent: place.name,
                   },
                   {
-                    preset: 'islands#blackCircleDotIcon',
+                    preset: 'islands#darkOrangeCircleDotIcon',
                   }
                 )
               }

@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { useState, useTransition } from 'react'
+import { useEffect, useState, useTransition } from 'react'
 import { LogoutButton } from '@/components/logout-button'
 import { activateAction, type ActivateActionResult } from './actions'
 
@@ -63,13 +63,20 @@ export function ActivateCard({ token, phoneTarget }: ActivateCardProps) {
   const [status, setStatus] = useState<Status>({ kind: 'idle' })
   const [isPending, startTransition] = useTransition()
 
+  useEffect(() => {
+    if (status.kind !== 'success') return
+    const id = window.setTimeout(() => {
+      router.push('/app/me?activated=true')
+    }, 2000)
+    return () => window.clearTimeout(id)
+  }, [status, router])
+
   function handleActivate() {
     setStatus({ kind: 'loading' })
     startTransition(async () => {
       const result = await activateAction(token)
       if (result.ok) {
         setStatus({ kind: 'success' })
-        router.refresh()
         return
       }
       setStatus({ kind: 'error', reason: result.reason })
@@ -82,7 +89,7 @@ export function ActivateCard({ token, phoneTarget }: ActivateCardProps) {
         <div className="rounded-3xl border border-gray-200 bg-white p-8 shadow-sm">
           <h1 className="text-xl font-semibold">Подписка активирована ✅</h1>
           <p className="mt-3 text-sm text-gray-600">
-            Готово! Подписка активирована на 30 дней. Можно сразу выбирать заведения и офферы.
+            Готово! Подписка активирована на 30 дней. Можно сразу выбирать заведения и офферы. Через пару секунд откроется личный кабинет — или перейдите сами.
           </p>
           <div className="mt-6 flex flex-wrap gap-3">
             <Link
@@ -92,7 +99,7 @@ export function ActivateCard({ token, phoneTarget }: ActivateCardProps) {
               Перейти к заведениям
             </Link>
             <Link
-              href="/app/me"
+              href="/app/me?activated=true"
               className="inline-flex rounded-md border border-gray-300 bg-white px-5 py-3 text-sm font-medium text-gray-900 transition-colors hover:bg-gray-50"
             >
               Открыть кабинет

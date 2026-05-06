@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { prepareRestaurantPhotoVariants } from '@/lib/image/client-image-variants'
+import { getFallbackByContext, getUserFacingError } from '@/lib/safe-errors'
 
 const MAX_FILES_PER_UPLOAD = 10
 
@@ -91,7 +92,7 @@ export function RestaurantPhotoUpload({ restaurantId }: RestaurantPhotoUploadPro
       router.refresh()
     } catch (uploadError) {
       setStatus(null)
-      setError(uploadError instanceof Error ? uploadError.message : 'Ошибка загрузки фотографий.')
+      setError(getUserFacingError(uploadError, getFallbackByContext('photo-upload')))
     } finally {
       setIsUploading(false)
     }

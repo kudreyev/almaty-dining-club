@@ -3,6 +3,7 @@
 import { redirect } from 'next/navigation'
 import { requireAdmin } from '@/lib/admin'
 import { DEFAULT_OFFER_COOLDOWN_DAYS } from '@/lib/offers'
+import { logServerError } from '@/lib/safe-errors'
 
 type Row = Record<string, string>
 
@@ -166,7 +167,8 @@ export async function importCsvText(formData: FormData) {
       .single()
 
     if (restError || !restaurantUpsert?.id) {
-      redirect(`/admin/import?error=restaurant_upsert_failed:${encodeURIComponent(restError?.message || slug)}`)
+      logServerError('admin/import/restaurant-upsert', restError ?? new Error('missing restaurant id'))
+      redirect('/admin/import?error=restaurant_upsert_failed')
     }
 
     restaurantsUpserted++
@@ -178,7 +180,7 @@ export async function importCsvText(formData: FormData) {
     const offerKey = (row.offer_key || '').trim()
 
     if (!offerKey) {
-      redirect(`/admin/import?error=missing_offer_key_for_slug:${encodeURIComponent(slug)}`)
+      redirect(`/admin/import?error=missing_offer_key&slug=${encodeURIComponent(slug)}`)
     }
 
     const offerPayload: any = {
@@ -210,7 +212,8 @@ export async function importCsvText(formData: FormData) {
         .upsert(offerPayload, { onConflict: 'restaurant_id,offer_key' })
 
       if (offerError) {
-        redirect(`/admin/import?error=offer_upsert_failed:${encodeURIComponent(offerError.message)}`)
+        logServerError('admin/import/offer-upsert', offerError)
+        redirect('/admin/import?error=offer_upsert_failed')
       }
       offersInserted++
     }
@@ -235,7 +238,8 @@ export async function importCsvText(formData: FormData) {
           .eq('id', existingStaff.id)
 
         if (staffUpdateError) {
-          redirect(`/admin/import?error=staff_update_failed:${encodeURIComponent(staffUpdateError.message)}`)
+          logServerError('admin/import/staff-update', staffUpdateError)
+          redirect('/admin/import?error=staff_update_failed')
         }
       } else {
         const { error: staffInsertError } = await supabase
@@ -243,7 +247,8 @@ export async function importCsvText(formData: FormData) {
           .insert({ restaurant_id: restaurantId, staff_name: staffName, pin_code: pin, is_active: isActive })
 
         if (staffInsertError) {
-          redirect(`/admin/import?error=staff_insert_failed:${encodeURIComponent(staffInsertError.message)}`)
+          logServerError('admin/import/staff-insert', staffInsertError)
+          redirect('/admin/import?error=staff_insert_failed')
         }
       }
 

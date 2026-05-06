@@ -3,10 +3,7 @@
 import { redirect } from 'next/navigation'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { establishStaffBrowserSession, clearStaffSession } from '@/lib/staff-session'
-
-function toQuery(value: string) {
-  return encodeURIComponent(value)
-}
+import { logServerError } from '@/lib/safe-errors'
 
 export async function loginStaff(formData: FormData) {
   const restaurantId = String(formData.get('restaurantId') || '').trim()
@@ -26,7 +23,8 @@ export async function loginStaff(formData: FormData) {
     .limit(10)
 
   if (error) {
-    redirect(`/staff/login?error=db_error&message=${toQuery(error.message)}`)
+    logServerError('staff/login/fetch-staff', error)
+    redirect('/staff/login?error=db_error')
   }
 
   if (!rows || rows.length === 0) {

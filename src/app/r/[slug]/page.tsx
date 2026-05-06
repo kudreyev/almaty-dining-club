@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
+import { logServerError } from '@/lib/safe-errors'
 import {
   getCurrentUserSubscription,
   isSubscriptionCurrentlyActive,
@@ -225,11 +226,12 @@ export default async function RestaurantPage({ params }: PageProps) {
       : {}
 
   if (offersError) {
+    logServerError('r/[slug]/offers', offersError)
     return (
       <main className="mx-auto max-w-3xl">
         <h1 className="px-5 py-10 text-2xl font-medium">{restaurant.restaurant_name}</h1>
         <p className="px-5 text-sm text-red-600">
-          Ошибка загрузки офферов: {offersError.message}
+          Не удалось загрузить офферы.
         </p>
       </main>
     )

@@ -3,13 +3,33 @@ import { importCsvText } from './actions'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 
+function describeImportError(errorKey: string, slug?: string) {
+  const code = errorKey.split(':')[0] ?? errorKey
+  const labels: Record<string, string> = {
+    empty_csv: 'Файл пуст.',
+    no_headers: 'Не найдена строка заголовков.',
+    no_rows: 'Нет строк данных.',
+    restaurant_upsert_failed: 'Не удалось сохранить заведение (проверьте строку в CSV).',
+    missing_offer_key_for_slug: 'Не указан offer_key для строки.',
+    missing_offer_key: 'Не указан offer_key для строки.',
+    offer_upsert_failed: 'Не удалось сохранить оффер.',
+    staff_update_failed: 'Не удалось обновить персонал.',
+    staff_insert_failed: 'Не удалось создать запись персонала.',
+  }
+  const base = labels[code] ?? 'Ошибка импорта.'
+  if (code === 'missing_offer_key_for_slug' || code === 'missing_offer_key') {
+    return slug ? `${base} Slug: ${slug}.` : base
+  }
+  return base
+}
+
 type PageProps = {
-  searchParams: Promise<{ ok?: string; error?: string }>
+  searchParams: Promise<{ ok?: string; error?: string; slug?: string }>
 }
 
 export default async function AdminImportPage({ searchParams }: PageProps) {
   await requireAdmin()
-  const { ok, error } = await searchParams
+  const { ok, error, slug } = await searchParams
 
   return (
     <div className="mx-auto max-w-3xl px-5 py-8">
@@ -28,7 +48,7 @@ export default async function AdminImportPage({ searchParams }: PageProps) {
 
       {error ? (
         <div className="mb-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-base text-red-700">
-          Ошибка: {error}
+          {describeImportError(error, slug)}
         </div>
       ) : null}
 

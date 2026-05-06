@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { safeLog } from '@/lib/safe-logger'
+import { getFallbackByContext, getUserFacingError } from '@/lib/safe-errors'
 
 type MapPlace = {
   slug: string
@@ -227,8 +228,7 @@ export function YandexRestaurantsMap({ places }: { places: MapPlace[] }) {
         })
       })
       .catch((loadError: unknown) => {
-        const message = loadError instanceof Error ? loadError.message : 'Не удалось загрузить карту.'
-        setError(message)
+        setError(getUserFacingError(loadError, getFallbackByContext('map')))
       })
 
     return () => {

@@ -10,6 +10,7 @@ import { EmptyState } from '@/components/ui/empty-state'
 import { RestaurantPhotoUpload } from '@/components/admin/restaurant-photo-upload'
 import { RestaurantHoursFields } from '@/components/admin/restaurant-hours-fields'
 import type { RestaurantHour } from '@/lib/opening-hours'
+import { getFallbackByContext } from '@/lib/safe-errors'
 
 type PageProps = {
   params: Promise<{ id: string }>
@@ -202,7 +203,7 @@ export default async function AdminRestaurantEditPage({ params, searchParams }: 
 
       {photoError ? (
         <div className="mt-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-base text-red-700">
-          Ошибка: {photoError}
+          {getFallbackByContext('photo-upload')}
         </div>
       ) : null}
 

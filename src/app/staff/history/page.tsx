@@ -8,6 +8,7 @@ import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { EmptyState } from '@/components/ui/empty-state'
+import { logServerError } from '@/lib/safe-errors'
 
 type Restaurant = {
   id: string
@@ -54,10 +55,11 @@ export default async function StaffHistoryPage() {
     .returns<StaffRedemption[]>()
 
   if (error) {
+    logServerError('staff/history/redemptions', error)
     return (
       <div className="mx-auto max-w-3xl px-5 py-10">
         <h1 className="text-xl font-bold">История погашений</h1>
-        <p className="mt-4 text-sm text-red-600">Ошибка: {error.message}</p>
+        <p className="mt-4 text-sm text-red-600">Не удалось загрузить историю.</p>
       </div>
     )
   }

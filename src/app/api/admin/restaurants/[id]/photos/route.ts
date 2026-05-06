@@ -2,6 +2,11 @@ import { revalidatePath } from 'next/cache'
 import { NextResponse } from 'next/server'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
+import {
+  getFallbackByContext,
+  getUserFacingError,
+  logServerError,
+} from '@/lib/safe-errors'
 
 const RESTAURANT_PHOTO_BUCKET = 'restaurant-photos'
 const MAX_FILES_PER_UPLOAD = 10
@@ -34,7 +39,8 @@ async function ensureAdmin() {
     .maybeSingle<{ role: string | null }>()
 
   if (profileError) {
-    return { ok: false as const, response: jsonError(`Ошибка проверки прав: ${profileError.message}`, 500) }
+    logServerError('api/admin/photos/ensureAdmin', profileError)
+    return { ok: false as const, response: jsonError(getFallbackByContext('auth'), 500) }
   }
 
   if (!profile || profile.role !== 'admin') {
@@ -193,6 +199,10 @@ export async function POST(request: Request, { params }: RouteParams) {
     if (uploadedPaths.length > 0) {
       await admin.storage.from(RESTAURANT_PHOTO_BUCKET).remove(uploadedPaths)
     }
-    return jsonError(error instanceof Error ? error.message : 'Ошибка при загрузке фотографий.', 500)
+    logServerError('api/admin/photos/POST', error)
+    return jsonError(
+      getUserFacingError(error, getFallbackByContext('photo-upload')),
+      500
+    )
   }
 }

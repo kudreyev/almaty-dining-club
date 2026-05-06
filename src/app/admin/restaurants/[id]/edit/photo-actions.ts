@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { requireAdmin } from '@/lib/admin'
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
+import { logServerError } from '@/lib/safe-errors'
 
 const RESTAURANT_PHOTO_BUCKET = 'restaurant-photos'
 
@@ -19,19 +20,14 @@ type RestaurantPhotoRow = {
 
 type ReorderDirection = 'up' | 'down'
 
-function redirectToEditWithError(restaurantId: string, message: string): never {
+function redirectToEditWithError(restaurantId: string): never {
   const basePath = restaurantId ? `/admin/restaurants/${restaurantId}/edit` : '/admin/restaurants'
-  redirect(`${basePath}?photoError=${encodeURIComponent(message)}`)
+  redirect(`${basePath}?photoError=1`)
 }
 
 function redirectToEditWithOk(restaurantId: string): never {
   const basePath = restaurantId ? `/admin/restaurants/${restaurantId}/edit` : '/admin/restaurants'
   redirect(`${basePath}?photoOk=1`)
-}
-
-function toMessage(error: unknown): string {
-  if (error instanceof Error && error.message) return error.message
-  return 'Не удалось выполнить операцию с фотографиями.'
 }
 
 async function getRestaurantOrThrow(admin: ReturnType<typeof createSupabaseAdminClient>, restaurantId: string) {
@@ -61,7 +57,7 @@ export async function deleteRestaurantPhoto(formData: FormData) {
   const photoId = String(formData.get('photoId') || '').trim()
 
   if (!restaurantId || !photoId) {
-    redirectToEditWithError(restaurantId, 'Не хватает данных для удаления фото.')
+    redirectToEditWithError(restaurantId)
   }
 
   const admin = createSupabaseAdminClient()
@@ -97,7 +93,8 @@ export async function deleteRestaurantPhoto(formData: FormData) {
     await revalidateRestaurantPhotoPages(restaurant)
     redirectToEditWithOk(restaurantId)
   } catch (error) {
-    redirectToEditWithError(restaurantId, toMessage(error))
+    logServerError('admin/photo-actions/deleteRestaurantPhoto', error)
+    redirectToEditWithError(restaurantId)
   }
 }
 
@@ -109,7 +106,7 @@ export async function reorderRestaurantPhoto(formData: FormData) {
   const direction = String(formData.get('direction') || '') as ReorderDirection
 
   if (!restaurantId || !photoId || (direction !== 'up' && direction !== 'down')) {
-    redirectToEditWithError(restaurantId, 'Не хватает данных для сортировки фото.')
+    redirectToEditWithError(restaurantId)
   }
 
   const admin = createSupabaseAdminClient()
@@ -165,6 +162,7 @@ export async function reorderRestaurantPhoto(formData: FormData) {
     await revalidateRestaurantPhotoPages(restaurant)
     redirectToEditWithOk(restaurantId)
   } catch (error) {
-    redirectToEditWithError(restaurantId, toMessage(error))
+    logServerError('admin/photo-actions/reorderRestaurantPhoto', error)
+    redirectToEditWithError(restaurantId)
   }
 }

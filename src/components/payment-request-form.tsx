@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createSupabaseBrowserClient } from '@/lib/supabase/client'
+import { getFallbackByContext, getUserFacingError } from '@/lib/safe-errors'
 
 export function PaymentRequestForm({
   userId,
@@ -36,7 +37,7 @@ export function PaymentRequestForm({
     setLoading(false)
 
     if (error) {
-      setError(error.message)
+      setError(getUserFacingError(error, getFallbackByContext('payment-request')))
       return
     }
 

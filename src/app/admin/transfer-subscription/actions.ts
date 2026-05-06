@@ -5,6 +5,11 @@ import { requireAdmin } from '@/lib/admin'
 import { normalizeKZPhone } from '@/lib/kz-phone'
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 import { logAnalyticsEvent } from '@/lib/analytics'
+import {
+  getFallbackByContext,
+  getUserFacingError,
+  logServerError,
+} from '@/lib/safe-errors'
 
 function toSyntheticEmail(phoneE164: string) {
   const digits = phoneE164.replace(/\D/g, '')
@@ -92,7 +97,11 @@ export async function transferSubscription(formData: FormData): Promise<Transfer
       .eq('id', existingToSub.id)
 
     if (updateError) {
-      return { ok: false, error: `Ошибка обновления подписки получателя: ${updateError.message}` }
+      logServerError('transfer-subscription/update-recipient', updateError)
+      return {
+        ok: false,
+        error: getUserFacingError(updateError, getFallbackByContext('transfer-subscription')),
+      }
     }
   } else {
     const { error: insertError } = await admin.from('subscriptions').insert({
@@ -104,7 +113,11 @@ export async function transferSubscription(formData: FormData): Promise<Transfer
     })
 
     if (insertError) {
-      return { ok: false, error: `Ошибка создания подписки: ${insertError.message}` }
+      logServerError('transfer-subscription/insert-recipient', insertError)
+      return {
+        ok: false,
+        error: getUserFacingError(insertError, getFallbackByContext('transfer-subscription')),
+      }
     }
   }
 

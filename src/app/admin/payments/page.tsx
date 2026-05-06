@@ -10,6 +10,7 @@ import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { EmptyState } from '@/components/ui/empty-state'
+import { logServerError } from '@/lib/safe-errors'
 
 type PaymentRequest = {
   id: string
@@ -60,10 +61,11 @@ export default async function AdminPaymentsPage() {
     .returns<PaymentRequest[]>()
 
   if (error) {
+    logServerError('admin/payments', error)
     return (
       <div className="mx-auto max-w-5xl px-5 py-10">
         <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">Заявки на оплату</h1>
-        <p className="mt-4 text-base text-red-600">Ошибка: {error.message}</p>
+        <p className="mt-4 text-base text-red-600">Не удалось загрузить заявки.</p>
       </div>
     )
   }

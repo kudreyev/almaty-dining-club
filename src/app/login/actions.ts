@@ -10,6 +10,7 @@ import { normalizeToE164Like } from '@/lib/kz-phone'
 import { ensureProfilePhone } from '@/lib/profile-sync'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { safeLog } from '@/lib/safe-logger'
+import { getFallbackByContext, getUserFacingError, logServerError } from '@/lib/safe-errors'
 import type { EmailOtpType } from '@supabase/supabase-js'
 
 const WA_CHALLENGE_CODE_HASH_COOKIE = 'wa_challenge_code_hash'
@@ -130,10 +131,10 @@ export async function sendWhatsAppLogin(
       message: 'Мы отправили 6-значный код в WhatsApp.',
     }
   } catch (error) {
-    const text = error instanceof Error ? error.message : 'Неизвестная ошибка'
+    logServerError('login/sendWhatsAppLogin', error)
     return {
       ok: false,
-      error: text,
+      error: getUserFacingError(error, getFallbackByContext('auth')),
     }
   }
 }

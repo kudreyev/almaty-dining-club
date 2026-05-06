@@ -1,5 +1,6 @@
 export const revalidate = 300
 import { createSupabaseServerClient } from '@/lib/supabase/server'
+import { logServerError } from '@/lib/safe-errors'
 import { VenuesSection } from '@/components/home/venues-section'
 import { DEFAULT_TZ, computeOpenStatus, type RestaurantHour } from '@/lib/opening-hours'
 import type { Offer, RestaurantWithStatus } from '@/lib/types'
@@ -40,10 +41,11 @@ export default async function AlmatyPage() {
     .order('restaurant_name', { ascending: true })
 
   if (error) {
+    logServerError('almaty/restaurants', error)
     return (
       <div className="mx-auto max-w-5xl px-5 py-10">
         <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">Заведения Алматы</h1>
-        <p className="mt-4 text-base text-red-600">Ошибка: {error.message}</p>
+        <p className="mt-4 text-base text-red-600">Не удалось загрузить список заведений.</p>
       </div>
     )
   }

@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { requireAdmin } from '@/lib/admin'
 import { listingVisibilityLabel } from '@/lib/labels'
+import { logServerError } from '@/lib/safe-errors'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -12,6 +13,10 @@ export default async function AdminRestaurantsPage() {
     .from('restaurants')
     .select('id, restaurant_name, slug, address, is_active')
     .order('restaurant_name', { ascending: true })
+
+  if (restaurantsError) {
+    logServerError('admin/restaurants', restaurantsError)
+  }
 
   return (
     <div className="mx-auto max-w-4xl px-5 py-8">
@@ -38,7 +43,7 @@ export default async function AdminRestaurantsPage() {
 
       {restaurantsError ? (
         <div className="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-          Не удалось загрузить заведения: {restaurantsError.message}
+          Не удалось загрузить список заведений.
         </div>
       ) : null}
 

@@ -1,4 +1,5 @@
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
+import { safeLog } from '@/lib/safe-logger'
 import type { EmailOtpType } from '@supabase/supabase-js'
 
 const PHONE_E164_REGEX = /^\+[1-9]\d{7,14}$/
@@ -96,7 +97,10 @@ async function ensureAuthUserForPhone(phoneE164: string) {
   })
 
   if (!createError) {
-    console.log('[whatsapp-login] new auth user created:', createData.user?.id, phoneE164)
+    safeLog.logAuth('whatsapp-login:new-user', {
+      userId: createData.user?.id,
+      phone: phoneE164,
+    })
     return email
   }
 
@@ -107,7 +111,7 @@ async function ensureAuthUserForPhone(phoneE164: string) {
 
   // User already exists — that's fine. Phone will be saved to profiles
   // via the phoneE164 cookie set in setWhatsAppChallengeCookies.
-  console.log('[whatsapp-login] user already exists for phone:', phoneE164)
+  safeLog.logAuth('whatsapp-login:user-exists', { phone: phoneE164 })
   return email
 }
 

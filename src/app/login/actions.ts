@@ -9,6 +9,7 @@ import {
 import { normalizeToE164Like } from '@/lib/kz-phone'
 import { ensureProfilePhone } from '@/lib/profile-sync'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
+import { safeLog } from '@/lib/safe-logger'
 import type { EmailOtpType } from '@supabase/supabase-js'
 
 const WA_CHALLENGE_CODE_HASH_COOKIE = 'wa_challenge_code_hash'
@@ -182,15 +183,14 @@ export async function verifyWhatsAppLoginCode(
         ? data.user.user_metadata.phone_e164
         : null)
 
-    console.log('[verifyWhatsAppLoginCode] user.id:', data.user.id)
-    console.log('[verifyWhatsAppLoginCode] phoneFromCookie:', phoneFromCookie)
-    console.log('[verifyWhatsAppLoginCode] user_metadata:', JSON.stringify(data.user.user_metadata))
-    console.log('[verifyWhatsAppLoginCode] phoneE164 resolved:', phoneE164)
+    safeLog.logAuth('verifyWhatsAppLoginCode', {
+      userId: data.user.id,
+      phone: phoneE164,
+    })
 
     await ensureProfilePhone(data.user.id, phoneE164)
-    console.log('[verifyWhatsAppLoginCode] ensureProfilePhone done')
   } else {
-    console.warn('[verifyWhatsAppLoginCode] verifyOtp returned no user:', JSON.stringify(data))
+    safeLog.warn('[verifyWhatsAppLoginCode] verifyOtp returned no user')
   }
 
   await clearWhatsAppChallengeCookies()

@@ -13,6 +13,17 @@ const eslintConfig = defineConfig([
     "build/**",
     "next-env.d.ts",
   ]),
+  {
+    rules: {
+      "no-console": "warn",
+    },
+  },
+  {
+    files: ["src/lib/safe-logger.ts"],
+    rules: {
+      "no-console": "off",
+    },
+  },
 ]);
 
 export default eslintConfig;

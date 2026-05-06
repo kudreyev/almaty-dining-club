@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { safeLog } from '@/lib/safe-logger'
 
 type MapPlace = {
   slug: string
@@ -56,16 +57,20 @@ function warnIfSuspiciousCoords(lat: number, lng: number, context: string) {
   if (process.env.NODE_ENV === 'production') return
 
   if (Math.abs(lat) > 90 || Math.abs(lng) > 180) {
-    // eslint-disable-next-line no-console
-    console.warn(`[map] suspicious coords (world bounds) ${context}: lat=${lat} lng=${lng}`)
+    safeLog.warn(`[map] suspicious coords (world bounds) ${context}`, {
+      lat: Math.round(lat * 1e5) / 1e5,
+      lng: Math.round(lng * 1e5) / 1e5,
+    })
     return
   }
 
   // Алматы: грубая проверка диапазона, чтобы отлавливать swap lat/lng.
   const looksLikeAlmaty = lat >= 41 && lat <= 46 && lng >= 72 && lng <= 82
   if (!looksLikeAlmaty) {
-    // eslint-disable-next-line no-console
-    console.warn(`[map] coords out of Almaty range ${context}: lat=${lat} lng=${lng}`)
+    safeLog.warn(`[map] coords out of Almaty range ${context}`, {
+      lat: Math.round(lat * 1e5) / 1e5,
+      lng: Math.round(lng * 1e5) / 1e5,
+    })
   }
 }
 

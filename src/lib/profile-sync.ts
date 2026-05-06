@@ -1,4 +1,5 @@
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
+import { safeLog } from '@/lib/safe-logger'
 
 /**
  * Safely writes phone into public.profiles without overwriting the existing role.
@@ -24,7 +25,7 @@ export async function ensureProfilePhone(
 
   const admin = createSupabaseAdminClient()
 
-  console.log('[ensureProfilePhone] syncing phone for user:', userId, phone)
+  safeLog.logAuth('ensureProfilePhone', { userId, phone })
 
   try {
     // New-user path: insert full row with default role.
@@ -33,11 +34,14 @@ export async function ensureProfilePhone(
       .insert({ id: userId, phone, role: 'user' })
 
     if (!insertError) {
-      console.log('[ensureProfilePhone] inserted new profile with phone')
+      safeLog.info('[ensureProfilePhone] inserted new profile')
       return
     }
 
-    console.log('[ensureProfilePhone] insert conflict, updating existing profile. insert error:', insertError.message)
+    safeLog.info('[ensureProfilePhone] insert conflict, updating existing profile', {
+      insertCode: insertError.code,
+      insertMessage: insertError.message,
+    })
 
     // Existing-user path: only update phone, preserving role and all other fields.
     const { error: updateError } = await admin
@@ -46,11 +50,11 @@ export async function ensureProfilePhone(
       .eq('id', userId)
 
     if (updateError) {
-      console.error('[ensureProfilePhone] update failed:', updateError.message)
+      safeLog.error('[ensureProfilePhone] update failed', updateError)
     } else {
-      console.log('[ensureProfilePhone] updated phone for existing profile')
+      safeLog.info('[ensureProfilePhone] updated phone for existing profile')
     }
   } catch (err) {
-    console.error('[ensureProfilePhone] unexpected error:', err)
+    safeLog.error('[ensureProfilePhone] unexpected error', err)
   }
 }

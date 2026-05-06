@@ -255,8 +255,7 @@ export function VenuesSection({
           ) : null}
           <Link
             href={mapHref}
-            className="inline-flex items-center gap-1.5 rounded-full border bg-white px-3.5 py-1.5 text-sm text-neutral-900 transition-colors hover:border-neutral-400 hover:bg-neutral-50"
-            style={{ borderColor: 'var(--color-neutral-200, #e5e5e5)', borderWidth: '0.5px' }}
+            className="inline-flex items-center gap-1.5 rounded-full bg-primary px-3.5 py-1.5 text-sm font-medium text-white transition-colors hover:bg-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2"
           >
             <MapIcon size={12} aria-hidden="true" />
             Карта

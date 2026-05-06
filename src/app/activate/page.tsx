@@ -2,17 +2,17 @@ import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import {
-  completeActivation,
   getActivationLinkByToken,
   precheckActivationLink,
 } from '@/lib/activation-links'
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
-import { LogoutButton } from '@/components/logout-button'
 import { logAnalyticsEvent } from '@/lib/analytics'
 import { normalizeKZPhone } from '@/lib/kz-phone'
+import { ActivateCard } from './activate-card'
 
 const WHATSAPP_SUPPORT_URL =
-  'https://wa.me/77066059899?text=%D0%97%D0%B4%D1%80%D0%B0%D0%B2%D1%81%D1%82%D0%B2%D1%83%D0%B9%D1%82%D0%B5%21%20%D0%9D%D1%83%D0%B6%D0%BD%D0%B0%20%D0%BF%D0%BE%D0%BC%D0%BE%D1%89%D1%8C%20%D1%81%20%D0%B0%D0%BA%D1%82%D0%B8%D0%B2%D0%B0%D1%86%D0%B8%D0%B5%D0%B9%20%D0%BF%D0%BE%D0%B4%D0%BF%D0%B8%D1%81%D0%BA%D0%B8%20KudaPass'
+  'https://wa.me/77066059899?text=' +
+  encodeURIComponent('Здравствуйте! Нужна помощь с активацией подписки Kudaclub')
 
 function loginRedirectWithNext(token: string, phoneTarget: string): never {
   const qs = new URLSearchParams()
@@ -56,15 +56,17 @@ export default async function ActivatePage({
     redirect('/pricing')
   }
 
-  const row = await getActivationLinkByToken(token.trim())
+  const trimmedToken = token.trim()
+
+  const row = await getActivationLinkByToken(trimmedToken)
   if (!row) {
     await logAnalyticsEvent({
       event_name: 'activation_opened',
-      token: token.trim(),
+      token: trimmedToken,
     })
     await logAnalyticsEvent({
       event_name: 'activation_not_found',
-      token: token.trim(),
+      token: trimmedToken,
     })
     return (
       <main className="mx-auto max-w-lg px-6 py-16">
@@ -185,104 +187,8 @@ export default async function ActivatePage({
       token: row.token,
       phone_target: row.phone_target,
     })
-    loginRedirectWithNext(token.trim(), row.phone_target)
+    loginRedirectWithNext(trimmedToken, row.phone_target)
   }
 
-  const result = await completeActivation({
-    userId: user.id,
-    token: token.trim(),
-  })
-
-  if (result.ok) {
-    await logAnalyticsEvent({
-      event_name: 'activation_activated',
-      activation_link_id: row.id,
-      token: row.token,
-      phone_target: row.phone_target,
-      user_id: user.id,
-    })
-    return (
-      <main className="mx-auto max-w-lg px-6 py-16">
-        <div className="rounded-3xl border border-gray-200 bg-white p-8 shadow-sm">
-          <h1 className="text-xl font-semibold">Подписка активирована ✅</h1>
-          <p className="mt-3 text-sm text-gray-600">
-            Готово! Подписка активирована на 30 дней. Можно сразу выбирать заведения и офферы.
-          </p>
-          <div className="mt-6 flex flex-wrap gap-3">
-            <Link
-              href="/"
-              className="inline-flex rounded-2xl bg-accent px-5 py-3 text-sm font-medium text-white"
-            >
-              Перейти к заведениям
-            </Link>
-            <Link
-              href="/pricing"
-              className="inline-flex rounded-2xl border border-gray-300 bg-white px-5 py-3 text-sm font-medium text-black"
-            >
-              Как это работает
-            </Link>
-          </div>
-        </div>
-      </main>
-    )
-  }
-
-  if (result.reason === 'wrong_phone') {
-    const userPhone =
-      typeof user.user_metadata?.phone_e164 === 'string' ? user.user_metadata.phone_e164 : null
-    await logAnalyticsEvent({
-      event_name: 'activation_phone_mismatch',
-      activation_link_id: row.id,
-      token: row.token,
-      phone_target: row.phone_target,
-      user_id: user.id,
-      meta: { userPhone },
-    })
-    return (
-      <main className="mx-auto max-w-lg px-6 py-16">
-        <div className="rounded-3xl border border-gray-200 bg-white p-8 shadow-sm">
-          <h1 className="text-xl font-semibold">Нужен другой номер</h1>
-          <p className="mt-3 text-sm text-gray-600">
-            Подписка оформлена на номер{' '}
-            <span className="font-medium text-gray-900">{row.phone_target}</span>. Выйдите и войдите с нужного номера.
-          </p>
-          <div className="mt-6 flex flex-wrap gap-3">
-            <LogoutButton />
-            <Link
-              href="/"
-              className="inline-flex rounded-2xl border border-gray-300 bg-white px-5 py-3 text-sm font-medium text-black"
-            >
-              Перейти к заведениям
-            </Link>
-          </div>
-        </div>
-      </main>
-    )
-  }
-
-  if (result.reason === 'subscription_error') {
-    return (
-      <main className="mx-auto max-w-lg px-6 py-16">
-        <div className="rounded-3xl border border-red-200 bg-red-50 p-8 shadow-sm">
-          <h1 className="text-xl font-semibold text-red-900">Не удалось активировать</h1>
-          <p className="mt-3 text-sm text-red-800">
-            Произошла ошибка при записи подписки. Попробуйте позже или напишите в поддержку.
-          </p>
-          <Link href="/pricing" className="mt-6 inline-flex rounded-2xl bg-accent px-5 py-3 text-sm font-medium text-white">
-            На главную по подписке
-          </Link>
-        </div>
-      </main>
-    )
-  }
-
-  return (
-    <main className="mx-auto max-w-lg px-6 py-16">
-      <div className="rounded-3xl border border-gray-200 bg-white p-8 shadow-sm">
-        <h1 className="text-xl font-semibold">Не удалось обработать ссылку</h1>
-        <p className="mt-3 text-sm text-gray-600">Попробуйте открыть ссылку ещё раз или обратитесь к менеджеру.</p>
-        <CtaRow primaryHref="/" primaryText="Перейти к заведениям" />
-      </div>
-    </main>
-  )
+  return <ActivateCard token={trimmedToken} phoneTarget={row.phone_target} />
 }

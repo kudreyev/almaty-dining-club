@@ -105,11 +105,11 @@ export async function redeemTokenByCode(formData: FormData) {
     redirect('/staff/redeem?error=missing_code')
   }
 
-  const { supabase, restaurantId, staffUserId } = await requireStaffContext()
-
+  const { restaurantId, staffUserId } = await requireStaffContext()
+  const admin = createSupabaseAdminClient()
   const nowIso = new Date().toISOString()
 
-  const { data: tokens } = await supabase
+  const { data: tokens } = await admin
     .from('redeem_tokens')
     .select(
       'id, user_id, restaurant_id, offer_id, token_code, status, expires_at, redeemed_at, used_at'
@@ -149,7 +149,7 @@ export async function redeemTokenByCode(formData: FormData) {
 
   const redeemedAt = new Date().toISOString()
 
-  const { error: updateError } = await supabase
+  const { error: updateError } = await admin
     .from('redeem_tokens')
     .update({
       status: 'redeemed',
@@ -163,7 +163,7 @@ export async function redeemTokenByCode(formData: FormData) {
     redirect('/staff/redeem?error=update_failed')
   }
 
-  const { error: insertRedemptionError } = await supabase
+  const { error: insertRedemptionError } = await admin
     .from('redemptions')
     .insert({
       user_id: token.user_id,
@@ -179,6 +179,7 @@ export async function redeemTokenByCode(formData: FormData) {
   }
 
   revalidatePath('/staff/redeem')
+  revalidatePath('/staff/history')
   revalidatePath('/app/me')
 
   redirect('/staff/redeem?success=confirmed')

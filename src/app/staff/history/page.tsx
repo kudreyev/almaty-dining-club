@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
+import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { getStaffSessionRestaurantId } from '@/lib/staff-session'
 import { logoutStaff } from '../login/actions'
@@ -42,7 +43,9 @@ export default async function StaffHistoryPage() {
 
   if (!restaurant) redirect('/staff/login')
 
-  const { data: redemptions, error } = await supabase
+  // RLS даёт SELECT по redemptions только владельцу JWT; персонал без auth user — читаем после проверки cookie-сессии через service_role.
+  const admin = createSupabaseAdminClient()
+  const { data: redemptions, error } = await admin
     .from('redemptions')
     .select(`
       id, redeemed_at, user_id,

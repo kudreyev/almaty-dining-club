@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
+import { generatePaymentCode } from '@/lib/crypto-random'
 import { PaymentRequestForm } from '@/components/payment-request-form'
 import { Card } from '@/components/ui/card'
 
@@ -19,7 +20,10 @@ export default async function PaymentSubmitPage() {
           После оплаты через Kaspi отправьте заявку. Мы проверим и активируем подписку.
         </p>
         <div className="mt-6">
-          <PaymentRequestForm userId={user.id} />
+          <PaymentRequestForm
+            userId={user.id}
+            initialPaymentCode={generatePaymentCode()}
+          />
         </div>
       </Card>
     </div>

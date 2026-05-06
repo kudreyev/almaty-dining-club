@@ -8,6 +8,10 @@ import {
   getStaffSessionRestaurantId,
   establishStaffBrowserSession,
 } from '@/lib/staff-session'
+import {
+  assertStaffRedeemNotRateLimited,
+  recordStaffRedeemFailure,
+} from '@/lib/staff-redeem-rate-limit'
 
 async function requireStaffContext() {
   const restaurantId = await getStaffSessionRestaurantId()
@@ -35,6 +39,8 @@ async function requireStaffContext() {
 }
 
 export async function verifyStaffPinForRedeem(formData: FormData) {
+  await assertStaffRedeemNotRateLimited()
+
   const restaurantId = String(formData.get('restaurantId') || '').trim()
   const pinCode = String(formData.get('pinCode') || '').trim()
   const tokenCode = String(formData.get('tokenCode') || '').trim()
@@ -53,7 +59,10 @@ export async function verifyStaffPinForRedeem(formData: FormData) {
     .maybeSingle<{ restaurant_id: string }>()
 
   if (!tokenRow || tokenRow.restaurant_id !== restaurantId) {
-    redirect(`/staff/redeem?token=${encodeURIComponent(tokenCode)}&error=invalid_token`)
+    const limited = await recordStaffRedeemFailure('invalid_token')
+    redirect(
+      `/staff/redeem?token=${encodeURIComponent(tokenCode)}&error=${limited ? 'rate_limited' : 'invalid_token'}`
+    )
   }
 
   const supabase = await createSupabaseServerClient()
@@ -65,12 +74,18 @@ export async function verifyStaffPinForRedeem(formData: FormData) {
     .limit(10)
 
   if (error || !rows?.length) {
-    redirect(`/staff/redeem?token=${encodeURIComponent(tokenCode)}&error=pin_verify_failed`)
+    const limited = await recordStaffRedeemFailure('pin_verify_failed')
+    redirect(
+      `/staff/redeem?token=${encodeURIComponent(tokenCode)}&error=${limited ? 'rate_limited' : 'pin_verify_failed'}`
+    )
   }
 
   const matched = rows.find((row) => String(row.pin_code).trim() === pinCode)
   if (!matched) {
-    redirect(`/staff/redeem?token=${encodeURIComponent(tokenCode)}&error=invalid_pin`)
+    const limited = await recordStaffRedeemFailure('invalid_pin')
+    redirect(
+      `/staff/redeem?token=${encodeURIComponent(tokenCode)}&error=${limited ? 'rate_limited' : 'invalid_pin'}`
+    )
   }
 
   const session = await establishStaffBrowserSession(restaurantId)
@@ -82,6 +97,8 @@ export async function verifyStaffPinForRedeem(formData: FormData) {
 }
 
 export async function redeemTokenByCode(formData: FormData) {
+  await assertStaffRedeemNotRateLimited()
+
   const tokenCode = String(formData.get('tokenCode') || '').trim()
 
   if (!tokenCode) {
@@ -116,15 +133,18 @@ export async function redeemTokenByCode(formData: FormData) {
     | undefined
 
   if (!token) {
-    redirect('/staff/redeem?error=not_found')
+    const limited = await recordStaffRedeemFailure('not_found')
+    redirect(`/staff/redeem?error=${limited ? 'rate_limited' : 'not_found'}`)
   }
 
   if (token.used_at != null || token.status !== 'active') {
-    redirect('/staff/redeem?error=already_used')
+    const limited = await recordStaffRedeemFailure('already_used')
+    redirect(`/staff/redeem?error=${limited ? 'rate_limited' : 'already_used'}`)
   }
 
   if (token.expires_at <= nowIso) {
-    redirect('/staff/redeem?error=expired')
+    const limited = await recordStaffRedeemFailure('expired')
+    redirect(`/staff/redeem?error=${limited ? 'rate_limited' : 'expired'}`)
   }
 
   const redeemedAt = new Date().toISOString()

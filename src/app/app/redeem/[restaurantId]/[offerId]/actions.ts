@@ -8,14 +8,11 @@ import {
   isSubscriptionCurrentlyActive,
 } from '@/lib/subscription'
 import { resolveOfferCooldownDays } from '@/lib/offers'
+import { generateRedeemCode } from '@/lib/crypto-random'
 
 export type ExtendRedeemState =
   | { error?: string; ok?: boolean; expiresAt?: string }
   | null
-
-function generateTokenCode() {
-  return String(Math.floor(100000 + Math.random() * 900000))
-}
 
 export async function extendRedeemToken(
   _prev: ExtendRedeemState,
@@ -182,7 +179,7 @@ export async function generateRedeemToken(formData: FormData) {
   const expiresAt = new Date(issuedAt.getTime() + 10 * 60 * 1000)
   const extendDeadlineAt = new Date(issuedAt.getTime() + 60 * 60 * 1000)
 
-  const tokenCode = generateTokenCode()
+  const tokenCode = generateRedeemCode()
 
   const { error: insertError } = await supabase.from('redeem_tokens').insert({
     user_id: user.id,

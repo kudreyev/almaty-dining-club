@@ -4,15 +4,17 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createSupabaseBrowserClient } from '@/lib/supabase/client'
 
-function generatePaymentCode() {
-  return `KP-${Math.floor(100000 + Math.random() * 900000)}`
-}
-
-export function PaymentRequestForm({ userId }: { userId: string }) {
+export function PaymentRequestForm({
+  userId,
+  initialPaymentCode,
+}: {
+  userId: string
+  initialPaymentCode: string
+}) {
   const router = useRouter()
   const [amount, setAmount] = useState('1990')
   const [comment, setComment] = useState('')
-  const [paymentCode] = useState(generatePaymentCode())
+  const [paymentCode] = useState(initialPaymentCode)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 

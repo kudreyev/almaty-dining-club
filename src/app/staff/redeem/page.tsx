@@ -73,6 +73,8 @@ function getErrorMessage(error?: string) {
       return 'Этот код выдан для другого ресторана.'
     case 'token_not_found':
       return 'Код не найден.'
+    case 'rate_limited':
+      return 'Слишком много неверных попыток. Подождите и попробуйте позже или обратитесь в поддержку.'
     default:
       return null
   }

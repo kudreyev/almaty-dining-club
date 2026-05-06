@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import type { EmailOtpType } from '@supabase/supabase-js'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
+import { sanitizeNextRedirect } from '@/lib/sanitize-next-redirect'
 
 function isEmailOtpType(value: string): value is EmailOtpType {
   return [
@@ -18,11 +19,7 @@ export async function GET(request: Request) {
   const code = searchParams.get('code')
   const tokenHash = searchParams.get('token_hash')
   const typeParam = searchParams.get('type')
-  let next = searchParams.get('next') ?? '/app/me'
-
-  if (!next.startsWith('/')) {
-    next = '/app/me'
-  }
+  const next = sanitizeNextRedirect(searchParams.get('next'), '/app/me')
 
   const supabase = await createSupabaseServerClient()
 

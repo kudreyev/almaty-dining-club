@@ -133,7 +133,8 @@ export type CompleteActivationResult =
     }
 
 /**
- * Validates token, session user, and phone match; upserts subscription; marks link activated.
+ * Validates token, session user, and phone match; marks link activated + upserts subscription
+ * via Postgres RPC (single transaction — subscription failure rolls back claim).
  * Uses service role after Supabase Auth session is verified by caller.
  */
 export async function completeActivation(args: {
@@ -191,64 +192,28 @@ export async function completeActivation(args: {
     return { ok: false, reason: 'wrong_phone' }
   }
 
-  // Claim the link first to ensure idempotency / race-safety.
-  // If we can't update exactly one row (status must be 'issued'), treat as already used.
-  const { data: claimed, error: claimError } = await admin
-    .from('activation_links')
-    .update({
-      status: 'activated',
-      activated_user_id: args.userId,
-      activated_at: new Date().toISOString(),
-    })
-    .eq('token', args.token)
-    .eq('status', 'issued')
-    .select('id')
-    .maybeSingle()
+  const { data: rpcRaw, error: rpcError } = await admin.rpc(
+    'activate_subscription_atomic',
+    {
+      p_token: args.token,
+      p_user_id: args.userId,
+    }
+  )
 
-  if (claimError || !claimed) {
-    return { ok: false, reason: 'already_used' }
+  if (rpcError) {
+    return { ok: false, reason: 'subscription_error' }
   }
 
-  const today = new Date()
-  const endDate = new Date(today)
-  endDate.setDate(endDate.getDate() + 30)
-  const startDateString = today.toISOString().slice(0, 10)
-  const endDateString = endDate.toISOString().slice(0, 10)
+  const rpcPayload = rpcRaw as { ok?: unknown; reason?: unknown } | null
+  if (!rpcPayload || typeof rpcPayload.ok !== 'boolean') {
+    return { ok: false, reason: 'subscription_error' }
+  }
 
-  const { data: existingSubscription } = await admin
-    .from('subscriptions')
-    .select('id')
-    .eq('user_id', args.userId)
-    .order('created_at', { ascending: false })
-    .limit(1)
-    .maybeSingle()
-
-  if (existingSubscription?.id) {
-    const { error: subscriptionUpdateError } = await admin
-      .from('subscriptions')
-      .update({
-        status: 'active',
-        plan_name: 'monthly_almaty',
-        start_date: startDateString,
-        end_date: endDateString,
-      })
-      .eq('id', existingSubscription.id)
-
-    if (subscriptionUpdateError) {
-      return { ok: false, reason: 'subscription_error' }
+  if (!rpcPayload.ok) {
+    if (rpcPayload.reason === 'already_used') {
+      return { ok: false, reason: 'already_used' }
     }
-  } else {
-    const { error: subscriptionInsertError } = await admin.from('subscriptions').insert({
-      user_id: args.userId,
-      status: 'active',
-      plan_name: 'monthly_almaty',
-      start_date: startDateString,
-      end_date: endDateString,
-    })
-
-    if (subscriptionInsertError) {
-      return { ok: false, reason: 'subscription_error' }
-    }
+    return { ok: false, reason: 'subscription_error' }
   }
 
   const metaRaw =

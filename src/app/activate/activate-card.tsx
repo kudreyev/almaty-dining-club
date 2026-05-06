@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { useEffect, useState, useTransition } from 'react'
+import { useEffect, useState } from 'react'
 import { LogoutButton } from '@/components/logout-button'
 import { activateAction, type ActivateActionResult } from './actions'
 
@@ -61,7 +61,7 @@ const ERROR_COPY: Record<
 export function ActivateCard({ token, phoneTarget }: ActivateCardProps) {
   const router = useRouter()
   const [status, setStatus] = useState<Status>({ kind: 'idle' })
-  const [isPending, startTransition] = useTransition()
+  const [isLoading, setIsLoading] = useState(false)
 
   useEffect(() => {
     if (status.kind !== 'success') return
@@ -71,16 +71,19 @@ export function ActivateCard({ token, phoneTarget }: ActivateCardProps) {
     return () => window.clearTimeout(id)
   }, [status, router])
 
-  function handleActivate() {
+  async function handleActivate() {
+    setIsLoading(true)
     setStatus({ kind: 'loading' })
-    startTransition(async () => {
+    try {
       const result = await activateAction(token)
       if (result.ok) {
         setStatus({ kind: 'success' })
-        return
+      } else {
+        setStatus({ kind: 'error', reason: result.reason })
       }
-      setStatus({ kind: 'error', reason: result.reason })
-    })
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   if (status.kind === 'success') {
@@ -163,8 +166,8 @@ export function ActivateCard({ token, phoneTarget }: ActivateCardProps) {
           <div className="mt-6 flex flex-wrap gap-3">
             <button
               type="button"
-              onClick={handleActivate}
-              disabled={isPending}
+              onClick={() => void handleActivate()}
+              disabled={isLoading}
               className="inline-flex rounded-md bg-primary px-5 py-3 text-sm font-medium text-white transition-colors hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-60"
             >
               Попробовать снова
@@ -183,8 +186,6 @@ export function ActivateCard({ token, phoneTarget }: ActivateCardProps) {
     )
   }
 
-  const isLoading = status.kind === 'loading' || isPending
-
   return (
     <main className="mx-auto max-w-lg px-6 py-16">
       <div className="rounded-3xl border border-gray-200 bg-white p-8 shadow-sm">
@@ -196,7 +197,7 @@ export function ActivateCard({ token, phoneTarget }: ActivateCardProps) {
         <div className="mt-6 flex flex-wrap gap-3">
           <button
             type="button"
-            onClick={handleActivate}
+            onClick={() => void handleActivate()}
             disabled={isLoading}
             className="inline-flex rounded-md bg-primary px-5 py-3 text-sm font-medium text-white transition-colors hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-60"
           >

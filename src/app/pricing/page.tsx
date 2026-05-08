@@ -6,6 +6,7 @@ import {
   ShieldCheck,
 } from 'lucide-react'
 import { PricingFaq } from './pricing-faq'
+import { WhatsappGoalLink } from '@/components/analytics/whatsapp-goal-link'
 
 export const runtime = 'edge'
 
@@ -135,14 +136,16 @@ export default function PricingPage() {
             </ul>
 
             {/* CTA */}
-            <a
+            <WhatsappGoalLink
               href={WHATSAPP_HREF}
               target="_blank"
               rel="noopener noreferrer"
+              goal="subscribe_click_pricing"
+              goalParams={{ page: 'pricing' }}
               className="block w-full rounded-md bg-primary px-5 py-[13px] text-center text-[15px] font-medium text-white transition-colors hover:bg-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2"
             >
               Попробовать за 1 990 ₸
-            </a>
+            </WhatsappGoalLink>
 
             <p className="mt-2.5 text-center text-[11px] text-neutral-500">
               Ответим в WhatsApp за 5 минут · Активация в то же время

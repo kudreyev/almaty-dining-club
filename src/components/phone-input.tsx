@@ -82,6 +82,7 @@ export function PhoneInput({
         type="text"
         inputMode="tel"
         autoComplete="tel"
+        data-ym-disable-keys
         className={className}
         value={subscriber}
         readOnly={readOnly}

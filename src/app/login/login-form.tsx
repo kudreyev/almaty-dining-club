@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation'
 import { PhoneInput, normalizeToE164Like } from '@/components/phone-input'
 import { formatPhoneForDisplay } from '@/lib/kz-phone'
 import { sendWhatsAppLogin, verifyWhatsAppLoginCode } from './actions'
+import { setUserId } from '@/lib/analytics-client'
 
 export function LoginForm({
   safeNext,
@@ -83,6 +84,10 @@ export function LoginForm({
       setError(result.error ?? 'Не удалось подтвердить код.')
       setOtpLoading(false)
       return
+    }
+
+    if (result.userId) {
+      setUserId(result.userId)
     }
 
     redirectAfterLogin()
@@ -198,6 +203,7 @@ export function LoginForm({
                 autoComplete="one-time-code"
                 pattern="\d{6}"
                 maxLength={6}
+                data-ym-disable-keys
                 onChange={async (e) => {
                   const next = normalizeOtpCode(e.target.value)
                   setOtpCode(next)

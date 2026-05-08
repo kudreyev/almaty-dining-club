@@ -335,6 +335,8 @@ export default async function RestaurantPage({ params }: PageProps) {
               dish_photo_url: offer.dish_photo_url,
             }))}
             restaurantId={restaurant.id}
+            restaurantSlug={restaurant.slug}
+            restaurantName={restaurant.restaurant_name}
             hasSubscription={hasSubscription}
             cooldownDaysLeftByOfferId={cooldownDaysLeftByOfferId}
           />
@@ -345,6 +347,7 @@ export default async function RestaurantPage({ params }: PageProps) {
         {!hasSubscription ? (
           <RestaurantSubscribeBanner
             restaurantName={restaurant.restaurant_name}
+            restaurantSlug={restaurant.slug}
             maxSavingsLabel={maxSavingsLabel}
           />
         ) : null}

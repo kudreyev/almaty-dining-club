@@ -21,6 +21,7 @@ const WA_CHALLENGE_PHONE_COOKIE = 'wa_challenge_phone'
 type VerifyWhatsAppCodeResult = {
   ok: boolean
   error?: string
+  userId?: string
 }
 
 type SendWhatsAppLoginResult = {
@@ -195,5 +196,5 @@ export async function verifyWhatsAppLoginCode(
   }
 
   await clearWhatsAppChallengeCookies()
-  return { ok: true }
+  return { ok: true, userId: data.user?.id }
 }

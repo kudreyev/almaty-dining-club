@@ -9,6 +9,7 @@ import {
 } from '@/app/app/redeem/[restaurantId]/[offerId]/actions'
 import { getAppSiteOrigin } from '@/lib/site-url'
 import { Button } from '@/components/ui/button'
+import { trackGoal } from '@/lib/analytics-client'
 
 type RedeemTokenCardProps = {
   tokenId: string
@@ -18,6 +19,11 @@ type RedeemTokenCardProps = {
   extendedOnce: boolean
   restaurantId: string
   offerId: string
+  metricaOffer?: {
+    restaurantSlug: string
+    offerType: '2for1' | 'compliment'
+    estimatedSavingsTenge: number | null
+  }
 }
 
 function getRemainingMs(expiresAt: string) {
@@ -42,6 +48,7 @@ export function RedeemTokenCard({
   extendedOnce,
   restaurantId,
   offerId,
+  metricaOffer,
 }: RedeemTokenCardProps) {
   const router = useRouter()
   const [localExpires, setLocalExpires] = useState(expiresAt)
@@ -108,6 +115,39 @@ export function RedeemTokenCard({
   const extendWindowOpen =
     new Date(extendDeadlineAt).getTime() >= nowMs
   const canExtend = !extendedOnce && extendWindowOpen
+
+  useEffect(() => {
+    if (!metricaOffer || isExpired) return
+    let cancelled = false
+    let fired = false
+
+    const check = async () => {
+      if (cancelled || fired) return
+      try {
+        const res = await fetch(
+          `/api/redeem-tokens/${encodeURIComponent(tokenId)}/used`,
+        )
+        if (!res.ok) return
+        const body = (await res.json()) as { usedAt?: string | null }
+        if (!body.usedAt) return
+        fired = true
+        trackGoal('offer_redeemed', {
+          restaurant_slug: metricaOffer.restaurantSlug,
+          estimated_savings: metricaOffer.estimatedSavingsTenge,
+          offer_type: metricaOffer.offerType,
+        })
+      } catch {
+        /* ignore */
+      }
+    }
+
+    void check()
+    const timer = window.setInterval(() => void check(), 8000)
+    return () => {
+      cancelled = true
+      window.clearInterval(timer)
+    }
+  }, [metricaOffer, isExpired, tokenId])
 
   const masked = '•'.repeat(Math.min(tokenCode.length, 8))
 

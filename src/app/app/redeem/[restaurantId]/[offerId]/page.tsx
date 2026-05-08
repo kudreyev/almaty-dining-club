@@ -30,6 +30,7 @@ type Offer = {
   offer_title: string
   offer_terms_short: string
   offer_type: '2for1' | 'compliment'
+  estimated_value: number | null
   cooldown_days?: number | null
 }
 type RedeemToken = {
@@ -73,7 +74,7 @@ export default async function RedeemPage({ params, searchParams }: PageProps) {
 
   const { data: offer } = await supabase
     .from('offers')
-    .select('id, offer_title, offer_terms_short, offer_type, cooldown_days')
+    .select('id, offer_title, offer_terms_short, offer_type, estimated_value, cooldown_days')
     .eq('id', offerId)
     .eq('restaurant_id', restaurantId)
     .eq('is_active', true)
@@ -134,6 +135,15 @@ export default async function RedeemPage({ params, searchParams }: PageProps) {
             extendedOnce={activeToken.extended_once}
             restaurantId={restaurant.id}
             offerId={offer.id}
+            metricaOffer={{
+              restaurantSlug: restaurant.slug,
+              offerType: offer.offer_type,
+              estimatedSavingsTenge:
+                typeof offer.estimated_value === 'number' &&
+                Number.isFinite(offer.estimated_value)
+                  ? Math.round(offer.estimated_value)
+                  : null,
+            }}
           />
         ) : (
           <div className="mt-6 rounded-xl bg-gray-50 p-4">

@@ -2,6 +2,7 @@ import { createSupabasePublicClient } from '@/lib/supabase/public'
 import { VenuesSection } from '@/components/home/venues-section'
 import { HomeMobileControls } from '@/components/home/home-mobile-controls'
 import { FinalCta } from '@/components/sections/final-cta'
+import { WhatsappGoalLink } from '@/components/analytics/whatsapp-goal-link'
 import {
   DEFAULT_TZ,
   computeOpenStatus,
@@ -145,14 +146,16 @@ export default async function HomePage() {
           </p>
 
           <div className="mt-8 flex flex-col items-stretch gap-3 sm:flex-row sm:items-center sm:justify-center">
-            <a
+            <WhatsappGoalLink
               href={whatsappHref}
               target="_blank"
               rel="noopener noreferrer"
+              goal="subscribe_click_home"
+              goalParams={{ page: 'home', placement: 'hero' }}
               className="inline-flex items-center justify-center rounded-lg bg-primary px-6 py-3.5 text-base font-medium text-white transition-colors hover:bg-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2"
             >
               Попробовать за 1 990 ₸
-            </a>
+            </WhatsappGoalLink>
             <a
               href="#venues"
               className="inline-flex items-center justify-center rounded-lg border border-neutral-300 bg-transparent px-6 py-3.5 text-base font-medium text-neutral-900 transition-colors hover:border-neutral-400 hover:bg-neutral-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-300 focus-visible:ring-offset-2"

@@ -111,9 +111,9 @@ export default async function AdminRestaurantEditPage({ params, searchParams }: 
       <Card>
         <form action={updateRestaurant} className="space-y-4">
           <input type="hidden" name="id" value={r.id} />
-          <Input name="restaurant_name" label="Название" defaultValue={r.restaurant_name} required />
+          <Input name="restaurant_name" label="Название" defaultValue={r.restaurant_name} required data-ym-disable-keys />
           <Input name="slug" label="Slug" defaultValue={r.slug} required />
-          <Input name="address" label="Адрес" defaultValue={r.address} required />
+          <Input name="address" label="Адрес" defaultValue={r.address} required data-ym-disable-keys />
           <div className="grid gap-4 sm:grid-cols-3">
             <Input name="cuisine" label="Кухня" defaultValue={r.cuisine} required />
             <Input name="cuisine_2" label="Кухня 2" defaultValue={r.cuisine_2 ?? ''} placeholder="Опционально" />
@@ -167,7 +167,7 @@ export default async function AdminRestaurantEditPage({ params, searchParams }: 
             <label className="mb-1.5 block text-base font-medium text-gray-700">Телефон</label>
             <PhoneInput name="phone" defaultValue={r.phone ?? ''} className="w-full rounded-xl border border-gray-200 px-4 py-3 text-base outline-none transition-colors focus:border-accent" />
           </div>
-          <Input name="whatsapp_phone" label="WhatsApp" defaultValue={r.whatsapp_phone ?? ''} placeholder="+77001234567" />
+          <Input name="whatsapp_phone" label="WhatsApp" defaultValue={r.whatsapp_phone ?? ''} placeholder="+77001234567" data-ym-disable-keys />
           <div className="grid gap-4 sm:grid-cols-2">
             <Input
               name="lat"

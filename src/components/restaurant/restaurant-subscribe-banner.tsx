@@ -1,12 +1,17 @@
+'use client'
+
 import { KUDACLUB_SUBSCRIBE_WHATSAPP_URL } from '@/lib/whatsapp'
+import { WhatsappGoalLink } from '@/components/analytics/whatsapp-goal-link'
 
 type RestaurantSubscribeBannerProps = {
   restaurantName: string
+  restaurantSlug: string
   maxSavingsLabel: string | null
 }
 
 export function RestaurantSubscribeBanner({
   restaurantName,
+  restaurantSlug,
   maxSavingsLabel,
 }: RestaurantSubscribeBannerProps) {
   const subtitle = maxSavingsLabel
@@ -38,10 +43,15 @@ export function RestaurantSubscribeBanner({
           {subtitle}
         </p>
 
-        <a
+        <WhatsappGoalLink
           href={KUDACLUB_SUBSCRIBE_WHATSAPP_URL}
           target="_blank"
           rel="noopener noreferrer"
+          goal="subscribe_click_venue"
+          goalParams={{
+            page: 'venue',
+            restaurant_slug: restaurantSlug,
+          }}
           style={{
             display: 'inline-block',
             background: '#ffffff',
@@ -56,7 +66,7 @@ export function RestaurantSubscribeBanner({
           }}
         >
           Попробовать за 1 990 ₸
-        </a>
+        </WhatsappGoalLink>
       </div>
     </section>
   )

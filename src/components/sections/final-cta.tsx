@@ -1,6 +1,7 @@
 'use client'
 
 import { CheckCircle2 } from 'lucide-react'
+import { trackGoal } from '@/lib/analytics-client'
 
 const WHATSAPP_HREF = `https://wa.me/77066059899?text=${encodeURIComponent(
   'Здравствуйте! Хочу оформить подписку Kudaclub'
@@ -8,8 +9,10 @@ const WHATSAPP_HREF = `https://wa.me/77066059899?text=${encodeURIComponent(
 
 export function FinalCta() {
   function handleCtaClick() {
-    // TODO: подключить клиентскую аналитику и отправлять событие
-    // "final_cta_clicked" с properties { location: "homepage_bottom" }
+    trackGoal('subscribe_click_home', {
+      page: 'home',
+      placement: 'final_cta',
+    })
   }
 
   return (

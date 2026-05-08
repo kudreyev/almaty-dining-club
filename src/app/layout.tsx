@@ -5,6 +5,7 @@ import './globals.css'
 import { Header } from '@/components/header'
 import { HeaderShell } from '@/components/header-shell'
 import { Footer } from '@/components/footer'
+import { YandexMetrica } from '@/components/yandex-metrica'
 
 const inter = Inter({
   subsets: ['latin', 'cyrillic'],
@@ -53,6 +54,7 @@ fbq('track', 'PageView');
           <main className="flex-1">{children}</main>
           <Footer />
         </div>
+        <YandexMetrica />
       </body>
     </html>
   )

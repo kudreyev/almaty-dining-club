@@ -10,6 +10,7 @@ import {
   type OfferType,
 } from '@/lib/offers'
 import { ruDayWordAfterNumber } from '@/lib/ru-plural'
+import { trackGoal } from '@/lib/analytics-client'
 
 export type RestaurantOffer = {
   id: string
@@ -24,6 +25,8 @@ export type RestaurantOffer = {
 type RestaurantOffersListProps = {
   offers: RestaurantOffer[]
   restaurantId: string
+  restaurantSlug: string
+  restaurantName: string
   hasSubscription: boolean
   /** offerId → days left in cooldown (e.g. 4). Если оффер не в кулдауне — отсутствует в map. */
   cooldownDaysLeftByOfferId: Record<string, number>
@@ -32,15 +35,26 @@ type RestaurantOffersListProps = {
 export function RestaurantOffersList({
   offers,
   restaurantId,
+  restaurantSlug,
+  restaurantName,
   hasSubscription,
   cooldownDaysLeftByOfferId,
 }: RestaurantOffersListProps) {
   const [showPaywall, setShowPaywall] = useState(false)
 
-  const handlePaywallOpen = useCallback((e: React.MouseEvent) => {
-    e.preventDefault()
-    setShowPaywall(true)
-  }, [])
+  const handlePaywallOpen = useCallback(
+    (e: React.MouseEvent, offer: RestaurantOffer) => {
+      e.preventDefault()
+      trackGoal('offer_get_click', {
+        restaurant_slug: restaurantSlug,
+        restaurant_name: restaurantName,
+        offer_type: offer.offer_type,
+        has_subscription: false,
+      })
+      setShowPaywall(true)
+    },
+    [restaurantName, restaurantSlug],
+  )
 
   const handlePaywallClose = useCallback(() => setShowPaywall(false), [])
 
@@ -65,6 +79,8 @@ export function RestaurantOffersList({
               key={offer.id}
               offer={offer}
               restaurantId={restaurantId}
+              restaurantSlug={restaurantSlug}
+              restaurantName={restaurantName}
               hasSubscription={hasSubscription}
               isOnCooldown={isOnCooldown}
               daysLeft={daysLeft ?? 0}
@@ -80,15 +96,19 @@ export function RestaurantOffersList({
 type OfferCardProps = {
   offer: RestaurantOffer
   restaurantId: string
+  restaurantSlug: string
+  restaurantName: string
   hasSubscription: boolean
   isOnCooldown: boolean
   daysLeft: number
-  onPaywallOpen: (e: React.MouseEvent) => void
+  onPaywallOpen: (e: React.MouseEvent, offer: RestaurantOffer) => void
 }
 
 function OfferCard({
   offer,
   restaurantId,
+  restaurantSlug,
+  restaurantName,
   hasSubscription,
   isOnCooldown,
   daysLeft,
@@ -180,6 +200,8 @@ function OfferCard({
         {renderCta({
           offer,
           restaurantId,
+          restaurantSlug,
+          restaurantName,
           hasSubscription,
           isOnCooldown,
           daysLeft,
@@ -193,6 +215,8 @@ function OfferCard({
 function renderCta({
   offer,
   restaurantId,
+  restaurantSlug,
+  restaurantName,
   hasSubscription,
   isOnCooldown,
   daysLeft,
@@ -222,6 +246,14 @@ function renderCta({
     return (
       <a
         href={`/app/redeem/${restaurantId}/${offer.id}`}
+        onClick={() =>
+          trackGoal('offer_get_click', {
+            restaurant_slug: restaurantSlug,
+            restaurant_name: restaurantName,
+            offer_type: offer.offer_type,
+            has_subscription: true,
+          })
+        }
         className="block w-full text-center text-white transition-colors hover:opacity-95"
         style={{ ...baseStyle, background: '#D85A30' }}
       >
@@ -233,7 +265,7 @@ function renderCta({
   return (
     <a
       href={`/app/redeem/${restaurantId}/${offer.id}`}
-      onClick={onPaywallOpen}
+      onClick={(e) => onPaywallOpen(e, offer)}
       className="block w-full text-center text-white transition-colors hover:opacity-95"
       style={{ ...baseStyle, background: '#D85A30' }}
     >

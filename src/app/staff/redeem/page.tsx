@@ -137,6 +137,7 @@ export default async function StaffRedeemPage({ searchParams }: PageProps) {
               required
               autoComplete="one-time-code"
               placeholder="PIN"
+              data-ym-disable-keys
             />
             <Button type="submit" className="w-full">
               Продолжить
@@ -239,6 +240,7 @@ export default async function StaffRedeemPage({ searchParams }: PageProps) {
               defaultValue={tokenUrlIssue !== 'none' ? '' : tokenFromUrl}
               placeholder="Например: 482193"
               className="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-center text-sm tracking-[0.2em] outline-none transition-colors focus:border-accent"
+              data-ym-disable-keys
             />
             <Button type="submit" className="w-full">
               Подтвердить код

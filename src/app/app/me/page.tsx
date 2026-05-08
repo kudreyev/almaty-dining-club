@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation'
-import Link from 'next/link'
+import { Suspense } from 'react'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { LogoutButton } from '@/components/logout-button'
 import { offerTypeLabel, subscriptionStatusLabel } from '@/lib/labels'
@@ -7,6 +7,7 @@ import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { EmptyState } from '@/components/ui/empty-state'
+import { MeMetrica } from './me-metrica'
 
 type Profile = {
   id: string
@@ -88,6 +89,9 @@ export default async function MePage({ searchParams }: PageProps) {
 
   return (
     <div className="mx-auto max-w-2xl px-5 py-8">
+      <Suspense fallback={null}>
+        <MeMetrica />
+      </Suspense>
       <div className="mb-6 flex items-center justify-between">
         <h1 className="text-xl font-semibold tracking-tight sm:text-2xl">Личный кабинет</h1>
         <LogoutButton />

@@ -21,11 +21,15 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode
 }>) {
+  const metaPixelId = process.env.NEXT_PUBLIC_META_PIXEL_ID?.trim()
+
   return (
     <html lang="ru">
       <body className={inter.className}>
-        <Script id="meta-pixel" strategy="afterInteractive">
-          {`
+        {metaPixelId ? (
+          <>
+            <Script id="meta-pixel" strategy="afterInteractive">
+              {`
 !function(f,b,e,v,n,t,s)
 {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
 n.callMethod.apply(n,arguments):n.queue.push(arguments)};
@@ -34,19 +38,21 @@ n.queue=[];t=b.createElement(e);t.async=!0;
 t.src=v;s=b.getElementsByTagName(e)[0];
 s.parentNode.insertBefore(t,s)}(window, document,'script',
 'https://connect.facebook.net/en_US/fbevents.js');
-fbq('init', '1510518037108595');
+fbq('init', ${JSON.stringify(metaPixelId)});
 fbq('track', 'PageView');
-          `}
-        </Script>
-        <noscript>
-          <img
-            height={1}
-            width={1}
-            style={{ display: 'none' }}
-            src="https://www.facebook.com/tr?id=1510518037108595&ev=PageView&noscript=1"
-            alt=""
-          />
-        </noscript>
+              `}
+            </Script>
+            <noscript>
+              <img
+                height={1}
+                width={1}
+                style={{ display: 'none' }}
+                src={`https://www.facebook.com/tr?id=${encodeURIComponent(metaPixelId)}&ev=PageView&noscript=1`}
+                alt=""
+              />
+            </noscript>
+          </>
+        ) : null}
         <div className="flex min-h-screen flex-col bg-[#fafaf9] text-gray-900">
           <HeaderShell>
             <Header />

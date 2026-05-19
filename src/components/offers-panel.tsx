@@ -4,6 +4,10 @@ import { useCallback, useState } from 'react'
 import { PaywallModal } from '@/components/paywall-modal'
 import { Button } from '@/components/ui/button'
 import { formatEstimatedValue, formatOfferCooldownText, formatOfferHeadline } from '@/lib/offers'
+import {
+  META_OFFER_DEFAULT_VALUE_KZT,
+  trackMetaPixel,
+} from '@/lib/meta-pixel-client'
 
 type Offer = {
   id: string
@@ -25,14 +29,24 @@ export function OffersPanel({ offers, restaurantId, hasSubscription }: OffersPan
   const visibleOffers = offers.slice(0, 3)
   const hiddenOffersCount = Math.max(offers.length - visibleOffers.length, 0)
 
+  const trackOfferAddToCart = useCallback((offer: Offer) => {
+    trackMetaPixel('AddToCart', {
+      content_name: formatOfferHeadline(offer.offer_type, offer.offer_title),
+      content_ids: [offer.id],
+      value: offer.estimated_value ?? META_OFFER_DEFAULT_VALUE_KZT,
+      currency: 'KZT',
+    })
+  }, [])
+
   const handleActivateClick = useCallback(
-    (e: React.MouseEvent<HTMLAnchorElement>) => {
+    (e: React.MouseEvent<HTMLAnchorElement>, offer: Offer) => {
+      trackOfferAddToCart(offer)
       if (!hasSubscription) {
         e.preventDefault()
         setShowPaywall(true)
       }
     },
-    [hasSubscription],
+    [hasSubscription, trackOfferAddToCart],
   )
 
   const handleClosePaywall = useCallback(() => setShowPaywall(false), [])
@@ -86,13 +100,14 @@ export function OffersPanel({ offers, restaurantId, hasSubscription }: OffersPan
                   href={`/app/redeem/${restaurantId}/${offer.id}`}
                   size="md"
                   className="mt-4 w-full"
+                  onClick={() => trackOfferAddToCart(offer)}
                 >
                   Получить
                 </Button>
               ) : (
                 <a
                   href={`/app/redeem/${restaurantId}/${offer.id}`}
-                  onClick={handleActivateClick}
+                  onClick={(e) => handleActivateClick(e, offer)}
                   className="mt-4 flex w-full items-center justify-center rounded-2xl bg-accent px-5 py-3 text-base font-medium text-white transition-all duration-150 hover:bg-accent-dark active:scale-[0.98]"
                 >
                   Получить

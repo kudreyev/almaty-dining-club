@@ -16,6 +16,7 @@ import { RestaurantHero } from '@/components/restaurant/restaurant-hero'
 import { RestaurantOffersList } from '@/components/restaurant/restaurant-offers-list'
 import { RestaurantHowToUse } from '@/components/restaurant/restaurant-how-to-use'
 import { RestaurantSubscribeBanner } from '@/components/restaurant/restaurant-subscribe-banner'
+import { MetaPixelViewContent } from '@/components/analytics/meta-pixel-view-content'
 import { RestaurantAddressContacts } from '@/components/restaurant/restaurant-address-contacts'
 import type { RestaurantHour } from '@/lib/opening-hours'
 
@@ -286,6 +287,10 @@ export default async function RestaurantPage({ params }: PageProps) {
 
   return (
     <>
+      <MetaPixelViewContent
+        restaurantName={restaurant.restaurant_name}
+        restaurantSlug={restaurant.slug}
+      />
       <RestaurantNavBar
         shareTitle={restaurant.restaurant_name}
         shareText={`${restaurant.restaurant_name} — офферы Kudaclub`}

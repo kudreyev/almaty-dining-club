@@ -5,6 +5,7 @@ import { createPortal } from 'react-dom'
 import Link from 'next/link'
 import { Check, X } from 'lucide-react'
 import { KUDACLUB_SUBSCRIBE_WHATSAPP_URL } from '@/lib/whatsapp'
+import { META_SUBSCRIPTION_PRICE_KZT, trackMetaPixel } from '@/lib/meta-pixel-client'
 
 const WHATSAPP_SUBSCRIBE_URL = KUDACLUB_SUBSCRIBE_WHATSAPP_URL
 
@@ -113,6 +114,12 @@ export function PaywallModal({ onClose }: PaywallModalProps) {
             href={WHATSAPP_SUBSCRIBE_URL}
             target="_blank"
             rel="noopener noreferrer"
+            onClick={() =>
+              trackMetaPixel('InitiateCheckout', {
+                value: META_SUBSCRIPTION_PRICE_KZT,
+                currency: 'KZT',
+              })
+            }
             className="flex w-full items-center justify-center font-medium text-white transition-opacity hover:opacity-95"
             style={{
               background: '#D85A30',

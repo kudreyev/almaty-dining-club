@@ -11,6 +11,10 @@ import {
 } from '@/lib/offers'
 import { ruDayWordAfterNumber } from '@/lib/ru-plural'
 import { trackGoal } from '@/lib/analytics-client'
+import {
+  META_OFFER_DEFAULT_VALUE_KZT,
+  trackMetaPixel,
+} from '@/lib/meta-pixel-client'
 
 export type RestaurantOffer = {
   id: string
@@ -45,6 +49,12 @@ export function RestaurantOffersList({
   const handlePaywallOpen = useCallback(
     (e: React.MouseEvent, offer: RestaurantOffer) => {
       e.preventDefault()
+      trackMetaPixel('AddToCart', {
+        content_name: formatOfferTitle(offer.offer_type, offer.offer_title),
+        content_ids: [offer.id],
+        value: offer.estimated_value ?? META_OFFER_DEFAULT_VALUE_KZT,
+        currency: 'KZT',
+      })
       trackGoal('offer_get_click', {
         restaurant_slug: restaurantSlug,
         restaurant_name: restaurantName,
@@ -246,14 +256,20 @@ function renderCta({
     return (
       <a
         href={`/app/redeem/${restaurantId}/${offer.id}`}
-        onClick={() =>
+        onClick={() => {
+          trackMetaPixel('AddToCart', {
+            content_name: formatOfferTitle(offer.offer_type, offer.offer_title),
+            content_ids: [offer.id],
+            value: offer.estimated_value ?? META_OFFER_DEFAULT_VALUE_KZT,
+            currency: 'KZT',
+          })
           trackGoal('offer_get_click', {
             restaurant_slug: restaurantSlug,
             restaurant_name: restaurantName,
             offer_type: offer.offer_type,
             has_subscription: true,
           })
-        }
+        }}
         className="block w-full text-center text-white transition-colors hover:opacity-95"
         style={{ ...baseStyle, background: '#D85A30' }}
       >

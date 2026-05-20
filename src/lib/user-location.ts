@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 
-const USER_LOCATION_STORAGE_KEY = 'kudapass_user_location'
+const USER_LOCATION_STORAGE_KEY = 'kudaclub_user_location'
 const LEGACY_USER_LOCATION_STORAGE_KEY = 'kp:userLocation'
 const USER_LOCATION_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000
 const LOCATION_UPDATED_EVENT = 'kudaclub:user-location-updated'

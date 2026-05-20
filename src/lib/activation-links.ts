@@ -20,7 +20,7 @@ export type ActivationLinkRow = {
 export function getPublicSiteBaseUrl() {
   // Canonical public domain for shareable links (WhatsApp, SMS, etc).
   // Avoid leaking preview / vercel.app domains into customer-facing messages.
-  const canonical = 'https://kudapass.kz'
+  const canonical = 'https://kudaclub.kz'
 
   const raw = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, '') ?? ''
   if (!raw) return canonical

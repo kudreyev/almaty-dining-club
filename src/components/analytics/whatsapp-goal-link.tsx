@@ -20,7 +20,7 @@ export function WhatsappGoalLink({
   return (
     <a
       {...rest}
-      href={href ?? buildKudaclubSubscribeWhatsAppUrl(source)}
+      href={href ?? buildKudaclubSubscribeWhatsAppUrl()}
       onClick={(e) => {
         trackMetaPixel('InitiateCheckout', {
           value: META_SUBSCRIPTION_PRICE_KZT,

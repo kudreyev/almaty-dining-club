@@ -1,7 +1,7 @@
 'use client'
 
-import { KUDACLUB_SUBSCRIBE_WHATSAPP_URL } from '@/lib/whatsapp'
 import { WhatsappGoalLink } from '@/components/analytics/whatsapp-goal-link'
+import { venueCtaSource } from '@/lib/whatsapp'
 
 type RestaurantSubscribeBannerProps = {
   restaurantName: string
@@ -44,14 +44,9 @@ export function RestaurantSubscribeBanner({
         </p>
 
         <WhatsappGoalLink
-          href={KUDACLUB_SUBSCRIBE_WHATSAPP_URL}
+          source={venueCtaSource(restaurantSlug)}
           target="_blank"
           rel="noopener noreferrer"
-          goal="subscribe_click_venue"
-          goalParams={{
-            page: 'venue',
-            restaurant_slug: restaurantSlug,
-          }}
           style={{
             display: 'inline-block',
             background: '#ffffff',

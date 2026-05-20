@@ -15,6 +15,7 @@ import {
   META_OFFER_DEFAULT_VALUE_KZT,
   trackMetaPixel,
 } from '@/lib/meta-pixel-client'
+import { offerCardSource } from '@/lib/whatsapp'
 
 export type RestaurantOffer = {
   id: string
@@ -44,11 +45,12 @@ export function RestaurantOffersList({
   hasSubscription,
   cooldownDaysLeftByOfferId,
 }: RestaurantOffersListProps) {
-  const [showPaywall, setShowPaywall] = useState(false)
+  const [paywallSource, setPaywallSource] = useState<string | null>(null)
 
   const handlePaywallOpen = useCallback(
     (e: React.MouseEvent, offer: RestaurantOffer) => {
       e.preventDefault()
+      setPaywallSource(offerCardSource(restaurantSlug, offer.id))
       trackMetaPixel('AddToCart', {
         content_name: formatOfferTitle(offer.offer_type, offer.offer_title),
         content_ids: [offer.id],
@@ -61,12 +63,13 @@ export function RestaurantOffersList({
         offer_type: offer.offer_type,
         has_subscription: false,
       })
-      setShowPaywall(true)
     },
     [restaurantName, restaurantSlug],
   )
 
-  const handlePaywallClose = useCallback(() => setShowPaywall(false), [])
+  const handlePaywallClose = useCallback(() => {
+    setPaywallSource(null)
+  }, [])
 
   if (offers.length === 0) {
     return (
@@ -78,7 +81,9 @@ export function RestaurantOffersList({
 
   return (
     <>
-      {showPaywall ? <PaywallModal onClose={handlePaywallClose} /> : null}
+      {paywallSource ? (
+        <PaywallModal onClose={handlePaywallClose} whatsappSource={paywallSource} />
+      ) : null}
 
       <div className="flex flex-col" style={{ gap: '12px' }}>
         {offers.map((offer) => {

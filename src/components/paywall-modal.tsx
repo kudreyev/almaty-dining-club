@@ -4,10 +4,7 @@ import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 import Link from 'next/link'
 import { Check, X } from 'lucide-react'
-import { KUDACLUB_SUBSCRIBE_WHATSAPP_URL } from '@/lib/whatsapp'
-import { META_SUBSCRIPTION_PRICE_KZT, trackMetaPixel } from '@/lib/meta-pixel-client'
-
-const WHATSAPP_SUBSCRIBE_URL = KUDACLUB_SUBSCRIBE_WHATSAPP_URL
+import { WhatsappGoalLink } from '@/components/analytics/whatsapp-goal-link'
 
 const BULLETS = [
   'Доступ ко всем предложениям в Алматы',
@@ -17,9 +14,10 @@ const BULLETS = [
 
 type PaywallModalProps = {
   onClose: () => void
+  whatsappSource: string
 }
 
-export function PaywallModal({ onClose }: PaywallModalProps) {
+export function PaywallModal({ onClose, whatsappSource }: PaywallModalProps) {
   const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
@@ -110,16 +108,10 @@ export function PaywallModal({ onClose }: PaywallModalProps) {
 
         {/* Actions */}
         <div className="flex flex-col" style={{ marginTop: '24px', gap: '8px' }}>
-          <a
-            href={WHATSAPP_SUBSCRIBE_URL}
+          <WhatsappGoalLink
+            source={whatsappSource}
             target="_blank"
             rel="noopener noreferrer"
-            onClick={() =>
-              trackMetaPixel('InitiateCheckout', {
-                value: META_SUBSCRIPTION_PRICE_KZT,
-                currency: 'KZT',
-              })
-            }
             className="flex w-full items-center justify-center font-medium text-white transition-opacity hover:opacity-95"
             style={{
               background: '#D85A30',
@@ -129,7 +121,7 @@ export function PaywallModal({ onClose }: PaywallModalProps) {
             }}
           >
             Оформить в WhatsApp
-          </a>
+          </WhatsappGoalLink>
           <Link
             href="/pricing"
             onClick={onClose}

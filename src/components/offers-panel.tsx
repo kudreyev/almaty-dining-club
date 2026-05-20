@@ -8,6 +8,7 @@ import {
   META_OFFER_DEFAULT_VALUE_KZT,
   trackMetaPixel,
 } from '@/lib/meta-pixel-client'
+import { offerCardSource } from '@/lib/whatsapp'
 
 type Offer = {
   id: string
@@ -21,11 +22,17 @@ type Offer = {
 type OffersPanelProps = {
   offers: Offer[]
   restaurantId: string
+  restaurantSlug: string
   hasSubscription: boolean
 }
 
-export function OffersPanel({ offers, restaurantId, hasSubscription }: OffersPanelProps) {
-  const [showPaywall, setShowPaywall] = useState(false)
+export function OffersPanel({
+  offers,
+  restaurantId,
+  restaurantSlug,
+  hasSubscription,
+}: OffersPanelProps) {
+  const [paywallSource, setPaywallSource] = useState<string | null>(null)
   const visibleOffers = offers.slice(0, 3)
   const hiddenOffersCount = Math.max(offers.length - visibleOffers.length, 0)
 
@@ -43,17 +50,19 @@ export function OffersPanel({ offers, restaurantId, hasSubscription }: OffersPan
       trackOfferAddToCart(offer)
       if (!hasSubscription) {
         e.preventDefault()
-        setShowPaywall(true)
+        setPaywallSource(offerCardSource(restaurantSlug, offer.id))
       }
     },
-    [hasSubscription, trackOfferAddToCart],
+    [hasSubscription, restaurantSlug, trackOfferAddToCart],
   )
 
-  const handleClosePaywall = useCallback(() => setShowPaywall(false), [])
+  const handleClosePaywall = useCallback(() => setPaywallSource(null), [])
 
   return (
     <>
-      {showPaywall ? <PaywallModal onClose={handleClosePaywall} /> : null}
+      {paywallSource ? (
+        <PaywallModal onClose={handleClosePaywall} whatsappSource={paywallSource} />
+      ) : null}
 
       <div className="flex flex-col gap-4">
         {visibleOffers.length === 0 ? (

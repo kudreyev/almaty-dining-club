@@ -1,9 +1,19 @@
 export const KUDACLUB_WHATSAPP_PHONE = '77066059899'
 
-export const KUDACLUB_SUBSCRIBE_TEXT = 'Здравствуйте! Хочу подписку Kudaclub'
-
-export function buildKudaclubSubscribeWhatsAppUrl(text: string = KUDACLUB_SUBSCRIBE_TEXT): string {
-  return `https://wa.me/${KUDACLUB_WHATSAPP_PHONE}?text=${encodeURIComponent(text)}`
+export function buildKudaclubSubscribeMessage(source: string): string {
+  return `Здравствуйте! Хочу подписку Kudaclub [ref: ${source}]`
 }
 
-export const KUDACLUB_SUBSCRIBE_WHATSAPP_URL = buildKudaclubSubscribeWhatsAppUrl()
+export function buildKudaclubSubscribeWhatsAppUrl(source: string): string {
+  return `https://wa.me/${KUDACLUB_WHATSAPP_PHONE}?text=${encodeURIComponent(
+    buildKudaclubSubscribeMessage(source),
+  )}`
+}
+
+export function venueCtaSource(slug: string): string {
+  return `venue-cta-${slug}`
+}
+
+export function offerCardSource(slug: string, offerId: string): string {
+  return `offer-card-${slug}-${offerId}`
+}

@@ -16,10 +16,6 @@ export const metadata: Metadata = {
     'Подписка Kudaclub: 2-за-1 на главные блюда и подарки к заказу. Без купонов, без распечаток, без скидочных карт.',
 }
 
-const WHATSAPP_HREF = `https://wa.me/77066059899?text=${encodeURIComponent(
-  'Здравствуйте! Хочу подписку Kudaclub'
-)}`
-
 const FAQ_ITEMS = [
   {
     q: 'Как отменить подписку?',
@@ -137,11 +133,9 @@ export default function PricingPage() {
 
             {/* CTA */}
             <WhatsappGoalLink
-              href={WHATSAPP_HREF}
+              source="pricing-page"
               target="_blank"
               rel="noopener noreferrer"
-              goal="subscribe_click_pricing"
-              goalParams={{ page: 'pricing' }}
               className="block w-full rounded-md bg-primary px-5 py-[13px] text-center text-[15px] font-medium text-white transition-colors hover:bg-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2"
             >
               Попробовать за 1 990 ₸

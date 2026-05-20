@@ -1,20 +1,9 @@
 'use client'
 
 import { CheckCircle2 } from 'lucide-react'
-import { trackGoal } from '@/lib/analytics-client'
-
-const WHATSAPP_HREF = `https://wa.me/77066059899?text=${encodeURIComponent(
-  'Здравствуйте! Хочу оформить подписку Kudaclub'
-)}`
+import { WhatsappGoalLink } from '@/components/analytics/whatsapp-goal-link'
 
 export function FinalCta() {
-  function handleCtaClick() {
-    trackGoal('subscribe_click_home', {
-      page: 'home',
-      placement: 'final_cta',
-    })
-  }
-
   return (
     <section className="mx-auto my-12 max-w-6xl px-4 md:my-16 md:px-6">
       <div className="rounded-md bg-[#1a1a1a] px-8 py-12 text-center md:px-12 md:py-16">
@@ -26,16 +15,15 @@ export function FinalCta() {
           1 990 ₸ в месяц. Окупается с первого визита. Отменить можно в любой момент.
         </p>
 
-        <a
-          href={WHATSAPP_HREF}
+        <WhatsappGoalLink
+          source="home-pricing"
           target="_blank"
           rel="noopener noreferrer"
-          onClick={handleCtaClick}
           aria-label="Оформить подписку Kudaclub за 1 990 ₸"
           className="inline-flex items-center rounded-md bg-[#D85A30] px-7 py-3.5 text-[15px] font-medium text-white transition-all duration-150 hover:bg-[#BA4A26] focus-visible:outline focus-visible:outline-2 focus-visible:outline-white focus-visible:outline-offset-2"
         >
           Попробовать за 1 990 ₸
-        </a>
+        </WhatsappGoalLink>
 
         <ul className="mt-5 flex flex-col items-center justify-center gap-2 text-xs text-white/50 sm:flex-row sm:gap-4">
           <li className="inline-flex items-center gap-1.5">

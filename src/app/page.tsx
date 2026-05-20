@@ -120,11 +120,6 @@ export default async function HomePage() {
 
   const totalVenues = restaurantsWithStatus.length
   const venuesWord = pluralizeRu(totalVenues, ['заведении', 'заведениях', 'заведениях'])
-  const whatsappText = encodeURIComponent(
-    'Здравствуйте! Хочу подписку Kudaclub за 1 990 ₸'
-  )
-  const whatsappHref = `https://wa.me/77066059899?text=${whatsappText}`
-
   return (
     <>
       {/* HERO */}
@@ -147,11 +142,9 @@ export default async function HomePage() {
 
           <div className="mt-8 flex flex-col items-stretch gap-3 sm:flex-row sm:items-center sm:justify-center">
             <WhatsappGoalLink
-              href={whatsappHref}
+              source="home-hero"
               target="_blank"
               rel="noopener noreferrer"
-              goal="subscribe_click_home"
-              goalParams={{ page: 'home', placement: 'hero' }}
               className="inline-flex items-center justify-center rounded-lg bg-primary px-6 py-3.5 text-base font-medium text-white transition-colors hover:bg-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2"
             >
               Попробовать за 1 990 ₸

@@ -9,12 +9,14 @@ type WhatsappGoalLinkProps = Omit<ComponentProps<'a'>, 'href' | 'onClick'> & {
   source: string
   href?: string
   onClick?: ComponentProps<'a'>['onClick']
+  extraGoal?: string
 }
 
 export function WhatsappGoalLink({
   source,
   href,
   onClick,
+  extraGoal,
   ...rest
 }: WhatsappGoalLinkProps) {
   return (
@@ -27,6 +29,9 @@ export function WhatsappGoalLink({
           currency: 'KZT',
         })
         trackGoal('whatsapp_click', { source })
+        if (extraGoal) {
+          trackGoal(extraGoal, { source })
+        }
         onClick?.(e)
       }}
     />

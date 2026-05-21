@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react'
 import { FloatingMapSwitch } from '@/components/map/floating-map-switch'
 import { RestaurantFiltersSheet } from '@/components/restaurant-filters-sheet'
 import { useUrlRestaurantFilters } from '@/components/map/use-url-filters'
+import { useHomeSort } from '@/components/home/use-home-sort'
 
 export function HomeMobileControls({
   cuisineOptions,
@@ -14,6 +15,12 @@ export function HomeMobileControls({
 }) {
   const [open, setOpen] = useState(false)
   const { filters, setFilters, buildHrefWithSameFilters } = useUrlRestaurantFilters()
+  const {
+    sortMode,
+    distanceDisabled,
+    setSortMode,
+    requestDistanceMode,
+  } = useHomeSort()
 
   const safeCuisineOptions = useMemo(() => cuisineOptions.filter(Boolean), [cuisineOptions])
 
@@ -33,8 +40,13 @@ export function HomeMobileControls({
         onChange={setFilters}
         cuisineOptions={safeCuisineOptions}
         applyCount={applyCount}
+        sortMode={sortMode}
+        onSortModeChange={setSortMode}
+        distanceDisabled={distanceDisabled}
+        onRequestDistanceMode={() => {
+          void requestDistanceMode()
+        }}
       />
     </div>
   )
 }
-

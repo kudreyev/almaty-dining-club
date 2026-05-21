@@ -26,6 +26,7 @@ export type Restaurant = {
   cuisine: string
   cuisine_2: string | null
   cuisine_3: string | null
+  brand?: string | null
   cover_photo_url?: string | null
   offers: Offer[]
   restaurant_hours?: RestaurantHour[]

@@ -2,44 +2,45 @@
 
 import {
   useEffect,
-  useLayoutEffect,
   useRef,
   useState,
   type FocusEvent,
-  type KeyboardEvent,
   type MouseEvent,
   type ReactNode,
 } from 'react'
-import { createPortal } from 'react-dom'
-import { Clock, MapPin } from 'lucide-react'
+import { Clock } from 'lucide-react'
+import { SortModeSegment } from '@/components/home/sort-mode-segment'
+import type { SortMode } from '@/lib/restaurant-filters'
 import type { OfferType } from '@/lib/types'
 
 type Props = {
   openNow: boolean
-  nearby: boolean
   offers: Set<OfferType>
   cuisines: Set<string>
   cuisineOptions: string[]
   onToggleOpenNow: () => void
-  onToggleNearby: () => void
   onToggleOffer: (offer: OfferType) => void
   onToggleCuisine: (cuisine: string) => void
-  proximityDisabled: boolean
+  sortMode: SortMode
+  distanceDisabled: boolean
+  onSortModeChange: (mode: SortMode) => void
+  onRequestDistanceMode: () => void
 }
 
 const DRAG_THRESHOLD_PX = 5
 
 export function FilterChipsBar({
   openNow,
-  nearby,
   offers,
   cuisines,
   cuisineOptions,
   onToggleOpenNow,
-  onToggleNearby,
   onToggleOffer,
   onToggleCuisine,
-  proximityDisabled,
+  sortMode,
+  distanceDisabled,
+  onSortModeChange,
+  onRequestDistanceMode,
 }: Props) {
   const sentinelRef = useRef<HTMLDivElement | null>(null)
   const scrollerRef = useRef<HTMLDivElement | null>(null)
@@ -131,6 +132,14 @@ export function FilterChipsBar({
             onMouseLeave={endDrag}
             onClickCapture={handleClickCapture}
           >
+            <SortModeSegment
+              sortMode={sortMode}
+              distanceDisabled={distanceDisabled}
+              onChange={onSortModeChange}
+              onRequestDistance={onRequestDistanceMode}
+              onFocus={handleChipFocus}
+            />
+
             <Chip
               active={openNow}
               onClick={onToggleOpenNow}
@@ -139,13 +148,6 @@ export function FilterChipsBar({
             >
               Открыто сейчас
             </Chip>
-
-            <ProximityChip
-              active={nearby}
-              disabled={proximityDisabled}
-              onClick={onToggleNearby}
-              onFocus={handleChipFocus}
-            />
 
             <Chip
               active={offers.has('2for1')}
@@ -216,148 +218,5 @@ function Chip({ active, onClick, onFocus, icon, children }: ChipProps) {
       ) : null}
       {children}
     </button>
-  )
-}
-
-function ProximityChip({
-  active,
-  disabled,
-  onClick,
-  onFocus,
-}: {
-  active: boolean
-  disabled: boolean
-  onClick: () => void
-  onFocus?: (event: FocusEvent<HTMLButtonElement>) => void
-}) {
-  const [popoverOpen, setPopoverOpen] = useState(false)
-  const [popoverPos, setPopoverPos] = useState<{ top: number; left: number } | null>(null)
-  const buttonRef = useRef<HTMLButtonElement | null>(null)
-
-  const updatePos = () => {
-    const button = buttonRef.current
-    if (!button) return
-    const rect = button.getBoundingClientRect()
-    setPopoverPos({
-      top: rect.bottom + 8,
-      left: rect.left + rect.width / 2,
-    })
-  }
-
-  useLayoutEffect(() => {
-    if (!popoverOpen) return
-    updatePos()
-  }, [popoverOpen])
-
-  useEffect(() => {
-    if (!popoverOpen) return
-
-    function onScroll() {
-      updatePos()
-    }
-    function onResize() {
-      updatePos()
-    }
-    function onDocClick(event: globalThis.MouseEvent) {
-      if (!buttonRef.current) return
-      if (!buttonRef.current.contains(event.target as Node)) {
-        setPopoverOpen(false)
-      }
-    }
-    function onKey(event: globalThis.KeyboardEvent) {
-      if (event.key === 'Escape') setPopoverOpen(false)
-    }
-
-    window.addEventListener('scroll', onScroll, true)
-    window.addEventListener('resize', onResize)
-    document.addEventListener('mousedown', onDocClick)
-    document.addEventListener('keydown', onKey)
-
-    return () => {
-      window.removeEventListener('scroll', onScroll, true)
-      window.removeEventListener('resize', onResize)
-      document.removeEventListener('mousedown', onDocClick)
-      document.removeEventListener('keydown', onKey)
-    }
-  }, [popoverOpen])
-
-  function handleClick() {
-    if (disabled) {
-      setPopoverOpen((prev) => !prev)
-      return
-    }
-    onClick()
-  }
-
-  function handleKeyDown(event: KeyboardEvent<HTMLButtonElement>) {
-    if (disabled && (event.key === 'Enter' || event.key === ' ')) {
-      event.preventDefault()
-      setPopoverOpen((prev) => !prev)
-    }
-  }
-
-  function handleFocus(event: FocusEvent<HTMLButtonElement>) {
-    if (onFocus) onFocus(event)
-    if (disabled) setPopoverOpen(true)
-  }
-
-  function handleBlur() {
-    if (disabled) setPopoverOpen(false)
-  }
-
-  return (
-    <div
-      className="relative shrink-0"
-      onMouseEnter={() => disabled && setPopoverOpen(true)}
-      onMouseLeave={() => disabled && setPopoverOpen(false)}
-    >
-      <button
-        ref={buttonRef}
-        type="button"
-        onClick={handleClick}
-        onKeyDown={handleKeyDown}
-        onFocus={handleFocus}
-        onBlur={handleBlur}
-        aria-pressed={active}
-        aria-disabled={disabled || undefined}
-        aria-describedby={disabled && popoverOpen ? 'proximity-tooltip' : undefined}
-        className={`inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full border text-sm transition-colors duration-150 px-3.5 py-[7px] ${
-          active
-            ? 'border-primary bg-primary text-white'
-            : disabled
-              ? 'border-neutral-200 bg-white text-neutral-400 cursor-not-allowed'
-              : 'border-neutral-200 bg-white text-neutral-900 hover:border-neutral-400 hover:bg-neutral-50'
-        }`}
-        style={{ borderWidth: '0.5px' }}
-      >
-        <span className={active ? 'opacity-100' : 'opacity-60'}>
-          <MapPin size={12} aria-hidden="true" />
-        </span>
-        По близости
-      </button>
-
-      {disabled && popoverOpen && popoverPos && typeof document !== 'undefined'
-        ? createPortal(
-            <div
-              id="proximity-tooltip"
-              role="tooltip"
-              style={{
-                position: 'fixed',
-                top: popoverPos.top,
-                left: popoverPos.left,
-                transform: 'translateX(-50%)',
-              }}
-              className="z-[60] w-max max-w-[260px] rounded-lg border border-neutral-200 bg-white px-3 py-2 text-xs text-neutral-700 shadow-[0_4px_12px_rgba(0,0,0,0.08)]"
-            >
-              <span
-                aria-hidden="true"
-                className="absolute -top-1 left-1/2 h-2 w-2 -translate-x-1/2 rotate-45 border-l border-t border-neutral-200 bg-white"
-              />
-              Включите геолокацию в настройках браузера
-            </div>,
-            document.body
-          )
-        : null}
-    </div>
   )
 }

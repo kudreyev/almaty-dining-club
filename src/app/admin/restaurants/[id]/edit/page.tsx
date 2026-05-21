@@ -37,6 +37,7 @@ type RestaurantRecord = {
   cuisine: string
   cuisine_2: string | null
   cuisine_3: string | null
+  brand: string | null
   tags: string[] | null
   instagram_url: string | null
   two_gis_url: string | null
@@ -63,6 +64,7 @@ export default async function AdminRestaurantEditPage({ params, searchParams }: 
         cuisine,
         cuisine_2,
         cuisine_3,
+        brand,
         tags,
         instagram_url,
         two_gis_url,
@@ -113,6 +115,12 @@ export default async function AdminRestaurantEditPage({ params, searchParams }: 
           <input type="hidden" name="id" value={r.id} />
           <Input name="restaurant_name" label="Название" defaultValue={r.restaurant_name} required data-ym-disable-keys />
           <Input name="slug" label="Slug" defaultValue={r.slug} required />
+          <Input
+            name="brand"
+            label="Бренд"
+            defaultValue={r.brand ?? ''}
+            placeholder="Например, Coffee Shake (для группировки филиалов)"
+          />
           <Input name="address" label="Адрес" defaultValue={r.address} required data-ym-disable-keys />
           <div className="grid gap-4 sm:grid-cols-3">
             <Input name="cuisine" label="Кухня" defaultValue={r.cuisine} required />

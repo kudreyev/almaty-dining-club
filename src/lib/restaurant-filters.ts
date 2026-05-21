@@ -1,10 +1,27 @@
 export type OfferType = '2for1' | 'compliment'
 
+export type SortMode = 'distance' | 'benefit'
+
 export type RestaurantFilters = {
   openNow: boolean
   nearby: boolean
   offers: Set<OfferType>
   cuisines: Set<string>
+}
+
+export function parseSortModeFromSearchParams(sp: URLSearchParams): SortMode | null {
+  const value = sp.get('sort')
+  if (value === 'distance' || value === 'benefit') return value
+  return null
+}
+
+export function serializeSortMode(
+  sp: URLSearchParams,
+  sortMode: SortMode | null
+): URLSearchParams {
+  if (sortMode) sp.set('sort', sortMode)
+  else sp.delete('sort')
+  return sp
 }
 
 export const DEFAULT_FILTERS: RestaurantFilters = {

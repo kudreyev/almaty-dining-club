@@ -20,6 +20,11 @@ export default async function AdminRestaurantNewPage() {
         <form action={createRestaurant} className="space-y-4">
           <Input name="restaurant_name" label="Название" placeholder="Название" required data-ym-disable-keys />
           <Input name="slug" label="Slug" placeholder="slug (латиницей)" required />
+          <Input
+            name="brand"
+            label="Бренд"
+            placeholder="Например, Coffee Shake (для группировки филиалов)"
+          />
           <Input name="address" label="Адрес" placeholder="Адрес" required data-ym-disable-keys />
           <div className="grid gap-4 sm:grid-cols-3">
             <Input name="cuisine" label="Кухня" placeholder="Кухня" required />

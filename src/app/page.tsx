@@ -25,6 +25,7 @@ type SupabaseRow = {
   cuisine: string
   cuisine_2: string | null
   cuisine_3: string | null
+  brand: string | null
   offers: Offer[]
   restaurant_hours?: RestaurantHour[]
   restaurant_locations?: {
@@ -49,6 +50,7 @@ async function loadHomeRestaurants() {
       cuisine,
       cuisine_2,
       cuisine_3,
+      brand,
       offers (
         offer_type,
         offer_title,

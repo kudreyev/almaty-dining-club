@@ -1,22 +1,20 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useMemo } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { Map as MapIcon } from 'lucide-react'
 import { FilterChipsBar } from '@/components/home/filter-chips-bar'
 import { RestaurantCard } from '@/components/home/restaurant-card'
 import { EmptyState } from '@/components/ui/empty-state'
+import { AnimatedGrid } from '@/components/home/animated-grid'
+import { GeoSuggestionBanner } from '@/components/home/geo-suggestion-banner'
+import { useHomeSort } from '@/components/home/use-home-sort'
 import { haversineDistanceKm } from '@/lib/distance'
 import { getMaxBenefit } from '@/lib/offers'
 import { pluralizeRu } from '@/lib/ru-plural'
-import {
-  getStoredGeolocationPermissionState,
-  persistUserLocation,
-  requestUserPosition,
-  useUserLocation,
-  type GeoPermissionState,
-} from '@/lib/user-location'
+import { getBrandKey } from '@/lib/brand'
+import { sortCatalog, type SortableItem } from '@/lib/catalog-sort'
 import {
   hasAnyActiveFilter,
   type FilterState,
@@ -32,7 +30,6 @@ type Props = {
 
 function parseFilters(sp: URLSearchParams): FilterState {
   const openNow = sp.get('open') === '1'
-  const nearby = sp.get('nearby') === '1'
 
   const offers = new Set<OfferType>()
   for (const x of (sp.get('offers') ?? '').split(',')) {
@@ -47,7 +44,7 @@ function parseFilters(sp: URLSearchParams): FilterState {
       .filter(Boolean)
   )
 
-  return { openNow, nearby, offers, cuisines }
+  return { openNow, nearby: false, offers, cuisines }
 }
 
 function serializeFilters(filters: FilterState, base: URLSearchParams): URLSearchParams {
@@ -56,16 +53,14 @@ function serializeFilters(filters: FilterState, base: URLSearchParams): URLSearc
   if (filters.openNow) sp.set('open', '1')
   else sp.delete('open')
 
-  if (filters.nearby) sp.set('nearby', '1')
-  else sp.delete('nearby')
-
   if (filters.offers.size > 0) sp.set('offers', Array.from(filters.offers).join(','))
   else sp.delete('offers')
 
   if (filters.cuisines.size > 0) sp.set('cuisine', Array.from(filters.cuisines).join(','))
   else sp.delete('cuisine')
 
-  // Чистим устаревшие ключи на случай, если пришли по старым ссылкам.
+  // На главной игнорируем устаревший nearby; режим сортировки управляется ?sort.
+  sp.delete('nearby')
   sp.delete('openNow')
   sp.delete('offer')
   sp.delete('type')
@@ -96,20 +91,15 @@ export function VenuesSection({
     [searchParams]
   )
 
-  const userLocation = useUserLocation()
-  const [geoPermission, setGeoPermission] = useState<GeoPermissionState>('unknown')
-
-  useEffect(() => {
-    let cancelled = false
-    getStoredGeolocationPermissionState().then((state) => {
-      if (!cancelled) setGeoPermission(state)
-    })
-    return () => {
-      cancelled = true
-    }
-  }, [])
-
-  const proximityDisabled = geoPermission === 'denied' && !userLocation
+  const {
+    sortMode,
+    distanceDisabled,
+    userLocation,
+    shouldShowGeoBanner,
+    setSortMode,
+    requestDistanceMode,
+    dismissGeoBanner,
+  } = useHomeSort()
 
   const updateFilters = useCallback(
     (next: FilterState) => {
@@ -124,34 +114,6 @@ export function VenuesSection({
   const handleToggleOpenNow = useCallback(() => {
     updateFilters({ ...filters, openNow: !filters.openNow })
   }, [filters, updateFilters])
-
-  const handleToggleNearby = useCallback(async () => {
-    if (filters.nearby) {
-      updateFilters({ ...filters, nearby: false })
-      return
-    }
-
-    if (userLocation) {
-      updateFilters({ ...filters, nearby: true })
-      return
-    }
-
-    const permission = await getStoredGeolocationPermissionState()
-    setGeoPermission(permission)
-    if (permission === 'denied') return
-
-    const result = await requestUserPosition()
-    if (result.ok) {
-      persistUserLocation(result.lat, result.lng)
-      setGeoPermission('granted')
-      updateFilters({ ...filters, nearby: true })
-      return
-    }
-
-    if (result.permissionDenied) {
-      setGeoPermission('denied')
-    }
-  }, [filters, updateFilters, userLocation])
 
   const handleToggleOffer = useCallback(
     (offer: OfferType) => {
@@ -185,8 +147,8 @@ export function VenuesSection({
     })
   }, [restaurants, userLocation])
 
-  const displayed = useMemo(() => {
-    const list = enriched.filter(({ restaurant, distanceKm }) => {
+  const filtered = useMemo(() => {
+    return enriched.filter(({ restaurant }) => {
       if (filters.openNow && !restaurant.openStatus.isOpen) return false
 
       if (filters.offers.size > 0) {
@@ -204,32 +166,27 @@ export function VenuesSection({
         if (!hit) return false
       }
 
-      if (filters.nearby && userLocation) {
-        if (distanceKm === null) return false
-      }
-
       return true
     })
+  }, [enriched, filters])
 
-    if (filters.nearby && userLocation) {
-      list.sort((a, b) => {
-        const da = a.distanceKm ?? Infinity
-        const db = b.distanceKm ?? Infinity
-        if (da !== db) return da - db
-        return a.restaurant.restaurant_name.localeCompare(b.restaurant.restaurant_name, 'ru')
-      })
-    } else {
-      list.sort((a, b) => {
-        const oa = a.restaurant.openStatus.isOpen ? 0 : 1
-        const ob = b.restaurant.openStatus.isOpen ? 0 : 1
-        if (oa !== ob) return oa - ob
-        if (b.maxBenefit !== a.maxBenefit) return b.maxBenefit - a.maxBenefit
-        return a.restaurant.restaurant_name.localeCompare(b.restaurant.restaurant_name, 'ru')
-      })
-    }
+  const displayed = useMemo(() => {
+    const sortable: (SortableItem & { restaurant: RestaurantWithStatus; distanceKm: number | null })[] =
+      filtered.map(({ restaurant, distanceKm, maxBenefit }) => ({
+        id: restaurant.id,
+        isOpen: restaurant.openStatus.isOpen,
+        distanceKm,
+        maxBenefit,
+        brandKey: getBrandKey({
+          restaurant_name: restaurant.restaurant_name,
+          brand: restaurant.brand ?? null,
+        }),
+        tiebreaker: restaurant.restaurant_name,
+        restaurant,
+      }))
 
-    return list
-  }, [enriched, filters, userLocation])
+    return sortCatalog(sortable, { mode: sortMode })
+  }, [filtered, sortMode])
 
   const showCount = hasAnyActiveFilter(filters)
   const countLabel = `${displayed.length} ${pluralizeRu(displayed.length, [
@@ -242,6 +199,8 @@ export function VenuesSection({
     const qs = new URLSearchParams(searchParams.toString()).toString()
     return qs ? `/map?${qs}` : '/map'
   }, [searchParams])
+
+  const orderKey = useMemo(() => displayed.map((d) => d.id).join('|'), [displayed])
 
   return (
     <section className="mt-2">
@@ -265,16 +224,28 @@ export function VenuesSection({
 
       <FilterChipsBar
         openNow={filters.openNow}
-        nearby={filters.nearby && userLocation !== null}
         offers={filters.offers}
         cuisines={filters.cuisines}
         cuisineOptions={cuisineOptions}
         onToggleOpenNow={handleToggleOpenNow}
-        onToggleNearby={handleToggleNearby}
         onToggleOffer={handleToggleOffer}
         onToggleCuisine={handleToggleCuisine}
-        proximityDisabled={proximityDisabled}
+        sortMode={sortMode}
+        distanceDisabled={distanceDisabled}
+        onSortModeChange={setSortMode}
+        onRequestDistanceMode={() => {
+          void requestDistanceMode()
+        }}
       />
+
+      {shouldShowGeoBanner ? (
+        <GeoSuggestionBanner
+          onEnable={() => {
+            void requestDistanceMode()
+          }}
+          onDismiss={dismissGeoBanner}
+        />
+      ) : null}
 
       {showCount ? (
         <p className="-mt-3 mb-3 text-xs text-neutral-500 sm:hidden">{countLabel}</p>
@@ -283,15 +254,19 @@ export function VenuesSection({
       {displayed.length === 0 ? (
         <EmptyState title="Ничего не найдено" description="Попробуйте изменить фильтры" />
       ) : (
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+        <AnimatedGrid
+          orderKey={orderKey}
+          className="grid grid-cols-1 gap-4 md:grid-cols-2"
+        >
           {displayed.map(({ restaurant, distanceKm }) => (
-            <RestaurantCard
-              key={restaurant.id}
-              restaurant={restaurant}
-              distanceKm={userLocation && distanceKm !== null ? distanceKm : null}
-            />
+            <div key={restaurant.id} data-flip-id={restaurant.id}>
+              <RestaurantCard
+                restaurant={restaurant}
+                distanceKm={userLocation && distanceKm !== null ? distanceKm : null}
+              />
+            </div>
           ))}
-        </div>
+        </AnimatedGrid>
       )}
     </section>
   )

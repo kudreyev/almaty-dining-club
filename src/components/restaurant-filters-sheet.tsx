@@ -1,7 +1,12 @@
 'use client'
 
 import { useMemo, useRef } from 'react'
-import type { OfferType, RestaurantFilters } from '@/lib/restaurant-filters'
+import { trackGoal } from '@/lib/analytics-client'
+import type {
+  OfferType,
+  RestaurantFilters,
+  SortMode,
+} from '@/lib/restaurant-filters'
 
 function toggleSet(set: Set<string>, key: string) {
   const next = new Set(set)
@@ -154,6 +159,10 @@ export function RestaurantFiltersSheet({
   cuisineOptions,
   applyCount,
   geoHint,
+  sortMode,
+  onSortModeChange,
+  distanceDisabled,
+  onRequestDistanceMode,
 }: {
   open: boolean
   onClose: () => void
@@ -162,12 +171,53 @@ export function RestaurantFiltersSheet({
   cuisineOptions: string[]
   applyCount: number
   geoHint?: string | null
+  sortMode?: SortMode
+  onSortModeChange?: (next: SortMode) => void
+  distanceDisabled?: boolean
+  onRequestDistanceMode?: () => void
 }) {
   const cuisineList = useMemo(() => cuisineOptions.filter(Boolean), [cuisineOptions])
+  const sortControlEnabled =
+    typeof sortMode !== 'undefined' && typeof onSortModeChange === 'function'
+
+  function handlePickSort(next: SortMode) {
+    if (!sortControlEnabled || sortMode === next) return
+    trackGoal('sort_mode_switch', { mode: next })
+    if (next === 'distance' && distanceDisabled) {
+      onRequestDistanceMode?.()
+      return
+    }
+    onSortModeChange?.(next)
+  }
 
   return (
     <BottomSheet open={open} title="Фильтры" onClose={onClose}>
       <div className="flex flex-col" style={{ gap: '20px' }}>
+        {sortControlEnabled ? (
+          <div>
+            <p
+              className="font-medium text-neutral-700"
+              style={{ fontSize: '13px', marginBottom: '10px' }}
+            >
+              Сортировка
+            </p>
+            <div className="flex flex-wrap" style={{ gap: '8px' }}>
+              <FilterChip
+                active={sortMode === 'distance'}
+                onClick={() => handlePickSort('distance')}
+              >
+                По близости
+              </FilterChip>
+              <FilterChip
+                active={sortMode === 'benefit'}
+                onClick={() => handlePickSort('benefit')}
+              >
+                По выгоде
+              </FilterChip>
+            </div>
+          </div>
+        ) : null}
+
         <div>
           <p
             className="font-medium text-neutral-700"
@@ -182,12 +232,14 @@ export function RestaurantFiltersSheet({
             >
               Открыто сейчас
             </FilterChip>
-            <FilterChip
-              active={filters.nearby}
-              onClick={() => onChange({ ...filters, nearby: !filters.nearby })}
-            >
-              По близости
-            </FilterChip>
+            {!sortControlEnabled ? (
+              <FilterChip
+                active={filters.nearby}
+                onClick={() => onChange({ ...filters, nearby: !filters.nearby })}
+              >
+                По близости
+              </FilterChip>
+            ) : null}
             <FilterChip
               active={filters.offers.has('2for1')}
               onClick={() => onChange({ ...filters, offers: toggleOffer(filters.offers, '2for1') })}

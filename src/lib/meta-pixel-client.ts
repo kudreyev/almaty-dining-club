@@ -25,6 +25,15 @@ function fireMetaPixel(
 }
 
 /** Ждёт загрузки fbevents.js — иначе useEffect на mount часто срабатывает раньше afterInteractive. */
+function fireMetaPixelPurchase(
+  params: MetaPixelEventParams,
+  eventId: string,
+): boolean {
+  if (typeof window.fbq !== 'function') return false
+  window.fbq('track', 'Purchase', params, { eventID: eventId })
+  return true
+}
+
 export function trackMetaPixel(
   event: MetaPixelStandardEvent,
   params?: MetaPixelEventParams,
@@ -35,6 +44,21 @@ export function trackMetaPixel(
   let attempts = 0
   const timer = window.setInterval(() => {
     if (fireMetaPixel(event, params) || ++attempts >= FBQ_MAX_RETRIES) {
+      window.clearInterval(timer)
+    }
+  }, FBQ_RETRY_MS)
+}
+
+export function trackMetaPixelPurchase(
+  params: MetaPixelEventParams,
+  eventId: string,
+): void {
+  if (typeof window === 'undefined') return
+  if (fireMetaPixelPurchase(params, eventId)) return
+
+  let attempts = 0
+  const timer = window.setInterval(() => {
+    if (fireMetaPixelPurchase(params, eventId) || ++attempts >= FBQ_MAX_RETRIES) {
       window.clearInterval(timer)
     }
   }, FBQ_RETRY_MS)

@@ -5,6 +5,10 @@ vi.mock('@/lib/profile-sync', () => ({
   ensureProfilePhone: vi.fn().mockResolvedValue(undefined),
 }))
 
+vi.mock('@/lib/meta-capi', () => ({
+  sendPurchaseEvent: vi.fn().mockResolvedValue(undefined),
+}))
+
 vi.mock('@/lib/supabase/admin', () => ({
   createSupabaseAdminClient: vi.fn(),
 }))
@@ -121,7 +125,10 @@ describe('completeActivation', () => {
 
     const result = await completeActivation({ userId: USER_ID, token: TOKEN })
 
-    expect(result).toEqual({ ok: true })
+    expect(result.ok).toBe(true)
+    if (result.ok) {
+      expect(result.purchaseEventId).toMatch(/^purchase_/)
+    }
     expect(rpcMock).toHaveBeenCalledWith('activate_subscription_atomic', {
       p_token: TOKEN,
       p_user_id: USER_ID,
@@ -207,7 +214,7 @@ describe('completeActivation', () => {
     expect(ensureProfilePhone).not.toHaveBeenCalled()
 
     const ok = await completeActivation({ userId: USER_ID, token: TOKEN })
-    expect(ok).toEqual({ ok: true })
+    expect(ok.ok).toBe(true)
     expect(ensureProfilePhone).toHaveBeenCalledOnce()
     expect(rpcMock).toHaveBeenCalledTimes(2)
   })

@@ -18,8 +18,16 @@ type ActivateCardProps = {
 type Status =
   | { kind: 'idle' }
   | { kind: 'loading' }
-  | { kind: 'success' }
+  | { kind: 'success'; purchaseEventId: string }
   | { kind: 'error'; reason: Exclude<ActivateActionResult, { ok: true }>['reason'] }
+
+function buildMeActivatedHref(purchaseEventId: string): string {
+  const query = new URLSearchParams({
+    activated: 'true',
+    purchase_event_id: purchaseEventId,
+  })
+  return `/app/me?${query.toString()}`
+}
 
 const ERROR_COPY: Record<
   Exclude<ActivateActionResult, { ok: true }>['reason'],
@@ -66,7 +74,7 @@ export function ActivateCard({ token, phoneTarget }: ActivateCardProps) {
   useEffect(() => {
     if (status.kind !== 'success') return
     const id = window.setTimeout(() => {
-      router.push('/app/me?activated=true')
+      router.push(buildMeActivatedHref(status.purchaseEventId))
     }, 2000)
     return () => window.clearTimeout(id)
   }, [status, router])
@@ -77,7 +85,7 @@ export function ActivateCard({ token, phoneTarget }: ActivateCardProps) {
     try {
       const result = await activateAction(token)
       if (result.ok) {
-        setStatus({ kind: 'success' })
+        setStatus({ kind: 'success', purchaseEventId: result.purchaseEventId })
       } else {
         setStatus({ kind: 'error', reason: result.reason })
       }
@@ -102,7 +110,7 @@ export function ActivateCard({ token, phoneTarget }: ActivateCardProps) {
               Перейти к заведениям
             </Link>
             <Link
-              href="/app/me?activated=true"
+              href={buildMeActivatedHref(status.purchaseEventId)}
               className="inline-flex rounded-md border border-gray-300 bg-white px-5 py-3 text-sm font-medium text-gray-900 transition-colors hover:bg-gray-50"
             >
               Открыть кабинет

@@ -6,7 +6,7 @@ import { completeActivation, getActivationLinkByToken } from '@/lib/activation-l
 import { logAnalyticsEvent } from '@/lib/analytics'
 
 export type ActivateActionResult =
-  | { ok: true }
+  | { ok: true; purchaseEventId: string }
   | {
       ok: false
       reason:
@@ -54,7 +54,7 @@ export async function activateAction(
     revalidatePath('/app/me')
     revalidatePath('/admin/activation-links')
 
-    return { ok: true }
+    return { ok: true, purchaseEventId: result.purchaseEventId }
   }
 
   if (result.reason === 'wrong_phone') {

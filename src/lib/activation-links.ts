@@ -1,5 +1,7 @@
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 import { normalizePhoneToE164 } from '@/lib/auth/whatsapp-login'
+import { sendPurchaseEvent } from '@/lib/meta-capi'
+import { buildPurchaseEventId } from '@/lib/meta-purchase'
 import { ensureProfilePhone } from '@/lib/profile-sync'
 
 export type ActivationLinkStatus = 'issued' | 'activated' | 'revoked' | 'expired'
@@ -120,7 +122,7 @@ export function precheckActivationLink(row: ActivationLinkRow): ActivationPreche
 }
 
 export type CompleteActivationResult =
-  | { ok: true }
+  | { ok: true; purchaseEventId: string }
   | {
       ok: false
       reason:
@@ -224,7 +226,20 @@ export async function completeActivation(args: {
   // Always sync, even if profile already has a phone (may need updating).
   await ensureProfilePhone(args.userId, phoneToSync)
 
-  return { ok: true }
+  const eventTime = Math.floor(Date.now() / 1000)
+  const purchaseEventId = buildPurchaseEventId(args.userId, eventTime)
+
+  const phoneForCapi = resolved ?? phoneToSync
+  if (phoneForCapi) {
+    void sendPurchaseEvent({
+      userId: args.userId,
+      phone: phoneForCapi,
+      eventId: purchaseEventId,
+      eventTime,
+    })
+  }
+
+  return { ok: true, purchaseEventId }
 }
 
 export function generateHashedActivationToken() {

@@ -3,7 +3,10 @@
 import { useEffect, useRef } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { trackGoal } from '@/lib/analytics-client'
-import { META_SUBSCRIPTION_PRICE_KZT, trackMetaPixel } from '@/lib/meta-pixel-client'
+import {
+  META_SUBSCRIPTION_PRICE_KZT,
+  trackMetaPixelPurchase,
+} from '@/lib/meta-pixel-client'
 
 export function MeMetrica() {
   const searchParams = useSearchParams()
@@ -12,13 +15,22 @@ export function MeMetrica() {
   useEffect(() => {
     if (searchParams.get('activated') !== 'true' || firedActivated.current) return
     firedActivated.current = true
+
+    const purchaseEventId = searchParams.get('purchase_event_id')
+
     trackGoal('subscription_activated', {
-      amount: 1990,
+      amount: META_SUBSCRIPTION_PRICE_KZT,
     })
-    trackMetaPixel('Purchase', {
-      value: META_SUBSCRIPTION_PRICE_KZT,
-      currency: 'KZT',
-    })
+
+    if (purchaseEventId) {
+      trackMetaPixelPurchase(
+        {
+          value: META_SUBSCRIPTION_PRICE_KZT,
+          currency: 'KZT',
+        },
+        purchaseEventId,
+      )
+    }
   }, [searchParams])
 
   return null

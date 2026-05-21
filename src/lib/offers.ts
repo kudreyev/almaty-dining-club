@@ -34,10 +34,6 @@ export function pickTopOffers<T extends OfferLike>(offers: T[], maxN = 3): T[] {
   return [...twoFor1, ...compliments].slice(0, maxN)
 }
 
-function roundToHundreds(value: number): number {
-  return Math.round(value / 100) * 100
-}
-
 /** Максимальная выгода (estimated_value) среди активных офферов; null — если нет данных. */
 export function getMaxBenefit<T extends OfferLike>(offers: T[]): number | null {
   let max: number | null = null
@@ -56,7 +52,7 @@ export function formatBenefitLabel<T extends OfferLike>(offers: T[]): string | n
   const max = getMaxBenefit(active)
   if (max === null) return null
 
-  const formatted = new Intl.NumberFormat('ru-RU').format(roundToHundreds(max))
+  const formatted = new Intl.NumberFormat('ru-RU').format(Math.round(max))
   return active.length >= 2 ? `Выгода до ~${formatted} ₸` : `Выгода ~${formatted} ₸`
 }
 

@@ -45,10 +45,18 @@ export function HeroGuest({ venuesCount }: HeroGuestProps) {
           </a>
         </div>
 
-        <ul className="mt-5 flex flex-col items-center gap-2 text-xs text-neutral-500 sm:flex-row sm:justify-center sm:gap-6">
+        <p className="mt-2 text-center text-[11px] text-neutral-500">
+          Вернём деньги, если не подойдёт
+        </p>
+
+        <ul className="mt-5 flex flex-col items-center gap-2 text-xs text-neutral-500 sm:flex-row sm:flex-wrap sm:justify-center sm:gap-x-6 sm:gap-y-2">
           <li className="inline-flex items-center gap-1.5">
             <CheckIcon />
             1 визит окупает подписку
+          </li>
+          <li className="inline-flex items-center gap-1.5">
+            <CheckIcon />
+            Возврат денег за 7 дней
           </li>
           <li className="inline-flex items-center gap-1.5">
             <CheckIcon />

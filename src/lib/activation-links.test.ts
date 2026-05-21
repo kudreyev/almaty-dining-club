@@ -36,6 +36,8 @@ function issuedRow(overrides: Partial<ActivationLinkRow> = {}): ActivationLinkRo
     status: 'issued',
     amount: 1990,
     currency: 'KZT',
+    kind: 'paid',
+    trial_days: null,
     activated_user_id: null,
     activated_at: null,
     created_at: new Date().toISOString(),

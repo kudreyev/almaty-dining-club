@@ -6,7 +6,7 @@ import { completeActivation, getActivationLinkByToken } from '@/lib/activation-l
 import { logAnalyticsEvent } from '@/lib/analytics'
 
 export type ActivateActionResult =
-  | { ok: true; purchaseEventId: string }
+  | { ok: true; purchaseEventId: string; kind: 'paid' | 'trial' }
   | {
       ok: false
       reason:
@@ -17,6 +17,7 @@ export type ActivateActionResult =
         | 'already_used'
         | 'wrong_phone'
         | 'subscription_error'
+        | 'trial_already_used'
     }
 
 export async function activateAction(
@@ -49,12 +50,17 @@ export async function activateAction(
       token: row?.token ?? token,
       phone_target: row?.phone_target ?? null,
       user_id: user.id,
+      meta: { kind: result.kind },
     })
 
     revalidatePath('/app/me')
     revalidatePath('/admin/activation-links')
 
-    return { ok: true, purchaseEventId: result.purchaseEventId }
+    return {
+      ok: true,
+      purchaseEventId: result.purchaseEventId,
+      kind: result.kind,
+    }
   }
 
   if (result.reason === 'wrong_phone') {

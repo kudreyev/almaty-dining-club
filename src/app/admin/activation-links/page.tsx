@@ -1,4 +1,3 @@
-import Link from 'next/link'
 import { requireAdmin } from '@/lib/admin'
 import { buildActivationUrl } from '@/lib/activation-links'
 import { createActivationLink } from './actions'
@@ -18,6 +17,8 @@ type ActivationLinkListRow = {
   amount: number
   currency: string
   status: string
+  kind: 'paid' | 'trial'
+  trial_days: number | null
   created_at: string
   expires_at: string
   activated_at: string | null
@@ -27,8 +28,16 @@ function waMeDigits(phoneE164: string) {
   return phoneE164.replace(/\D/g, '')
 }
 
-function buildManagerWhatsAppHref(phoneTarget: string, publicUrl: string) {
-  const text = `Здравствуйте! Вот ссылка для активации подписки Kudaclub на 1 месяц: ${publicUrl}\nВажно: войдите с номера ${phoneTarget}`
+function buildManagerWhatsAppHref(
+  phoneTarget: string,
+  publicUrl: string,
+  kind: 'paid' | 'trial',
+  trialDays: number | null,
+) {
+  const text =
+    kind === 'trial'
+      ? `Здравствуйте! Вот ссылка для активации пробного доступа Kudaclub на ${trialDays ?? 14} дней: ${publicUrl}\nВажно: войдите с номера ${phoneTarget}`
+      : `Здравствуйте! Вот ссылка для активации подписки Kudaclub на 1 месяц: ${publicUrl}\nВажно: войдите с номера ${phoneTarget}`
   const digits = waMeDigits(phoneTarget)
   return `https://wa.me/${digits}?text=${encodeURIComponent(text)}`
 }
@@ -53,10 +62,23 @@ function statusBadgeColor(status: string, isExpiredByTime: boolean): 'green' | '
   return 'blue'
 }
 
+const ERROR_MESSAGES: Record<string, string> = {
+  invalid_phone: 'Укажите корректный номер телефона.',
+  trial_already_used:
+    'Пробный доступ уже выдавался этому номеру (активация подтверждена).',
+  trial_link_pending:
+    'Для этого номера уже создана активная trial-ссылка. Сначала дождитесь её активации или истечения.',
+}
+
+const SUCCESS_MESSAGES: Record<string, string> = {
+  paid: 'Платная ссылка создана.',
+  trial: 'Trial-ссылка на 14 дней создана.',
+}
+
 export default async function AdminActivationLinksPage({
   searchParams,
 }: {
-  searchParams: Promise<{ filter?: string; error?: string }>
+  searchParams: Promise<{ filter?: string; error?: string; created?: string }>
 }) {
   const { supabase } = await requireAdmin()
 
@@ -71,13 +93,15 @@ export default async function AdminActivationLinksPage({
   const openedPerCreated = createdCount > 0 ? openedCount / createdCount : 0
   const activatedPerOpened = openedCount > 0 ? activatedCount / openedCount : 0
 
-  const { filter: filterRaw, error: errorParam } = await searchParams
+  const { filter: filterRaw, error: errorParam, created: createdParam } = await searchParams
   const filter = filterRaw && isValidFilter(filterRaw) ? filterRaw : 'active'
   const nowIso = new Date().toISOString()
 
   let query = supabase
     .from('activation_links')
-    .select('id, token, phone_target, amount, currency, status, created_at, expires_at, activated_at')
+    .select(
+      'id, token, phone_target, amount, currency, status, kind, trial_days, created_at, expires_at, activated_at',
+    )
     .order('created_at', { ascending: false })
     .limit(50)
 
@@ -107,12 +131,15 @@ export default async function AdminActivationLinksPage({
     { id: 'all', label: 'Все', href: '/admin/activation-links?filter=all' },
   ]
 
+  const errorMessage = errorParam ? ERROR_MESSAGES[errorParam] : null
+  const successMessage = createdParam ? SUCCESS_MESSAGES[createdParam] : null
+
   return (
     <div className="mx-auto max-w-6xl px-5 py-8">
       <div className="mb-6">
         <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">Ссылки активации</h1>
         <p className="mt-1 text-base leading-6 text-gray-500">
-          Создайте ссылку для клиента после оплаты. Срок — 24 часа.
+          Создайте платную ссылку после оплаты или выдайте пробный доступ на 14 дней. Срок действия любой ссылки — 24 часа.
         </p>
       </div>
 
@@ -130,38 +157,87 @@ export default async function AdminActivationLinksPage({
         открыто/создано: {(openedPerCreated * 100).toFixed(1)}% · активаций/открыто: {(activatedPerOpened * 100).toFixed(1)}%
       </p>
 
-      {/* ERROR */}
-      {errorParam === 'invalid_phone' ? (
+      {/* MESSAGES */}
+      {errorMessage ? (
         <div className="mb-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-base text-red-700">
-          Укажите корректный номер телефона.
+          {errorMessage}
+        </div>
+      ) : null}
+      {successMessage ? (
+        <div className="mb-6 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-base text-emerald-700">
+          {successMessage}
         </div>
       ) : null}
 
-      {/* CREATE FORM */}
-      <Card className="mb-6">
-        <form action={createActivationLink} className="flex flex-col gap-4 sm:flex-row sm:items-end">
-          <div className="flex-1">
-            <label htmlFor="phone_target" className="mb-1.5 block text-base font-medium text-gray-700">
-              Номер клиента
-            </label>
-            <PhoneInput id="phone_target" name="phone_target" required className="w-full rounded-xl border border-gray-200 px-4 py-3 text-base outline-none transition-colors focus:border-accent" />
+      {/* CREATE FORMS */}
+      <div className="mb-6 grid gap-4 lg:grid-cols-2">
+        {/* Paid */}
+        <Card>
+          <div className="mb-3 flex items-center justify-between gap-2">
+            <h2 className="text-lg font-semibold">Платная активация</h2>
+            <Badge color="dark">PAID</Badge>
           </div>
-          <div className="w-full sm:w-32">
-            <label htmlFor="amount" className="mb-1.5 block text-base font-medium text-gray-700">
-              Сумма (₸)
-            </label>
-            <input
-              id="amount"
-              name="amount"
-              type="number"
-              defaultValue={1990}
-              min={1}
-              className="w-full rounded-xl border border-gray-200 px-4 py-3 text-base outline-none transition-colors focus:border-accent"
-            />
+          <p className="mb-4 text-sm text-gray-500">
+            Создаётся после оплаты. Срок подписки — 30 дней.
+          </p>
+          <form action={createActivationLink} className="flex flex-col gap-4">
+            <input type="hidden" name="kind" value="paid" />
+            <div>
+              <label htmlFor="phone_target_paid" className="mb-1.5 block text-base font-medium text-gray-700">
+                Номер клиента
+              </label>
+              <PhoneInput
+                id="phone_target_paid"
+                name="phone_target"
+                required
+                className="w-full rounded-xl border border-gray-200 px-4 py-3 text-base outline-none transition-colors focus:border-accent"
+              />
+            </div>
+            <div>
+              <label htmlFor="amount_paid" className="mb-1.5 block text-base font-medium text-gray-700">
+                Сумма (₸)
+              </label>
+              <input
+                id="amount_paid"
+                name="amount"
+                type="number"
+                defaultValue={1990}
+                min={1}
+                className="w-full rounded-xl border border-gray-200 px-4 py-3 text-base outline-none transition-colors focus:border-accent"
+              />
+            </div>
+            <Button type="submit" size="lg">Создать платную ссылку</Button>
+          </form>
+        </Card>
+
+        {/* Trial */}
+        <Card>
+          <div className="mb-3 flex items-center justify-between gap-2">
+            <h2 className="text-lg font-semibold">Пробный доступ на 14 дней</h2>
+            <Badge color="accent">TRIAL</Badge>
           </div>
-          <Button type="submit" size="lg">Создать</Button>
-        </form>
-      </Card>
+          <p className="mb-4 text-sm text-gray-500">
+            Пробный доступ: 14 дней. Выдаётся 1 раз на номер.
+          </p>
+          <form action={createActivationLink} className="flex flex-col gap-4">
+            <input type="hidden" name="kind" value="trial" />
+            <div>
+              <label htmlFor="phone_target_trial" className="mb-1.5 block text-base font-medium text-gray-700">
+                Номер клиента
+              </label>
+              <PhoneInput
+                id="phone_target_trial"
+                name="phone_target"
+                required
+                className="w-full rounded-xl border border-gray-200 px-4 py-3 text-base outline-none transition-colors focus:border-accent"
+              />
+            </div>
+            <Button type="submit" size="lg" variant="secondary">
+              Выдать пробный доступ
+            </Button>
+          </form>
+        </Card>
+      </div>
 
       {/* FILTERS */}
       <div className="mb-6">
@@ -174,10 +250,11 @@ export default async function AdminActivationLinksPage({
       ) : (
         <Card padding="none" className="overflow-hidden">
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[700px] text-left text-base">
+            <table className="w-full min-w-[800px] text-left text-base">
               <thead>
                 <tr className="border-b border-gray-100 bg-gray-50/50">
                   <th className="px-4 py-3 text-sm font-medium text-gray-500">Телефон</th>
+                  <th className="px-4 py-3 text-sm font-medium text-gray-500">Тип</th>
                   <th className="px-4 py-3 text-sm font-medium text-gray-500">Сумма</th>
                   <th className="px-4 py-3 text-sm font-medium text-gray-500">Статус</th>
                   <th className="px-4 py-3 text-sm font-medium text-gray-500">Создана</th>
@@ -187,12 +264,25 @@ export default async function AdminActivationLinksPage({
               <tbody className="divide-y divide-gray-50">
                 {rows.map((row) => {
                   const url = buildActivationUrl(row.token)
-                  const waHref = buildManagerWhatsAppHref(row.phone_target, url)
+                  const waHref = buildManagerWhatsAppHref(
+                    row.phone_target,
+                    url,
+                    row.kind,
+                    row.trial_days,
+                  )
                   const isExpiredByTime = new Date(row.expires_at).getTime() < Date.now()
+                  const isTrial = row.kind === 'trial'
                   return (
                     <tr key={row.id} className="transition-colors hover:bg-gray-50/50">
                       <td className="px-4 py-3 font-medium">{row.phone_target}</td>
-                      <td className="px-4 py-3 text-gray-600">{row.amount} {row.currency}</td>
+                      <td className="px-4 py-3">
+                        <Badge color={isTrial ? 'accent' : 'dark'}>
+                          {isTrial ? `TRIAL · ${row.trial_days ?? 14}д` : 'PAID'}
+                        </Badge>
+                      </td>
+                      <td className="px-4 py-3 text-gray-600">
+                        {isTrial ? '—' : `${row.amount} ${row.currency}`}
+                      </td>
                       <td className="px-4 py-3">
                         <Badge color={statusBadgeColor(row.status, isExpiredByTime)}>
                           {statusLabel(row.status)}

@@ -190,5 +190,12 @@ export default async function ActivatePage({
     loginRedirectWithNext(trimmedToken, row.phone_target)
   }
 
-  return <ActivateCard token={trimmedToken} phoneTarget={row.phone_target} />
+  return (
+    <ActivateCard
+      token={trimmedToken}
+      phoneTarget={row.phone_target}
+      linkKind={row.kind === 'trial' ? 'trial' : 'paid'}
+      trialDays={row.trial_days}
+    />
+  )
 }

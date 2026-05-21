@@ -5,6 +5,7 @@ import { buildPurchaseEventId } from '@/lib/meta-purchase'
 import { ensureProfilePhone } from '@/lib/profile-sync'
 
 export type ActivationLinkStatus = 'issued' | 'activated' | 'revoked' | 'expired'
+export type ActivationLinkKind = 'paid' | 'trial'
 
 export type ActivationLinkRow = {
   id: string
@@ -13,6 +14,8 @@ export type ActivationLinkRow = {
   status: ActivationLinkStatus
   amount: number
   currency: string
+  kind: ActivationLinkKind
+  trial_days: number | null
   activated_user_id: string | null
   activated_at: string | null
   created_at: string
@@ -122,7 +125,7 @@ export function precheckActivationLink(row: ActivationLinkRow): ActivationPreche
 }
 
 export type CompleteActivationResult =
-  | { ok: true; purchaseEventId: string }
+  | { ok: true; purchaseEventId: string; kind: ActivationLinkKind }
   | {
       ok: false
       reason:
@@ -132,6 +135,7 @@ export type CompleteActivationResult =
         | 'already_used'
         | 'wrong_phone'
         | 'subscription_error'
+        | 'trial_already_used'
     }
 
 /**
@@ -215,8 +219,14 @@ export async function completeActivation(args: {
     if (rpcPayload.reason === 'already_used') {
       return { ok: false, reason: 'already_used' }
     }
+    if (rpcPayload.reason === 'trial_already_used') {
+      return { ok: false, reason: 'trial_already_used' }
+    }
     return { ok: false, reason: 'subscription_error' }
   }
+
+  const kind: ActivationLinkKind =
+    (rpcPayload as { kind?: unknown }).kind === 'trial' ? 'trial' : 'paid'
 
   const metaRaw =
     typeof userData.user.user_metadata?.phone_e164 === 'string'
@@ -229,19 +239,67 @@ export async function completeActivation(args: {
   const eventTime = Math.floor(Date.now() / 1000)
   const purchaseEventId = buildPurchaseEventId(args.userId, eventTime)
 
-  const phoneForCapi = resolved ?? phoneToSync
-  if (phoneForCapi) {
-    void sendPurchaseEvent({
-      userId: args.userId,
-      phone: phoneForCapi,
-      eventId: purchaseEventId,
-      eventTime,
-    })
+  // Trial activations are not real purchases — skip Meta CAPI Purchase event.
+  if (kind === 'paid') {
+    const phoneForCapi = resolved ?? phoneToSync
+    if (phoneForCapi) {
+      void sendPurchaseEvent({
+        userId: args.userId,
+        phone: phoneForCapi,
+        eventId: purchaseEventId,
+        eventTime,
+      })
+    }
   }
 
-  return { ok: true, purchaseEventId }
+  return { ok: true, purchaseEventId, kind }
 }
 
 export function generateHashedActivationToken() {
   return randomToken32Hex()
+}
+
+export type TrialAvailability =
+  | { ok: true }
+  | { ok: false; reason: 'pending_trial_link' | 'trial_used' }
+
+/**
+ * Defense-in-depth check before issuing a trial link from the admin UI.
+ * Looks at (a) any non-revoked/non-expired existing trial activation links
+ * for the same phone target, and (b) profiles.trial_used flag (synced
+ * after first trial activation).
+ */
+export async function checkTrialAvailability(phoneE164: string): Promise<TrialAvailability> {
+  const admin = createSupabaseAdminClient()
+  const nowIso = new Date().toISOString()
+
+  const { data: existingLinks } = await admin
+    .from('activation_links')
+    .select('id, status, expires_at')
+    .eq('phone_target', phoneE164)
+    .eq('kind', 'trial')
+    .in('status', ['issued', 'activated'])
+
+  if (existingLinks && existingLinks.length > 0) {
+    const blocking = existingLinks.some((row) => {
+      if (row.status === 'activated') return true
+      // 'issued' but still within validity → already a pending trial link.
+      return typeof row.expires_at === 'string' && row.expires_at > nowIso
+    })
+    if (blocking) {
+      return { ok: false, reason: 'pending_trial_link' }
+    }
+  }
+
+  const { data: profile } = await admin
+    .from('profiles')
+    .select('trial_used')
+    .eq('phone', phoneE164)
+    .maybeSingle()
+
+  if (profile?.trial_used === true) {
+    return { ok: false, reason: 'trial_used' }
+  }
+
+  return { ok: true }
 }

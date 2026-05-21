@@ -13,13 +13,15 @@ const WHATSAPP_SUPPORT_URL =
 type ActivateCardProps = {
   token: string
   phoneTarget: string
+  linkKind: 'paid' | 'trial'
+  trialDays?: number | null
 }
 
 type Status =
-  | { kind: 'idle' }
-  | { kind: 'loading' }
-  | { kind: 'success'; purchaseEventId: string }
-  | { kind: 'error'; reason: Exclude<ActivateActionResult, { ok: true }>['reason'] }
+  | { state: 'idle' }
+  | { state: 'loading' }
+  | { state: 'success'; purchaseEventId: string; kind: 'paid' | 'trial' }
+  | { state: 'error'; reason: Exclude<ActivateActionResult, { ok: true }>['reason'] }
 
 function buildMeActivatedHref(purchaseEventId: string): string {
   const query = new URLSearchParams({
@@ -64,15 +66,21 @@ const ERROR_COPY: Record<
     description:
       'Произошла ошибка при записи подписки. Попробуйте ещё раз или напишите в поддержку.',
   },
+  trial_already_used: {
+    title: 'Пробный доступ уже использован',
+    description:
+      'На этот номер уже выдавался пробный доступ. Чтобы продолжить — оформите платную подписку.',
+  },
 }
 
-export function ActivateCard({ token, phoneTarget }: ActivateCardProps) {
+export function ActivateCard({ token, phoneTarget, linkKind, trialDays }: ActivateCardProps) {
   const router = useRouter()
-  const [status, setStatus] = useState<Status>({ kind: 'idle' })
+  const [status, setStatus] = useState<Status>({ state: 'idle' })
   const [isLoading, setIsLoading] = useState(false)
+  const trialDuration = trialDays && trialDays > 0 ? trialDays : 14
 
   useEffect(() => {
-    if (status.kind !== 'success') return
+    if (status.state !== 'success') return
     const id = window.setTimeout(() => {
       router.push(buildMeActivatedHref(status.purchaseEventId))
     }, 2000)
@@ -81,27 +89,37 @@ export function ActivateCard({ token, phoneTarget }: ActivateCardProps) {
 
   async function handleActivate() {
     setIsLoading(true)
-    setStatus({ kind: 'loading' })
+    setStatus({ state: 'loading' })
     try {
       const result = await activateAction(token)
       if (result.ok) {
-        setStatus({ kind: 'success', purchaseEventId: result.purchaseEventId })
+        setStatus({
+          state: 'success',
+          purchaseEventId: result.purchaseEventId,
+          kind: result.kind,
+        })
       } else {
-        setStatus({ kind: 'error', reason: result.reason })
+        setStatus({ state: 'error', reason: result.reason })
       }
     } finally {
       setIsLoading(false)
     }
   }
 
-  if (status.kind === 'success') {
+  if (status.state === 'success') {
+    const isTrial = status.kind === 'trial'
+    const title = isTrial
+      ? `Пробный доступ активирован на ${trialDuration} дней ✅`
+      : 'Подписка активирована ✅'
+    const description = isTrial
+      ? `Готово! Пробный доступ открыт на ${trialDuration} дней. Можно сразу выбирать заведения и офферы. Через пару секунд откроется личный кабинет — или перейдите сами.`
+      : 'Готово! Подписка активирована на 30 дней. Можно сразу выбирать заведения и офферы. Через пару секунд откроется личный кабинет — или перейдите сами.'
+
     return (
       <main className="mx-auto max-w-lg px-6 py-16">
         <div className="rounded-3xl border border-gray-200 bg-white p-8 shadow-sm">
-          <h1 className="text-xl font-semibold">Подписка активирована ✅</h1>
-          <p className="mt-3 text-sm text-gray-600">
-            Готово! Подписка активирована на 30 дней. Можно сразу выбирать заведения и офферы. Через пару секунд откроется личный кабинет — или перейдите сами.
-          </p>
+          <h1 className="text-xl font-semibold">{title}</h1>
+          <p className="mt-3 text-sm text-gray-600">{description}</p>
           <div className="mt-6 flex flex-wrap gap-3">
             <Link
               href="/"
@@ -121,7 +139,7 @@ export function ActivateCard({ token, phoneTarget }: ActivateCardProps) {
     )
   }
 
-  if (status.kind === 'error' && status.reason === 'wrong_phone') {
+  if (status.state === 'error' && status.reason === 'wrong_phone') {
     return (
       <main className="mx-auto max-w-lg px-6 py-16">
         <div className="rounded-3xl border border-gray-200 bg-white p-8 shadow-sm">
@@ -144,7 +162,7 @@ export function ActivateCard({ token, phoneTarget }: ActivateCardProps) {
     )
   }
 
-  if (status.kind === 'error') {
+  if (status.state === 'error') {
     const copy = ERROR_COPY[status.reason]
     const isFatal =
       status.reason === 'subscription_error' || status.reason === 'invalid'
@@ -194,14 +212,26 @@ export function ActivateCard({ token, phoneTarget }: ActivateCardProps) {
     )
   }
 
+  const isTrialIntro = linkKind === 'trial'
+  const introTitle = isTrialIntro
+    ? `Пробный доступ Kudaclub на ${trialDuration} дней`
+    : 'Активация подписки Kudaclub'
+  const introDescription = isTrialIntro
+    ? `Пробный доступ откроется на номер ${phoneTarget} и будет активен ${trialDuration} дней. Пробный доступ выдаётся 1 раз на номер.`
+    : null
+
   return (
     <main className="mx-auto max-w-lg px-6 py-16">
       <div className="rounded-3xl border border-gray-200 bg-white p-8 shadow-sm">
-        <h1 className="text-xl font-semibold">Активация подписки Kudaclub</h1>
-        <p className="mt-3 text-sm text-gray-600">
-          Подписка активируется на номер{' '}
-          <span className="font-medium text-gray-900">{phoneTarget}</span>. Срок действия — 30 дней.
-        </p>
+        <h1 className="text-xl font-semibold">{introTitle}</h1>
+        {isTrialIntro ? (
+          <p className="mt-3 text-sm text-gray-600">{introDescription}</p>
+        ) : (
+          <p className="mt-3 text-sm text-gray-600">
+            Подписка активируется на номер{' '}
+            <span className="font-medium text-gray-900">{phoneTarget}</span>. Срок действия — 30 дней.
+          </p>
+        )}
         <div className="mt-6 flex flex-wrap gap-3">
           <button
             type="button"
@@ -209,7 +239,11 @@ export function ActivateCard({ token, phoneTarget }: ActivateCardProps) {
             disabled={isLoading}
             className="inline-flex rounded-md bg-primary px-5 py-3 text-sm font-medium text-white transition-colors hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-60"
           >
-            {isLoading ? 'Активируем...' : 'Активировать подписку'}
+            {isLoading
+              ? 'Активируем...'
+              : isTrialIntro
+                ? 'Активировать пробный доступ'
+                : 'Активировать подписку'}
           </button>
           <a
             href={WHATSAPP_SUPPORT_URL}

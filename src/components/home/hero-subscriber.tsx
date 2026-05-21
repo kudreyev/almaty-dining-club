@@ -35,14 +35,16 @@ export function HeroSubscriber({
       ? `Пробный период · осталось ${daysLeft} ${ruDayWordAfterNumber(daysLeft)}`
       : `Подписка активна · до ${formatEndDate(endDate)}`
 
+  const showSavings = hasRedemptions && savingsAmountKzt > 0
+
   return (
     <section className="px-5">
       <div className="mx-auto max-w-3xl py-6 md:py-8">
-        <p className="text-2xl font-semibold leading-tight tracking-[-0.01em] text-neutral-900 md:text-3xl">
-          С возвращением
-        </p>
+        <h1 className="text-[26px] font-semibold leading-[1.15] tracking-[-0.015em] text-neutral-900 md:text-[32px]">
+          Куда пойдём сегодня?
+        </h1>
 
-        <p className="mt-2 text-sm text-neutral-600 md:text-base">
+        <p className="mt-1.5 text-sm leading-snug text-neutral-500 md:text-[15px]">
           {statusLine}
           {planType === 'trial' ? (
             <>
@@ -54,20 +56,11 @@ export function HeroSubscriber({
           ) : null}
         </p>
 
-        {hasRedemptions && savingsAmountKzt > 0 ? (
-          <div className="mt-4 inline-flex items-center gap-2 rounded-full bg-primary-light px-3.5 py-1.5 text-sm text-primary-dark">
-            <span aria-hidden="true">·</span>
+        {showSavings ? (
+          <p className="mt-3 inline-flex items-center rounded-full bg-primary-light px-3 py-1 text-[13px] font-medium text-primary-dark">
             Вы сэкономили {formatMoney(savingsAmountKzt)} ₸
-          </div>
-        ) : (
-          <p className="mt-4 text-sm text-neutral-500">
-            Выберите заведение для первого визита.
           </p>
-        )}
-
-        <p className="mt-5 text-base font-medium text-neutral-900">
-          Куда пойдём сегодня?
-        </p>
+        ) : null}
       </div>
     </section>
   )

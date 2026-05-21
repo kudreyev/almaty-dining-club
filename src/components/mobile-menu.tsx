@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
+import { WhatsappGoalLink } from '@/components/analytics/whatsapp-goal-link'
 
 type NavLink = { href: string; label: string }
 
@@ -67,10 +68,20 @@ export function MobileMenu({
             {!isLoggedIn ? (
               <>
                 <div className="my-2 h-px bg-gray-100" />
+                <WhatsappGoalLink
+                  source="mobile-menu-cta"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={() => setOpen(false)}
+                  className="rounded-lg bg-accent px-3 py-2.5 text-center text-sm font-medium text-white"
+                >
+                  Попробовать за 1 990 ₸
+                </WhatsappGoalLink>
                 <Link
                   href="/login"
                   onClick={() => setOpen(false)}
-                  className="rounded-lg bg-accent px-3 py-2.5 text-center text-sm font-medium text-white"
+                  className="rounded-lg px-3 py-2.5 text-center text-sm font-medium transition-colors hover:bg-gray-50"
+                  style={{ color: '#8a8a8a' }}
                 >
                   Войти
                 </Link>

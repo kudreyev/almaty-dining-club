@@ -4,10 +4,16 @@ import { createHash, randomInt } from 'node:crypto'
 import { cookies } from 'next/headers'
 import {
   createWhatsAppLoginChallenge,
+  NoAccountError,
+  normalizePhoneToE164,
   sendWhatsAppVerificationCode,
 } from '@/lib/auth/whatsapp-login'
 import { normalizeToE164Like } from '@/lib/kz-phone'
 import { ensureProfilePhone } from '@/lib/profile-sync'
+import {
+  getActivationLinkByToken,
+  precheckActivationLink,
+} from '@/lib/activation-links'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { safeLog } from '@/lib/safe-logger'
 import { getFallbackByContext, getUserFacingError, logServerError } from '@/lib/safe-errors'
@@ -28,6 +34,40 @@ type SendWhatsAppLoginResult = {
   ok: boolean
   message?: string
   error?: string
+  /**
+   * Распознаваемый код ошибки для UI. Сейчас единственное значение —
+   * 'no_account': пользователя с таким номером не существует, и нет
+   * валидной ссылки активации. UI должен показать CTA «Оформить подписку»
+   * вместо OTP-формы.
+   */
+  code?: 'no_account'
+}
+
+/**
+ * Проверяет, разрешено ли создавать новый auth-аккаунт для данного телефона
+ * в рамках текущего запроса. Возвращает true ТОЛЬКО при наличии активной
+ * ссылки активации, чей phone_target совпадает с поданным номером.
+ *
+ * Этот гейт исключает создание аккаунтов вне флоу активации. URL-параметр
+ * activation_token принимается, но НЕ доверяется: всё перепроверяется по БД.
+ */
+async function isActivationSignupAllowed(args: {
+  rawToken: string | null | undefined
+  phoneE164: string
+}): Promise<boolean> {
+  const token = typeof args.rawToken === 'string' ? args.rawToken.trim() : ''
+  if (!token) return false
+
+  const row = await getActivationLinkByToken(token)
+  if (!row) return false
+
+  const pre = precheckActivationLink(row)
+  if (pre.kind !== 'ok') return false
+
+  const targetE164 = normalizePhoneToE164(row.phone_target)
+  if (!targetE164) return false
+
+  return targetE164 === args.phoneE164
 }
 
 function getRequiredEnv(name: string) {
@@ -102,6 +142,7 @@ export async function sendWhatsAppLogin(
 ): Promise<SendWhatsAppLoginResult> {
   const phoneRaw = String(formData.get('phone') || '').trim()
   const phone = normalizeToE164Like(phoneRaw)
+  const activationTokenRaw = String(formData.get('activation_token') || '').trim()
 
   if (!phone) {
     return {
@@ -111,9 +152,17 @@ export async function sendWhatsAppLogin(
   }
 
   try {
+    // Контекст B (регистрация под валидной ссылкой активации) определяется
+    // только серверной перепроверкой токена + сверкой phone_target.
+    // URL-параметр сам по себе не доверяется.
+    const allowCreate = await isActivationSignupAllowed({
+      rawToken: activationTokenRaw || null,
+      phoneE164: phone,
+    })
+
     const verificationCode = generateSixDigitCode()
     const { phoneE164, tokenHash, verifyType } =
-      await createWhatsAppLoginChallenge(phone)
+      await createWhatsAppLoginChallenge(phone, { allowCreate })
 
     await sendWhatsAppVerificationCode({
       phoneE164,
@@ -132,6 +181,15 @@ export async function sendWhatsAppLogin(
       message: 'Мы отправили 6-значный код в WhatsApp.',
     }
   } catch (error) {
+    if (error instanceof NoAccountError) {
+      // Не логируем как ошибку — это ожидаемая ветка (попытка входа без подписки).
+      return {
+        ok: false,
+        code: 'no_account',
+        error: 'У вас ещё нет подписки Kudaclub.',
+      }
+    }
+
     logServerError('login/sendWhatsAppLogin', error)
     return {
       ok: false,

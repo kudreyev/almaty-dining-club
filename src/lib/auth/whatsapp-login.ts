@@ -83,6 +83,38 @@ function isEmailOtpType(value: string): value is EmailOtpType {
   ].includes(value)
 }
 
+/**
+ * Точечная проверка существования auth-пользователя по синтетическому email,
+ * БЕЗ его создания. Используется в login-only-ветке, чтобы не плодить
+ * мусорные аккаунты при попытке входа без подписки.
+ */
+export async function authUserExistsForPhone(phoneE164: string): Promise<boolean> {
+  const email = toSyntheticEmail(phoneE164)
+  const admin = createSupabaseAdminClient()
+  const { data, error } = await admin.rpc('auth_user_exists_by_email', {
+    p_email: email,
+  })
+  if (error) {
+    throw new Error(`auth_user_exists_by_email failed: ${error.message}`)
+  }
+  return data === true
+}
+
+/**
+ * Ошибка, выбрасываемая createWhatsAppLoginChallenge, когда аккаунта нет,
+ * а контекст не разрешает его создавать (нет валидной ссылки активации).
+ *
+ * Вызывающий код должен поймать её и показать пользователю CTA «Оформить
+ * подписку» вместо отправки OTP.
+ */
+export class NoAccountError extends Error {
+  readonly code = 'no_account'
+  constructor(message = 'Account does not exist for this phone') {
+    super(message)
+    this.name = 'NoAccountError'
+  }
+}
+
 async function ensureAuthUserForPhone(phoneE164: string) {
   const supabaseAdmin = createSupabaseAdminClient()
   const email = toSyntheticEmail(phoneE164)
@@ -225,13 +257,38 @@ async function sendTwilioTemplateMessage({
   }
 }
 
-export async function createWhatsAppLoginChallenge(rawPhone: string) {
+/**
+ * Создаёт WhatsApp-OTP challenge для номера телефона.
+ *
+ * По умолчанию НЕ создаёт auth-пользователя (login-only поведение): если
+ * аккаунта нет — выбрасывает NoAccountError. Это защищает кнопку «Войти»
+ * от создания мусорных аккаунтов без оплаты.
+ *
+ * allowCreate=true передаётся ТОЛЬКО из флоу /activate после серверной
+ * перепроверки валидности activation_link (см. src/app/login/actions.ts).
+ */
+export async function createWhatsAppLoginChallenge(
+  rawPhone: string,
+  opts: { allowCreate?: boolean } = {}
+) {
   const phoneE164 = normalizePhoneToE164(rawPhone)
   if (!phoneE164) {
     throw new Error('Некорректный номер телефона. Используйте формат +7XXXXXXXXXX.')
   }
 
-  const email = await ensureAuthUserForPhone(phoneE164)
+  const allowCreate = opts.allowCreate === true
+
+  let email: string
+  if (allowCreate) {
+    email = await ensureAuthUserForPhone(phoneE164)
+  } else {
+    const exists = await authUserExistsForPhone(phoneE164)
+    if (!exists) {
+      throw new NoAccountError()
+    }
+    email = toSyntheticEmail(phoneE164)
+  }
+
   const { tokenHash, verifyType } = await generateLoginOtp(email)
 
   return {

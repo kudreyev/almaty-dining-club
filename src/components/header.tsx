@@ -3,6 +3,7 @@ import Link from 'next/link'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { LogoutButton } from '@/components/logout-button'
 import { MobileMenu } from '@/components/mobile-menu'
+import { WhatsappGoalLink } from '@/components/analytics/whatsapp-goal-link'
 
 export async function Header() {
   let user: User | null = null
@@ -82,20 +83,31 @@ export async function Header() {
           ) : null}
         </nav>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
           {!user ? (
-            <Link
-              href="/login"
-              className="inline-flex items-center justify-center font-medium text-white transition-opacity hover:opacity-95"
-              style={{
-                background: '#D85A30',
-                borderRadius: '8px',
-                padding: '7px 14px',
-                fontSize: '13px',
-              }}
-            >
-              Войти
-            </Link>
+            <>
+              <Link
+                href="/login"
+                className="hidden text-[13px] font-medium transition-colors hover:text-neutral-900 md:inline-flex"
+                style={{ color: '#8a8a8a' }}
+              >
+                Войти
+              </Link>
+              <WhatsappGoalLink
+                source="header-cta"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center justify-center font-medium text-white transition-opacity hover:opacity-95"
+                style={{
+                  background: '#D85A30',
+                  borderRadius: '8px',
+                  padding: '7px 14px',
+                  fontSize: '13px',
+                }}
+              >
+                Попробовать за 1 990 ₸
+              </WhatsappGoalLink>
+            </>
           ) : (
             <>
               <Link

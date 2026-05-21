@@ -21,6 +21,10 @@ function loginRedirectWithNext(token: string, phoneTarget: string): never {
   const loginParams = new URLSearchParams()
   loginParams.set('next', nextPath)
   loginParams.set('phone', normalizeKZPhone(phoneTarget) ?? phoneTarget)
+  // Активационный токен пробрасывается в форму логина как сигнал разрешения
+  // создавать новый auth-аккаунт. На сервере токен перепроверяется по БД и
+  // сверяется phone_target с поданным номером — URL-параметру не доверяем.
+  loginParams.set('activation_token', token)
   redirect(`/login/whatsapp?${loginParams.toString()}`)
 }
 

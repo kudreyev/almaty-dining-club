@@ -8,6 +8,12 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { EmptyState } from '@/components/ui/empty-state'
 import { MeMetrica } from './me-metrica'
+import { VenuesSection } from '@/components/home/venues-section'
+import { HomeMobileControls } from '@/components/home/home-mobile-controls'
+import { WhatsappGoalLink } from '@/components/analytics/whatsapp-goal-link'
+import { loadHomeRestaurants } from '@/lib/home/load-home-restaurants'
+import { isSubscriptionCurrentlyActive } from '@/lib/subscription'
+import { pluralizeRu } from '@/lib/ru-plural'
 
 type Profile = {
   id: string
@@ -18,6 +24,8 @@ type Profile = {
 type Subscription = {
   id: string
   status: 'inactive' | 'pending_payment' | 'active' | 'expired'
+  start_date: string | null
+  end_date: string | null
 }
 
 type PageProps = {
@@ -59,12 +67,101 @@ export default async function MePage({ searchParams }: PageProps) {
 
   const { data: subscriptions } = await supabase
     .from('subscriptions')
-    .select('id, status')
+    .select('id, status, start_date, end_date')
     .eq('user_id', user.id)
     .order('created_at', { ascending: false })
-    .limit(1)
     .returns<Subscription[]>()
 
+  const latestSubscription = subscriptions?.[0] ?? null
+  const hasAnySubscription = (subscriptions?.length ?? 0) > 0
+  const isActive = isSubscriptionCurrentlyActive(latestSubscription)
+
+  const whatsappPhoneFromMetadata =
+    typeof user.user_metadata?.phone_e164 === 'string'
+      ? user.user_metadata.phone_e164
+      : null
+  const displayedPhone = profile?.phone || whatsappPhoneFromMetadata || 'Не указан'
+
+  // Ветка для бывших / неактивных подписчиков: вместо пустого кабинета
+  // показываем экран реактивации + каталог. Историю redemptions скрываем —
+  // фокус на возврате к подписке. completeActivation/activate RPC не трогаем.
+  if (!isActive) {
+    const { restaurantsWithStatus, cuisineOptions } = await loadHomeRestaurants()
+    const totalVenues = restaurantsWithStatus.length
+    const venuesWord = pluralizeRu(totalVenues, [
+      'заведение',
+      'заведения',
+      'заведений',
+    ])
+    const venuesSectionTitle =
+      totalVenues > 0 ? `${totalVenues} ${venuesWord} Алматы` : 'Заведения Алматы'
+
+    const title = hasAnySubscription ? 'Подписка закончилась' : 'Подписка неактивна'
+    const description = hasAnySubscription
+      ? 'Продли подписку, чтобы снова пользоваться 2-за-1 и подарками к заказу. Сообщение в WhatsApp — самый быстрый способ.'
+      : 'Оформи подписку, чтобы пользоваться 2-за-1 и подарками к заказу. Менеджер пришлёт ссылку активации в WhatsApp.'
+
+    return (
+      <>
+        <div className="mx-auto max-w-2xl px-5 py-8">
+          <Suspense fallback={null}>
+            <MeMetrica />
+          </Suspense>
+          <div className="mb-6 flex items-center justify-between">
+            <h1 className="text-xl font-semibold tracking-tight sm:text-2xl">Личный кабинет</h1>
+            <LogoutButton />
+          </div>
+
+          <Card className="mb-6">
+            <p className="text-sm text-gray-400">Телефон</p>
+            <p className="mt-1 text-base font-semibold">{displayedPhone}</p>
+          </Card>
+
+          <div className="rounded-xl border border-primary-light/60 bg-primary-light/30 p-6">
+            <h2 className="text-lg font-semibold tracking-tight sm:text-xl">{title}</h2>
+            <p className="mt-2 text-sm leading-[1.55] text-gray-700">{description}</p>
+
+            <WhatsappGoalLink
+              source="me-no-sub"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-4 inline-flex items-center justify-center font-medium text-white transition-opacity hover:opacity-95"
+              style={{
+                background: '#D85A30',
+                borderRadius: '8px',
+                padding: '11px 20px',
+                fontSize: '14px',
+              }}
+            >
+              {hasAnySubscription ? 'Продлить за 1 990 ₸' : 'Оформить за 1 990 ₸'}
+            </WhatsappGoalLink>
+          </div>
+
+          {profile?.role === 'admin' ? (
+            <div className="mt-8">
+              <Button href="/admin/payments" variant="secondary" size="sm">
+                Заявки на оплату (админ)
+              </Button>
+            </div>
+          ) : null}
+        </div>
+
+        <div id="venues" className="mx-auto max-w-6xl px-5 pb-12 pt-2 md:pb-16">
+          <VenuesSection
+            restaurants={restaurantsWithStatus}
+            cuisineOptions={cuisineOptions}
+            title={venuesSectionTitle}
+          />
+          <HomeMobileControls
+            cuisineOptions={cuisineOptions}
+            applyCount={restaurantsWithStatus.length}
+          />
+        </div>
+      </>
+    )
+  }
+
+  // Активная подписка — стандартный кабинет с историей использований.
   const { data: redemptions } = await supabase
     .from('redemptions')
     .select(`
@@ -77,15 +174,8 @@ export default async function MePage({ searchParams }: PageProps) {
     .limit(10)
     .returns<Redemption[]>()
 
-  const currentSubscription = subscriptions?.[0] ?? null
-  const whatsappPhoneFromMetadata =
-    typeof user.user_metadata?.phone_e164 === 'string'
-      ? user.user_metadata.phone_e164
-      : null
-  const displayedPhone = profile?.phone || whatsappPhoneFromMetadata || 'Не указан'
-
   const subColor: 'green' | 'yellow' | 'default' =
-    currentSubscription?.status === 'active' ? 'green' : currentSubscription ? 'yellow' : 'default'
+    latestSubscription?.status === 'active' ? 'green' : latestSubscription ? 'yellow' : 'default'
 
   return (
     <div className="mx-auto max-w-2xl px-5 py-8">
@@ -113,14 +203,11 @@ export default async function MePage({ searchParams }: PageProps) {
             <div>
               <p className="text-sm text-gray-400">Подписка</p>
               <Badge color={subColor} className="mt-1">
-                {currentSubscription
-                  ? subscriptionStatusLabel(currentSubscription.status)
+                {latestSubscription
+                  ? subscriptionStatusLabel(latestSubscription.status)
                   : 'Не активна'}
               </Badge>
             </div>
-            <Button href="/pricing" size="sm">
-              Подписаться
-            </Button>
           </div>
         </Card>
       </div>

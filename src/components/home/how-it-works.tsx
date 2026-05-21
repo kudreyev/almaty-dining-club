@@ -1,26 +1,42 @@
-const STEPS: ReadonlyArray<{
+import { pluralizeRu } from '@/lib/ru-plural'
+
+type HowItWorksProps = {
+  venuesCount: number
+}
+
+function buildSteps(venuesCount: number): ReadonlyArray<{
   n: number
   title: string
   description: string
-}> = [
-  {
-    n: 1,
-    title: 'Оформите подписку',
-    description: '1 990 ₸ через WhatsApp. Занимает 5 минут.',
-  },
-  {
-    n: 2,
-    title: 'Выберите заведение',
-    description: '12 ресторанов Алматы — стейки, кофе, азиатская кухня.',
-  },
-  {
-    n: 3,
-    title: 'Покажите код официанту',
-    description: 'Второе блюдо бесплатно или подарок к заказу.',
-  },
-]
+}> {
+  const restaurantWord = pluralizeRu(venuesCount, [
+    'ресторан',
+    'ресторана',
+    'ресторанов',
+  ])
 
-export function HowItWorks() {
+  return [
+    {
+      n: 1,
+      title: 'Оформите подписку',
+      description: '1 990 ₸ через WhatsApp. Занимает 5 минут.',
+    },
+    {
+      n: 2,
+      title: 'Выберите заведение',
+      description: `${venuesCount} ${restaurantWord} Алматы — стейки, кофе, азиатская кухня.`,
+    },
+    {
+      n: 3,
+      title: 'Покажите код официанту',
+      description: 'Второе блюдо бесплатно или подарок к заказу.',
+    },
+  ]
+}
+
+export function HowItWorks({ venuesCount }: HowItWorksProps) {
+  const steps = buildSteps(venuesCount)
+
   return (
     <section className="px-5 py-10 md:py-14">
       <div className="mx-auto max-w-6xl">
@@ -34,7 +50,7 @@ export function HowItWorks() {
         </h2>
 
         <div className="mt-7 grid grid-cols-1 gap-4 md:grid-cols-3 md:gap-5">
-          {STEPS.map((step) => (
+          {steps.map((step) => (
             <div
               key={step.n}
               className="flex flex-col rounded-2xl border border-neutral-100 bg-white p-5 md:p-6"

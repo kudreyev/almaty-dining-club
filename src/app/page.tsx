@@ -181,7 +181,7 @@ export default async function HomePage() {
     <>
       <HeroGuest venuesCount={totalVenues} />
 
-      <HowItWorks />
+      <HowItWorks venuesCount={totalVenues} />
 
       <div
         id="venues"

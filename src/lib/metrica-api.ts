@@ -14,12 +14,32 @@ const MANAGEMENT_BASE = 'https://api-metrika.yandex.net/management/v1'
 
 export type MetricaGoal = {
   id: number
+  /** Человекочитаемое название в UI Метрики. */
+  displayName: string
+  type: string
+  /**
+   * Идентификатор JavaScript-события (reachGoal).
+   * В Management API лежит в conditions[].url, не в поле name.
+   */
+  identifier: string | null
+}
+
+type ManagementGoalRow = {
+  id: number
   name: string
   type: string
+  conditions?: Array<{ type?: string; url?: string }>
 }
 
 type ManagementGoalsResponse = {
-  goals: Array<{ id: number; name: string; type: string }>
+  goals: ManagementGoalRow[]
+}
+
+/** Извлекает идентификатор JS-цели из conditions (type=action, url=whatsapp_click). */
+export function extractGoalIdentifier(goal: ManagementGoalRow): string | null {
+  if (goal.type !== 'action' || !goal.conditions?.length) return null
+  const url = goal.conditions[0]?.url
+  return typeof url === 'string' && url.length > 0 ? url : null
 }
 
 type ReportingResponse = {
@@ -50,7 +70,12 @@ export async function fetchMetricaGoals(
     throw new Error(`Metrica Management API ${res.status}: ${await res.text()}`)
   }
   const body = (await res.json()) as ManagementGoalsResponse
-  return body.goals.map((g) => ({ id: g.id, name: g.name, type: g.type }))
+  return body.goals.map((g) => ({
+    id: g.id,
+    displayName: g.name,
+    type: g.type,
+    identifier: extractGoalIdentifier(g),
+  }))
 }
 
 /**

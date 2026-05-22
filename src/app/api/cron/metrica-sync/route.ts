@@ -78,19 +78,26 @@ export async function GET(req: Request) {
     )
   }
 
-  // Обновляем реестр: все известные нам цели, помечая is_tracked.
-  const registryRows = goals
-    .filter((g) => (TRACKED_GOAL_NAMES as readonly string[]).includes(g.name))
-    .map((g) => ({
-      goal_id: g.id,
-      goal_name: g.name,
-      is_tracked: true,
-    }))
+  // Сопоставляем по identifier (conditions[].url), не по displayName.
+  // Дубликаты (старые + новые цели с одним id) — берём с max goal_id.
+  const trackedSet = new Set<string>(TRACKED_GOAL_NAMES)
+  const registryByName = new Map<string, { goal_id: number; goal_name: string }>()
+  for (const g of goals) {
+    if (!g.identifier || !trackedSet.has(g.identifier)) continue
+    const prev = registryByName.get(g.identifier)
+    if (!prev || g.id > prev.goal_id) {
+      registryByName.set(g.identifier, { goal_id: g.id, goal_name: g.identifier })
+    }
+  }
+  const registryRows = [...registryByName.values()].map((r) => ({
+    ...r,
+    is_tracked: true,
+  }))
 
   if (registryRows.length > 0) {
     const { error } = await admin
       .from('metrica_goals_registry')
-      .upsert(registryRows, { onConflict: 'goal_id' })
+      .upsert(registryRows, { onConflict: 'goal_name' })
     if (error) {
       logServerError('cron/metrica-sync:upsertRegistry', error)
       return NextResponse.json({ error: error.message }, { status: 500 })
@@ -142,8 +149,10 @@ export async function GET(req: Request) {
 
   // Цели, которые мы хотели синкать, но их нет в Метрике (видимо, ещё не
   // заведены). Возвращаем в ответе — удобно при первом запуске.
-  const knownNames = new Set(goals.map((g) => g.name))
-  const missing = TRACKED_GOAL_NAMES.filter((name) => !knownNames.has(name))
+  const knownIdentifiers = new Set(
+    goals.map((g) => g.identifier).filter((id): id is string => Boolean(id)),
+  )
+  const missing = TRACKED_GOAL_NAMES.filter((name) => !knownIdentifiers.has(name))
 
   return NextResponse.json({
     date,

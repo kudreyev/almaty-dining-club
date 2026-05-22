@@ -87,6 +87,28 @@
 `{ value: 1990, currency: 'KZT' }`. В `WhatsappSupportLink`
 не вызывается — саппорт не является событием инициации оплаты.
 
+## Live-трекинг в Supabase (Слой 2)
+
+Каждый вызов `trackGoal()` дублируется в `POST /api/track` → таблица
+`analytics_events` (поле `meta` = params + `page`).
+
+| Источник | Задержка | Назначение |
+|---|---|---|
+| Яндекс.Метрика | часы / cron | официальная статистика, воронки в UI |
+| `analytics_events` | мгновенно | SQL-джойны с подписками, live-дашборд |
+
+Пример запроса:
+
+```sql
+select created_at, event_name, meta->>'source' as source, meta->>'page' as page
+from public.analytics_events
+where event_name = 'whatsapp_click'
+order by created_at desc
+limit 50;
+```
+
+Allowlist событий: `src/lib/client-analytics-events.ts`.
+
 ## Расширение
 
 Добавление нового CTA:
@@ -97,3 +119,5 @@
    в `WhatsAppMessageKind` и в `getWhatsAppText` (`src/lib/whatsapp.ts`).
 3. Использовать `WhatsappGoalLink` (подписной CTA) или
    `WhatsappSupportLink` (саппорт).
+4. Добавить имя события в `CLIENT_ANALYTICS_EVENTS`
+   (`src/lib/client-analytics-events.ts`), если это новый `trackGoal`.

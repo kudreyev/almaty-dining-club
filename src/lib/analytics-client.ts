@@ -8,7 +8,30 @@ declare global {
   }
 }
 
+function sendToLocalAnalytics(
+  goalName: string,
+  params?: Record<string, unknown>,
+): void {
+  if (typeof window === 'undefined') return
+
+  const page =
+    typeof window.location?.pathname === 'string'
+      ? window.location.pathname
+      : undefined
+
+  fetch('/api/track', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ event: goalName, params, page }),
+    keepalive: true,
+  }).catch(() => {
+    // Best-effort: аналитика не должна ломать UX.
+  })
+}
+
 export function trackGoal(goalName: string, params?: Record<string, unknown>): void {
+  sendToLocalAnalytics(goalName, params)
+
   if (typeof window === 'undefined' || !window.ym || !YM_ID) {
     if (process.env.NODE_ENV === 'development') {
       console.log('[Metrica] Goal (not sent in dev):', goalName, params)

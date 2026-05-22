@@ -2,6 +2,12 @@ import { requireAdmin } from '@/lib/admin'
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 import { logServerError } from '@/lib/safe-errors'
 import { isKZNumber, normalizeToE164Like } from '@/lib/kz-phone'
+import {
+  aggregateMetricaBySource,
+  computeWhatsappConversion,
+  SUPPORT_WHATSAPP_SOURCES,
+  type WhatsappClickRow,
+} from '@/lib/whatsapp-analytics'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 
@@ -114,18 +120,20 @@ type SubscriptionRetentionRow = {
 type AnalyticsEventRow = {
   id: string
   user_id: string | null
+  created_at?: string
   meta: Record<string, unknown> | null
 }
 
-const SUPPORT_WHATSAPP_SOURCES = new Set([
-  'footer-support',
-  'support-page',
-  'support-phone',
-  'activate-error',
-  'activate-already-used',
-  'activate-card-error',
-  'activate-card-intro',
-])
+type SubscriptionCreatedRow = {
+  user_id: string
+  created_at: string
+}
+
+type MetricaGoalsDailyRow = {
+  source: string
+  achievements: number
+  date: string
+}
 
 type WhatsappFunnelStats = {
   total: number
@@ -174,6 +182,51 @@ async function loadWhatsappFunnel(daysAgo: number) {
 
     return aggregateWhatsappFunnel(data ?? [])
   }, `whatsapp_funnel_${daysAgo}d`)
+}
+
+async function loadWhatsappConversion(daysAgo: number) {
+  const supabase = createSupabaseAdminClient()
+  const since = isoTimestamp(-daysAgo)
+  return safe(async () => {
+    const [clicksRes, subsRes] = await Promise.all([
+      supabase
+        .from('analytics_events')
+        .select('user_id, created_at, meta')
+        .eq('event_name', 'whatsapp_click')
+        .gte('created_at', since)
+        .returns<WhatsappClickRow[]>(),
+      supabase
+        .from('subscriptions')
+        .select('user_id, created_at')
+        .gte('created_at', since)
+        .returns<SubscriptionCreatedRow[]>(),
+    ])
+    if (clicksRes.error) throw clicksRes.error
+    if (subsRes.error) throw subsRes.error
+
+    return computeWhatsappConversion({
+      clicks: clicksRes.data ?? [],
+      newSubscriptions: subsRes.data ?? [],
+    })
+  }, `whatsapp_conversion_${daysAgo}d`)
+}
+
+async function loadMetricaWhatsappFunnel(daysAgo: number) {
+  const supabase = createSupabaseAdminClient()
+  const since = isoDateUtc(-daysAgo)
+  return safe(async () => {
+    const { data, error } = await supabase
+      .from('metrica_goals_daily')
+      .select('source, achievements, date')
+      .eq('goal_name', 'whatsapp_click')
+      .gte('date', since)
+      .returns<MetricaGoalsDailyRow[]>()
+    if (error) throw error
+
+    const bySource = aggregateMetricaBySource(data ?? [])
+    const total = bySource.reduce((sum, row) => sum + row.achievements, 0)
+    return { total, bySource }
+  }, `metrica_whatsapp_${daysAgo}d`)
 }
 
 async function loadActiveSubscribers() {
@@ -408,6 +461,9 @@ export default async function AdminDashboardPage() {
     new30d,
     whatsapp7d,
     whatsapp30d,
+    conversion7d,
+    conversion30d,
+    metrica7d,
     redemptions30d,
     topRestaurants,
     expiring,
@@ -418,6 +474,9 @@ export default async function AdminDashboardPage() {
     loadNewSubscriptions(30),
     loadWhatsappFunnel(7),
     loadWhatsappFunnel(30),
+    loadWhatsappConversion(7),
+    loadWhatsappConversion(30),
+    loadMetricaWhatsappFunnel(7),
     loadRedemptions30d(),
     loadTopRestaurants30d(),
     loadExpiringSubscriptions(),
@@ -457,6 +516,15 @@ export default async function AdminDashboardPage() {
 
   const new7 = renderNewBlock(new7d)
   const new30 = renderNewBlock(new30d)
+
+  const attributedSubs30d = conversion30d.ok
+    ? conversion30d.value.bySource.reduce((sum, row) => sum + row.attributedSubs, 0)
+    : null
+
+  function fmtPct(n: number | null | undefined): string {
+    if (n == null) return '—'
+    return `${n}%`
+  }
 
   return (
     <div className="mx-auto max-w-6xl px-5 py-8">
@@ -519,6 +587,79 @@ export default async function AdminDashboardPage() {
           />
         </div>
 
+        <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <MetricCard
+            label="Новых подписок (7д)"
+            value={conversion7d.ok ? fmtNumber(conversion7d.value.newSubscriptions) : '—'}
+            hint="все новые subscriptions"
+          />
+          <MetricCard
+            label="Конверсия (proxy)"
+            value={conversion7d.ok ? fmtPct(conversion7d.value.proxyConversionPct) : '—'}
+            hint="подписки / подписные клики"
+          />
+          <MetricCard
+            label="Атрибуция (7д)"
+            value={
+              conversion7d.ok
+                ? fmtNumber(
+                    conversion7d.value.bySource.reduce((s, r) => s + r.attributedSubs, 0),
+                  )
+                : '—'
+            }
+            hint="last-touch, только залогиненные клики"
+          />
+          <MetricCard
+            label="Атрибуция (30д)"
+            value={attributedSubs30d != null ? fmtNumber(attributedSubs30d) : '—'}
+            hint="окно 7 дней после клика"
+          />
+        </div>
+
+        <div className="mt-4">
+          <h3 className="mb-2 text-sm font-medium text-gray-600">
+            Конверсия по source (30 дней, last-touch)
+          </h3>
+          <Card padding="none" className="overflow-hidden">
+            {!conversion30d.ok ? (
+              <p className="px-4 py-6 text-center text-base text-gray-400">— нет данных —</p>
+            ) : conversion30d.value.bySource.length === 0 ? (
+              <p className="px-4 py-6 text-center text-base text-gray-500">
+                Пока нет подписных кликов за 30 дней.
+              </p>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full min-w-[560px] text-left text-base">
+                  <thead>
+                    <tr className="border-b border-gray-100 bg-gray-50/50">
+                      <th className="px-4 py-3 text-sm font-medium text-gray-500">source</th>
+                      <th className="px-4 py-3 text-sm font-medium text-gray-500">Клики</th>
+                      <th className="px-4 py-3 text-sm font-medium text-gray-500">Подписки</th>
+                      <th className="px-4 py-3 text-sm font-medium text-gray-500">CR</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-50">
+                    {conversion30d.value.bySource.map((row) => (
+                      <tr key={row.source}>
+                        <td className="px-4 py-3 font-mono text-sm text-gray-900">{row.source}</td>
+                        <td className="px-4 py-3 tabular-nums">{fmtNumber(row.clicks)}</td>
+                        <td className="px-4 py-3 tabular-nums">{fmtNumber(row.attributedSubs)}</td>
+                        <td className="px-4 py-3 tabular-nums text-gray-600">
+                          {fmtPct(row.conversionPct)}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </Card>
+          <p className="mt-2 text-xs text-gray-400">
+            CR по source — только если пользователь был залогинен при клике. Proxy-конверсия выше —
+            грубая оценка по всем подпискам.
+          </p>
+        </div>
+
         <div className="mt-4">
           <h3 className="mb-2 text-sm font-medium text-gray-600">
             Разбивка по source (30 дней)
@@ -571,9 +712,81 @@ export default async function AdminDashboardPage() {
         </div>
       </section>
 
-      {/* БЛОК 3 — АКТИВНОСТЬ */}
+      {/* БЛОК 3 — МЕТРИКА */}
       <section className="mb-10">
-        <h2 className="mb-3 text-lg font-semibold text-gray-800">3. Активность за 30 дней</h2>
+        <h2 className="mb-1 text-lg font-semibold text-gray-800">3. Яндекс.Метрика</h2>
+        <p className="mb-3 text-sm text-gray-500">
+          Агрегаты из metrica_goals_daily (Слой 1). Обновляется cron раз в сутки (~03:00 Алматы).
+        </p>
+
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-2">
+          <MetricCard
+            label="Достижений whatsapp_click (7д)"
+            value={metrica7d.ok ? fmtNumber(metrica7d.value.total) : '—'}
+            hint="официальная статистика Метрики"
+          />
+          <MetricCard
+            label="Live-кликов (7д)"
+            value={whatsapp7d.ok ? fmtNumber(whatsapp7d.value.total) : '—'}
+            hint="analytics_events для сравнения"
+          />
+        </div>
+
+        <div className="mt-4">
+          <h3 className="mb-2 text-sm font-medium text-gray-600">
+            whatsapp_click по source (7 дней, Метрика)
+          </h3>
+          <Card padding="none" className="overflow-hidden">
+            {!metrica7d.ok ? (
+              <p className="px-4 py-6 text-center text-base text-gray-400">— нет данных —</p>
+            ) : metrica7d.value.bySource.length === 0 ? (
+              <p className="px-4 py-6 text-center text-base text-gray-500">
+                Нет данных Метрики за 7 дней. Проверьте cron metrica-sync и YANDEX_OAUTH_TOKEN.
+              </p>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full min-w-[480px] text-left text-base">
+                  <thead>
+                    <tr className="border-b border-gray-100 bg-gray-50/50">
+                      <th className="px-4 py-3 text-sm font-medium text-gray-500">source</th>
+                      <th className="px-4 py-3 text-sm font-medium text-gray-500">Достижения</th>
+                      <th className="px-4 py-3 text-sm font-medium text-gray-500">Доля</th>
+                      <th className="px-4 py-3 text-sm font-medium text-gray-500">Тип</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-50">
+                    {metrica7d.value.bySource.map((row) => {
+                      const isSupport = SUPPORT_WHATSAPP_SOURCES.has(row.source)
+                      const share =
+                        metrica7d.value.total > 0
+                          ? Math.round((row.achievements / metrica7d.value.total) * 100)
+                          : 0
+                      return (
+                        <tr key={row.source}>
+                          <td className="px-4 py-3 font-mono text-sm text-gray-900">
+                            {row.source}
+                          </td>
+                          <td className="px-4 py-3 tabular-nums">{fmtNumber(row.achievements)}</td>
+                          <td className="px-4 py-3 tabular-nums text-gray-600">{share}%</td>
+                          <td className="px-4 py-3">
+                            <Badge color={isSupport ? 'yellow' : 'green'}>
+                              {isSupport ? 'саппорт' : 'подписка'}
+                            </Badge>
+                          </td>
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </Card>
+        </div>
+      </section>
+
+      {/* БЛОК 4 — АКТИВНОСТЬ */}
+      <section className="mb-10">
+        <h2 className="mb-3 text-lg font-semibold text-gray-800">4. Активность за 30 дней</h2>
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
           <MetricCard
             label="Использовали хотя бы 1 оффер"
@@ -621,10 +834,10 @@ export default async function AdminDashboardPage() {
         </div>
       </section>
 
-      {/* БЛОК 4 — ИСТЕКАЮЩИЕ */}
+      {/* БЛОК 5 — ИСТЕКАЮЩИЕ */}
       <section className="mb-10">
         <h2 className="mb-3 text-lg font-semibold text-gray-800">
-          4. Подписки на исходе (ближайшие 7 дней)
+          5. Подписки на исходе (ближайшие 7 дней)
         </h2>
         <Card padding="none" className="overflow-hidden">
           {!expiring.ok ? (
@@ -670,9 +883,9 @@ export default async function AdminDashboardPage() {
         </Card>
       </section>
 
-      {/* БЛОК 5 — RETENTION */}
+      {/* БЛОК 6 — RETENTION */}
       <section className="mb-10">
-        <h2 className="mb-3 text-lg font-semibold text-gray-800">5. Retention 30 дней</h2>
+        <h2 className="mb-3 text-lg font-semibold text-gray-800">6. Retention 30 дней</h2>
         <Card padding="md">
           {!retention.ok ? (
             <p className="text-base text-gray-400">— нет данных —</p>

@@ -134,6 +134,22 @@ order by date desc
 limit 14;
 ```
 
+## Weekly LLM digest (Слой 4)
+
+Каждый **понедельник 04:00 Алматы** `/api/cron/weekly-digest`:
+
+1. Собирает контекст: `metrics_daily_snapshot` (7 дней), конверсию WhatsApp, топ ресторанов.
+2. Отправляет промпт в OpenAI → Markdown-отчёт в Telegram.
+
+Env: `OPENAI_API_KEY`, `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`, `CRON_SECRET`.
+
+Ручной запуск:
+
+```bash
+curl -s https://kudaclub.kz/api/cron/weekly-digest \
+  -H "Authorization: Bearer $CRON_SECRET" | jq
+```
+
 ## Расширение
 
 Добавление нового CTA:

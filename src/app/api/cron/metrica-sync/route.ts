@@ -5,6 +5,7 @@ import {
   fetchMetricaGoals,
   yesterdayAlmaty,
 } from '@/lib/metrica-api'
+import { isCronAuthorized } from '@/lib/cron-auth'
 import { logServerError } from '@/lib/safe-errors'
 
 /**
@@ -46,15 +47,8 @@ function unauthorized(): NextResponse {
   return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 }
 
-function isAuthorized(req: Request): boolean {
-  const cronSecret = process.env.CRON_SECRET
-  if (!cronSecret) return false
-  const header = req.headers.get('authorization')
-  return header === `Bearer ${cronSecret}`
-}
-
 export async function GET(req: Request) {
-  if (!isAuthorized(req)) return unauthorized()
+  if (!isCronAuthorized(req)) return unauthorized()
 
   const token = process.env.YANDEX_OAUTH_TOKEN
   if (!token) {

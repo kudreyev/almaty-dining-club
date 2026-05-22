@@ -109,6 +109,31 @@ limit 50;
 
 Allowlist событий: `src/lib/client-analytics-events.ts`.
 
+## Cron-снимки и алерты (Слой 3)
+
+Каждую ночь (03:30 Алматы) `/api/cron/daily-snapshot`:
+
+1. Считает метрики за **вчера** (календарный день Алматы).
+2. Upsert в `metrics_daily_snapshot`.
+3. Сравнивает с предыдущим днём → Telegram, если сработали правила:
+
+| Правило | Условие |
+|---|---|
+| Падение WhatsApp | кликов < 50% от предыдущего дня |
+| Ноль подписок | `new_subs_24h = 0`, вчера было > 0 |
+| Ошибки активации | > 5 кликов `activate-error` + `activate-card-error` |
+
+Env: `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`, `CRON_SECRET`.
+
+Пример запроса истории:
+
+```sql
+select date, active_subscribers, new_subs_24h, whatsapp_clicks_24h, mrr_kzt
+from public.metrics_daily_snapshot
+order by date desc
+limit 14;
+```
+
 ## Расширение
 
 Добавление нового CTA:

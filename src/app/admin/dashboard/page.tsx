@@ -111,7 +111,70 @@ type SubscriptionRetentionRow = {
   created_at: string
 }
 
-// ---------- metric loaders ----------
+type AnalyticsEventRow = {
+  id: string
+  user_id: string | null
+  meta: Record<string, unknown> | null
+}
+
+const SUPPORT_WHATSAPP_SOURCES = new Set([
+  'footer-support',
+  'support-page',
+  'support-phone',
+  'activate-error',
+  'activate-already-used',
+  'activate-card-error',
+  'activate-card-intro',
+])
+
+type WhatsappFunnelStats = {
+  total: number
+  subscribeClicks: number
+  supportClicks: number
+  bySource: Array<{ source: string; clicks: number }>
+}
+
+function aggregateWhatsappFunnel(rows: AnalyticsEventRow[]): WhatsappFunnelStats {
+  const bySource = new Map<string, number>()
+  let subscribeClicks = 0
+  let supportClicks = 0
+
+  for (const row of rows) {
+    const raw = row.meta?.source
+    const source = typeof raw === 'string' && raw.length > 0 ? raw : '(без source)'
+    bySource.set(source, (bySource.get(source) ?? 0) + 1)
+    if (SUPPORT_WHATSAPP_SOURCES.has(source)) {
+      supportClicks++
+    } else {
+      subscribeClicks++
+    }
+  }
+
+  return {
+    total: rows.length,
+    subscribeClicks,
+    supportClicks,
+    bySource: Array.from(bySource.entries())
+      .sort((a, b) => b[1] - a[1])
+      .map(([source, clicks]) => ({ source, clicks })),
+  }
+}
+
+async function loadWhatsappFunnel(daysAgo: number) {
+  const supabase = createSupabaseAdminClient()
+  const since = isoTimestamp(-daysAgo)
+  return safe(async () => {
+    const { data, error } = await supabase
+      .from('analytics_events')
+      .select('id, user_id, meta')
+      .eq('event_name', 'whatsapp_click')
+      .gte('created_at', since)
+      .returns<AnalyticsEventRow[]>()
+    if (error) throw error
+
+    return aggregateWhatsappFunnel(data ?? [])
+  }, `whatsapp_funnel_${daysAgo}d`)
+}
 
 async function loadActiveSubscribers() {
   const supabase = createSupabaseAdminClient()
@@ -343,6 +406,8 @@ export default async function AdminDashboardPage() {
     activeSubs,
     new7d,
     new30d,
+    whatsapp7d,
+    whatsapp30d,
     redemptions30d,
     topRestaurants,
     expiring,
@@ -351,6 +416,8 @@ export default async function AdminDashboardPage() {
     loadActiveSubscribers(),
     loadNewSubscriptions(7),
     loadNewSubscriptions(30),
+    loadWhatsappFunnel(7),
+    loadWhatsappFunnel(30),
     loadRedemptions30d(),
     loadTopRestaurants30d(),
     loadExpiringSubscriptions(),
@@ -427,9 +494,86 @@ export default async function AdminDashboardPage() {
         </div>
       </section>
 
-      {/* БЛОК 2 — АКТИВНОСТЬ */}
+      {/* БЛОК 2 — WHATSAPP-ВОРОНКА */}
       <section className="mb-10">
-        <h2 className="mb-3 text-lg font-semibold text-gray-800">2. Активность за 30 дней</h2>
+        <h2 className="mb-1 text-lg font-semibold text-gray-800">2. WhatsApp-воронка</h2>
+        <p className="mb-3 text-sm text-gray-500">
+          Live-данные из analytics_events (Слой 2). Обновляется при каждом клике на сайте.
+        </p>
+
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+          <MetricCard
+            label="Кликов за 7 дней"
+            value={whatsapp7d.ok ? fmtNumber(whatsapp7d.value.total) : '—'}
+            hint="whatsapp_click, все источники"
+          />
+          <MetricCard
+            label="Подписные CTA"
+            value={whatsapp7d.ok ? fmtNumber(whatsapp7d.value.subscribeClicks) : '—'}
+            hint="без саппортных ссылок"
+          />
+          <MetricCard
+            label="Саппорт"
+            value={whatsapp7d.ok ? fmtNumber(whatsapp7d.value.supportClicks) : '—'}
+            hint="footer, /support, /activate"
+          />
+        </div>
+
+        <div className="mt-4">
+          <h3 className="mb-2 text-sm font-medium text-gray-600">
+            Разбивка по source (30 дней)
+          </h3>
+          <Card padding="none" className="overflow-hidden">
+            {!whatsapp30d.ok ? (
+              <p className="px-4 py-6 text-center text-base text-gray-400">— нет данных —</p>
+            ) : whatsapp30d.value.bySource.length === 0 ? (
+              <p className="px-4 py-6 text-center text-base text-gray-500">
+                Пока нет кликов. Данные появятся после первых WhatsApp-кнопок на сайте.
+              </p>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full min-w-[480px] text-left text-base">
+                  <thead>
+                    <tr className="border-b border-gray-100 bg-gray-50/50">
+                      <th className="px-4 py-3 text-sm font-medium text-gray-500">source</th>
+                      <th className="px-4 py-3 text-sm font-medium text-gray-500">Клики</th>
+                      <th className="px-4 py-3 text-sm font-medium text-gray-500">Доля</th>
+                      <th className="px-4 py-3 text-sm font-medium text-gray-500">Тип</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-50">
+                    {whatsapp30d.value.bySource.map((row) => {
+                      const isSupport = SUPPORT_WHATSAPP_SOURCES.has(row.source)
+                      const share =
+                        whatsapp30d.value.total > 0
+                          ? Math.round((row.clicks / whatsapp30d.value.total) * 100)
+                          : 0
+                      return (
+                        <tr key={row.source}>
+                          <td className="px-4 py-3 font-mono text-sm text-gray-900">
+                            {row.source}
+                          </td>
+                          <td className="px-4 py-3 tabular-nums">{fmtNumber(row.clicks)}</td>
+                          <td className="px-4 py-3 tabular-nums text-gray-600">{share}%</td>
+                          <td className="px-4 py-3">
+                            <Badge color={isSupport ? 'yellow' : 'green'}>
+                              {isSupport ? 'саппорт' : 'подписка'}
+                            </Badge>
+                          </td>
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </Card>
+        </div>
+      </section>
+
+      {/* БЛОК 3 — АКТИВНОСТЬ */}
+      <section className="mb-10">
+        <h2 className="mb-3 text-lg font-semibold text-gray-800">3. Активность за 30 дней</h2>
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
           <MetricCard
             label="Использовали хотя бы 1 оффер"
@@ -477,10 +621,10 @@ export default async function AdminDashboardPage() {
         </div>
       </section>
 
-      {/* БЛОК 3 — ИСТЕКАЮЩИЕ */}
+      {/* БЛОК 4 — ИСТЕКАЮЩИЕ */}
       <section className="mb-10">
         <h2 className="mb-3 text-lg font-semibold text-gray-800">
-          3. Подписки на исходе (ближайшие 7 дней)
+          4. Подписки на исходе (ближайшие 7 дней)
         </h2>
         <Card padding="none" className="overflow-hidden">
           {!expiring.ok ? (
@@ -526,9 +670,9 @@ export default async function AdminDashboardPage() {
         </Card>
       </section>
 
-      {/* БЛОК 4 — RETENTION */}
+      {/* БЛОК 5 — RETENTION */}
       <section className="mb-10">
-        <h2 className="mb-3 text-lg font-semibold text-gray-800">4. Retention 30 дней</h2>
+        <h2 className="mb-3 text-lg font-semibold text-gray-800">5. Retention 30 дней</h2>
         <Card padding="md">
           {!retention.ok ? (
             <p className="text-base text-gray-400">— нет данных —</p>

@@ -13,7 +13,7 @@ export function TrialUpgradeLink({ children, ...rest }: TrialUpgradeLinkProps) {
   return (
     <a
       {...rest}
-      href={buildKudaclubSubscribeWhatsAppUrl()}
+      href={buildKudaclubSubscribeWhatsAppUrl('home-trial-upgrade')}
       target="_blank"
       rel="noopener noreferrer"
       onClick={() => {

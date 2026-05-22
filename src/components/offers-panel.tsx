@@ -23,6 +23,7 @@ type OffersPanelProps = {
   offers: Offer[]
   restaurantId: string
   restaurantSlug: string
+  restaurantName?: string
   hasSubscription: boolean
 }
 
@@ -30,6 +31,7 @@ export function OffersPanel({
   offers,
   restaurantId,
   restaurantSlug,
+  restaurantName,
   hasSubscription,
 }: OffersPanelProps) {
   const [paywallSource, setPaywallSource] = useState<string | null>(null)
@@ -61,7 +63,12 @@ export function OffersPanel({
   return (
     <>
       {paywallSource ? (
-        <PaywallModal onClose={handleClosePaywall} whatsappSource={paywallSource} />
+        <PaywallModal
+          onClose={handleClosePaywall}
+          whatsappSource={paywallSource}
+          messageKind="offer-card"
+          restaurantName={restaurantName}
+        />
       ) : null}
 
       <div className="flex flex-col gap-4">

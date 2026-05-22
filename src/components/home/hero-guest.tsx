@@ -30,6 +30,7 @@ export function HeroGuest({ venuesCount }: HeroGuestProps) {
         <div className="mt-7 flex flex-col items-stretch gap-3 sm:flex-row sm:items-center sm:justify-center">
           <WhatsappGoalLink
             source="home-hero"
+            messageKind="home-hero"
             extraGoal="subscribe_click_home"
             target="_blank"
             rel="noopener noreferrer"

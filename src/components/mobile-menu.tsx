@@ -70,6 +70,7 @@ export function MobileMenu({
                 <div className="my-2 h-px bg-gray-100" />
                 <WhatsappGoalLink
                   source="mobile-menu-cta"
+                  messageKind="mobile-menu-cta"
                   target="_blank"
                   rel="noopener noreferrer"
                   onClick={() => setOpen(false)}

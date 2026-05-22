@@ -161,6 +161,7 @@ export function LoginForm({
 
           <WhatsappGoalLink
             source="login-no-account"
+            messageKind="login-no-account"
             target="_blank"
             rel="noopener noreferrer"
             className="mt-5 flex w-full items-center justify-center font-medium text-white transition-opacity hover:opacity-95"

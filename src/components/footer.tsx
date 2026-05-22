@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import { WhatsappSupportLink } from '@/components/analytics/whatsapp-support-link'
 
 export function Footer() {
   const pathname = usePathname()
@@ -45,14 +46,15 @@ export function Footer() {
             </Link>
             <span aria-hidden="true" className="text-neutral-300">·</span>
 
-            <a
+            <WhatsappSupportLink
+              source="footer-support"
               href="https://wa.me/77066059899"
               target="_blank"
               rel="noopener noreferrer"
               className="transition-colors hover:text-neutral-900"
             >
               Написать нам
-            </a>
+            </WhatsappSupportLink>
           </nav>
         </div>
       </div>

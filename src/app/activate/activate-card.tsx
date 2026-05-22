@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { LogoutButton } from '@/components/logout-button'
+import { WhatsappSupportLink } from '@/components/analytics/whatsapp-support-link'
 import { activateAction, type ActivateActionResult } from './actions'
 
 const WHATSAPP_SUPPORT_URL =
@@ -198,14 +199,15 @@ export function ActivateCard({ token, phoneTarget, linkKind, trialDays }: Activa
             >
               Попробовать снова
             </button>
-            <a
+            <WhatsappSupportLink
+              source="activate-card-error"
               href={WHATSAPP_SUPPORT_URL}
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex rounded-md border border-gray-300 bg-white px-5 py-3 text-sm font-medium text-gray-900 transition-colors hover:bg-gray-50"
             >
               Написать в WhatsApp
-            </a>
+            </WhatsappSupportLink>
           </div>
         </div>
       </main>
@@ -245,14 +247,15 @@ export function ActivateCard({ token, phoneTarget, linkKind, trialDays }: Activa
                 ? 'Активировать пробный доступ'
                 : 'Активировать подписку'}
           </button>
-          <a
+          <WhatsappSupportLink
+            source="activate-card-intro"
             href={WHATSAPP_SUPPORT_URL}
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex rounded-md border border-gray-300 bg-white px-5 py-3 text-sm font-medium text-gray-900 transition-colors hover:bg-gray-50"
           >
             Написать в WhatsApp
-          </a>
+          </WhatsappSupportLink>
         </div>
       </div>
     </main>

@@ -95,6 +95,7 @@ export async function Header() {
               </Link>
               <WhatsappGoalLink
                 source="header-cta"
+                messageKind="header-cta"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center justify-center font-medium text-white transition-opacity hover:opacity-95"

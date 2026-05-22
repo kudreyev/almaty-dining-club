@@ -138,6 +138,7 @@ export default function PricingPage() {
             {/* CTA */}
             <WhatsappGoalLink
               source="pricing-page"
+              messageKind="pricing-page"
               target="_blank"
               rel="noopener noreferrer"
               className="block w-full rounded-md bg-primary px-5 py-[13px] text-center text-[15px] font-medium text-white transition-colors hover:bg-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2"

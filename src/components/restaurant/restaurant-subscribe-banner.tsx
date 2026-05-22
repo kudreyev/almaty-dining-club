@@ -45,6 +45,8 @@ export function RestaurantSubscribeBanner({
 
         <WhatsappGoalLink
           source={venueCtaSource(restaurantSlug)}
+          messageKind="venue-cta"
+          restaurantName={restaurantName}
           target="_blank"
           rel="noopener noreferrer"
           style={{

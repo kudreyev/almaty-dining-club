@@ -17,6 +17,7 @@ export function FinalCta() {
 
         <WhatsappGoalLink
           source="home-pricing"
+          messageKind="home-pricing"
           target="_blank"
           rel="noopener noreferrer"
           aria-label="Оформить подписку Kudaclub за 1 990 ₸"

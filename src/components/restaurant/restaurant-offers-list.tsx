@@ -82,7 +82,12 @@ export function RestaurantOffersList({
   return (
     <>
       {paywallSource ? (
-        <PaywallModal onClose={handlePaywallClose} whatsappSource={paywallSource} />
+        <PaywallModal
+          onClose={handlePaywallClose}
+          whatsappSource={paywallSource}
+          messageKind="offer-card"
+          restaurantName={restaurantName}
+        />
       ) : null}
 
       <div className="flex flex-col" style={{ gap: '12px' }}>

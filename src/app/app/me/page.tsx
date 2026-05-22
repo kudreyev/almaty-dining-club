@@ -122,7 +122,8 @@ export default async function MePage({ searchParams }: PageProps) {
             <p className="mt-2 text-sm leading-[1.55] text-gray-700">{description}</p>
 
             <WhatsappGoalLink
-              source="me-no-sub"
+              source={hasAnySubscription ? 'me-expired' : 'me-no-sub'}
+              messageKind={hasAnySubscription ? 'me-expired' : 'me-no-sub'}
               target="_blank"
               rel="noopener noreferrer"
               className="mt-4 inline-flex items-center justify-center font-medium text-white transition-opacity hover:opacity-95"

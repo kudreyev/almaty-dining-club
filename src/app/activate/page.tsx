@@ -8,6 +8,7 @@ import {
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 import { logAnalyticsEvent } from '@/lib/analytics'
 import { normalizeKZPhone } from '@/lib/kz-phone'
+import { WhatsappSupportLink } from '@/components/analytics/whatsapp-support-link'
 import { ActivateCard } from './activate-card'
 
 const WHATSAPP_SUPPORT_URL =
@@ -37,14 +38,15 @@ function CtaRow({ primaryHref, primaryText }: { primaryHref: string; primaryText
       >
         {primaryText}
       </Link>
-      <a
+      <WhatsappSupportLink
+        source="activate-error"
         href={WHATSAPP_SUPPORT_URL}
         target="_blank"
         rel="noreferrer"
         className="inline-flex rounded-2xl border border-gray-300 bg-white px-5 py-3 text-sm font-medium text-black"
       >
         Написать в WhatsApp
-      </a>
+      </WhatsappSupportLink>
     </div>
   )
 }
@@ -165,14 +167,15 @@ export default async function ActivatePage({
             >
               Открыть кабинет
             </Link>
-            <a
+            <WhatsappSupportLink
+              source="activate-already-used"
               href={WHATSAPP_SUPPORT_URL}
               target="_blank"
               rel="noreferrer"
               className="inline-flex rounded-2xl border border-gray-300 bg-white px-5 py-3 text-sm font-medium text-black"
             >
               Написать в WhatsApp
-            </a>
+            </WhatsappSupportLink>
           </div>
         </div>
       </main>

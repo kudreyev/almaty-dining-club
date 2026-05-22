@@ -5,6 +5,7 @@ import { createPortal } from 'react-dom'
 import Link from 'next/link'
 import { Check, X } from 'lucide-react'
 import { WhatsappGoalLink } from '@/components/analytics/whatsapp-goal-link'
+import type { WhatsAppMessageKind } from '@/lib/whatsapp'
 
 const BULLETS = [
   'Доступ ко всем предложениям в Алматы',
@@ -15,9 +16,16 @@ const BULLETS = [
 type PaywallModalProps = {
   onClose: () => void
   whatsappSource: string
+  messageKind: WhatsAppMessageKind
+  restaurantName?: string
 }
 
-export function PaywallModal({ onClose, whatsappSource }: PaywallModalProps) {
+export function PaywallModal({
+  onClose,
+  whatsappSource,
+  messageKind,
+  restaurantName,
+}: PaywallModalProps) {
   const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
@@ -110,6 +118,8 @@ export function PaywallModal({ onClose, whatsappSource }: PaywallModalProps) {
         <div className="flex flex-col" style={{ marginTop: '24px', gap: '8px' }}>
           <WhatsappGoalLink
             source={whatsappSource}
+            messageKind={messageKind}
+            restaurantName={restaurantName}
             target="_blank"
             rel="noopener noreferrer"
             className="flex w-full items-center justify-center font-medium text-white transition-opacity hover:opacity-95"

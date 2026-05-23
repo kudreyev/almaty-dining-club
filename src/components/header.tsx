@@ -44,6 +44,7 @@ export async function Header() {
         { href: '/admin/activation-links', label: 'Активации' },
         { href: '/admin/transfer-subscription', label: 'Перенос' },
         { href: '/admin/payments', label: 'Оплаты' },
+        { href: '/admin/whatsapp', label: 'WhatsApp' },
       ]
     : []
 

@@ -2,6 +2,16 @@ import { logServerError } from '@/lib/safe-errors'
 
 const GRAPH_BASE = 'https://graph.facebook.com/v21.0'
 
+function metaApiError(body: { error?: { message?: string; error_user_msg?: string } }): string {
+  return body.error?.error_user_msg ?? body.error?.message ?? 'Meta API error'
+}
+
+function getOAuthRedirectUri(): string {
+  const site = process.env.NEXT_PUBLIC_SITE_URL?.trim().replace(/\/$/, '')
+  if (site) return `${site}/admin/whatsapp/connect`
+  return 'https://kudaclub.kz/admin/whatsapp/connect'
+}
+
 export function getEmbeddedSignupConfigId(): string | null {
   return process.env.WHATSAPP_EMBEDDED_SIGNUP_CONFIG_ID?.trim() || null
 }
@@ -23,21 +33,30 @@ export async function exchangeEmbeddedSignupCode(
     throw new Error('Задайте NEXT_PUBLIC_META_APP_ID и WHATSAPP_APP_SECRET')
   }
 
-  const url = new URL(`${GRAPH_BASE}/oauth/access_token`)
-  url.searchParams.set('client_id', appId)
-  url.searchParams.set('client_secret', appSecret)
-  url.searchParams.set('code', code)
+  const redirectUri = getOAuthRedirectUri()
+  const params = new URLSearchParams({
+    client_id: appId,
+    client_secret: appSecret,
+    code,
+    redirect_uri: redirectUri,
+  })
 
-  const res = await fetch(url.toString())
+  const res = await fetch(`${GRAPH_BASE}/oauth/access_token`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/x-www-form-urlencoded' },
+    body: params.toString(),
+  })
   const body = (await res.json()) as {
     access_token?: string
     expires_in?: number
-    error?: { message?: string }
+    error?: { message?: string; error_user_msg?: string }
   }
 
   if (!res.ok || !body.access_token) {
     logServerError('whatsapp-embedded-signup:exchange', new Error(JSON.stringify(body)))
-    throw new Error(body.error?.message ?? 'Не удалось обменять code на token')
+    throw new Error(
+      `${metaApiError(body)} (redirect_uri=${redirectUri}). Проверьте WHATSAPP_APP_SECRET для App ID ${appId}.`,
+    )
   }
 
   return { accessToken: body.access_token, expiresIn: body.expires_in }
@@ -72,7 +91,7 @@ export async function discoverWhatsAppAssetsFromToken(
 
   if (!debugRes.ok) {
     logServerError('whatsapp-embedded-signup:debug_token', new Error(JSON.stringify(debugBody)))
-    throw new Error(debugBody.error?.message ?? 'debug_token failed')
+    throw new Error(metaApiError(debugBody))
   }
 
   const scopes = debugBody.data?.granular_scopes ?? []
@@ -104,7 +123,7 @@ export async function discoverWhatsAppAssetsFromToken(
 
   if (!phonesRes.ok) {
     logServerError('whatsapp-embedded-signup:phone_numbers', new Error(JSON.stringify(phonesBody)))
-    throw new Error(phonesBody.error?.message ?? 'Не удалось получить phone_number_id')
+    throw new Error(metaApiError(phonesBody))
   }
 
   const phones = phonesBody.data ?? []
@@ -122,7 +141,7 @@ export async function discoverWhatsAppAssetsFromToken(
 export async function fetchPhoneCoexistenceStatus(args: {
   phoneNumberId: string
   accessToken: string
-}): Promise<{ isOnBizApp: boolean; platformType: string | null }> {
+}): Promise<{ isOnBizApp: boolean; platformType: string | null; warning?: string }> {
   const url = new URL(`${GRAPH_BASE}/${args.phoneNumberId}`)
   url.searchParams.set('fields', 'is_on_biz_app,platform_type')
 
@@ -138,7 +157,11 @@ export async function fetchPhoneCoexistenceStatus(args: {
 
   if (!res.ok) {
     logServerError('whatsapp-embedded-signup:coexistence', new Error(JSON.stringify(body)))
-    throw new Error(body.error?.message ?? 'Не удалось проверить coexistence')
+    return {
+      isOnBizApp: false,
+      platformType: null,
+      warning: metaApiError(body),
+    }
   }
 
   return {

@@ -100,17 +100,25 @@ export function EmbeddedSignupLauncher({ appId, configId }: Props) {
     )
 
     try {
-      const completed = await completeEmbeddedSignup({
+      const response = await completeEmbeddedSignup({
         code,
         wabaId,
         phoneNumberId,
         businessId: session?.data?.business_id,
         event,
       })
+
+      if (!response.ok) {
+        setError(`[${response.step}] ${response.error}`)
+        setStatus(null)
+        return
+      }
+
+      const completed = response.result
       setResult(completed)
       setStatus(
         completed.assetSource === 'graph_api'
-          ? 'Готово (WABA найден через Graph API — session logging не пришёл).'
+          ? 'Готово (WABA найден через Graph API).'
           : 'Готово — скопируйте значения в Vercel.',
       )
     } catch (err) {
@@ -298,7 +306,12 @@ export function EmbeddedSignupLauncher({ appId, configId }: Props) {
             <p className="font-semibold text-green-800">Onboarding завершён</p>
             {result.assetSource === 'graph_api' ? (
               <p className="text-xs text-blue-800">
-                WABA/phone найдены через Graph API (session logging Meta не сработал).
+                WABA/phone найдены через Graph API (session logging Meta не пришёл).
+              </p>
+            ) : null}
+            {result.coexistenceWarning ? (
+              <p className="text-xs text-amber-800">
+                Coexistence check: {result.coexistenceWarning}
               </p>
             ) : null}
             <dl className="space-y-2 text-sm">

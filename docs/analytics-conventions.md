@@ -151,6 +151,25 @@ curl -s https://kudaclub.kz/api/cron/weekly-digest \
   -H "Authorization: Bearer $CRON_SECRET" | jq
 ```
 
+## WhatsApp-копилот (Слой 5)
+
+Webhook: `POST /api/whatsapp/webhook` (Meta Cloud API).
+
+1. Входящее сообщение → lookup по телефону → контекст (подписка, redemptions).
+2. LLM (или шаблон) → черновик ответа в `whatsapp_conversations`.
+3. Оператор правит и жмёт «Отправить» в `/admin/whatsapp`.
+
+**Meta setup:**
+
+1. [developers.facebook.com](https://developers.facebook.com) → App → WhatsApp → Configuration.
+2. Callback URL: `https://kudaclub.kz/api/whatsapp/webhook`
+3. Verify token = `WHATSAPP_VERIFY_TOKEN` из env.
+4. Подписать webhook на `messages`.
+
+**Env:** `WHATSAPP_CLOUD_ACCESS_TOKEN`, `WHATSAPP_PHONE_NUMBER_ID`, `WHATSAPP_VERIFY_TOKEN`, `WHATSAPP_APP_SECRET`, `OPENAI_API_KEY` (опционально, иначе шаблоны).
+
+**Админка:** `/admin/whatsapp`
+
 ## Расширение
 
 Добавление нового CTA:

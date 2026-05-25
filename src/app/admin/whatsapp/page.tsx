@@ -100,6 +100,11 @@ export default async function AdminWhatsAppPage() {
         <p className="mt-1 text-base leading-6 text-gray-500">
           Входящие → контекст из БД → черновик ответа (Слой 5). По умолчанию отвечайте с телефона.
         </p>
+        <p className="mt-2 text-sm">
+          <Button href="/admin/whatsapp/connect" variant="secondary" size="sm">
+            Подключить номер (coexistence)
+          </Button>
+        </p>
         {!cloudOk ? (
           <p className="mt-2 text-sm text-amber-700">
             Webhook Meta не настроен — задайте WHATSAPP_* env и callback{' '}

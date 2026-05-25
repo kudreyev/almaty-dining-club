@@ -58,3 +58,58 @@ export function buildMetricsAlerts(
 export function formatMetricsAlertMessage(alerts: string[]): string {
   return ['Kudaclub · ежедневные алерты', '', ...alerts].join('\n')
 }
+
+function fmtNumber(n: number): string {
+  return new Intl.NumberFormat('ru-RU').format(n)
+}
+
+function fmtDelta(current: number, previous: number | undefined): string {
+  if (previous === undefined) return ''
+  const diff = current - previous
+  if (diff === 0) return ' (=)'
+  const sign = diff > 0 ? '+' : ''
+  return ` (${sign}${fmtNumber(diff)})`
+}
+
+function topWhatsappSources(bySource: Record<string, number>, limit = 3): string[] {
+  return Object.entries(bySource)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, limit)
+    .map(([source, clicks]) => `${source}: ${fmtNumber(clicks)}`)
+}
+
+/** Ежедневная сводка для Telegram (всегда, не только при алертах). */
+export function formatDailyDigestMessage(args: {
+  snapshot: MetricsDailySnapshotRow
+  previous: MetricsDailySnapshotRow | null
+  alerts: string[]
+}): string {
+  const { snapshot, previous, alerts } = args
+  const prev = previous ?? undefined
+
+  const lines = [
+    `Kudaclub · сводка за ${snapshot.date}`,
+    '',
+    `Активных: ${fmtNumber(snapshot.active_subscribers)} (paid: ${fmtNumber(snapshot.active_paid_subscribers)})${fmtDelta(snapshot.active_subscribers, prev?.active_subscribers)}`,
+    `MRR: ${fmtNumber(snapshot.mrr_kzt)} ₸`,
+    `Новых подписок: ${fmtNumber(snapshot.new_subs_24h)} (paid: ${fmtNumber(snapshot.new_paid_subs_24h)})${fmtDelta(snapshot.new_subs_24h, prev?.new_subs_24h)}`,
+    `WhatsApp-кликов: ${fmtNumber(snapshot.whatsapp_clicks_24h)}${fmtDelta(snapshot.whatsapp_clicks_24h, prev?.whatsapp_clicks_24h)}`,
+    `Использований офферов: ${fmtNumber(snapshot.redemptions_24h)}${fmtDelta(snapshot.redemptions_24h, prev?.redemptions_24h)}`,
+    `Истекают в 7 дней: ${fmtNumber(snapshot.expiring_next_7d)}`,
+  ]
+
+  if (snapshot.retention_30d_pct != null) {
+    lines.push(`Retention 30d: ${snapshot.retention_30d_pct}%`)
+  }
+
+  const topSources = topWhatsappSources(snapshot.whatsapp_clicks_by_source)
+  if (topSources.length > 0) {
+    lines.push('', 'Топ source (WA):', ...topSources.map((s) => `· ${s}`))
+  }
+
+  if (alerts.length > 0) {
+    lines.push('', '⚠️ Алерты:', ...alerts)
+  }
+
+  return lines.join('\n')
+}

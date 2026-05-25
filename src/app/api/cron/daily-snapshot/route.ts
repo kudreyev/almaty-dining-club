@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { isCronAuthorized } from '@/lib/cron-auth'
-import { buildMetricsAlerts, formatMetricsAlertMessage } from '@/lib/metrics-alerts'
+import { buildMetricsAlerts, formatDailyDigestMessage } from '@/lib/metrics-alerts'
 import {
   computeDailySnapshot,
   loadSnapshotByDate,
@@ -18,7 +18,7 @@ import { logServerError } from '@/lib/safe-errors'
  *
  * 1. Считает метрики за вчера (календарный день Алматы).
  * 2. Upsert в metrics_daily_snapshot.
- * 3. Сравнивает с предыдущим днём → алерты в Telegram (если настроен бот).
+ * 3. Ежедневная сводка в Telegram (+ блок алертов, если сработали правила).
  */
 
 export const runtime = 'nodejs'
@@ -51,10 +51,8 @@ export async function GET(req: Request) {
     logServerError('cron/daily-snapshot:loadPrevious', error)
   }
 
-  const alerts = buildMetricsAlerts(
-    { ...snapshot, computed_at: new Date().toISOString() },
-    previous,
-  )
+  const snapshotRow = { ...snapshot, computed_at: new Date().toISOString() }
+  const alerts = buildMetricsAlerts(snapshotRow, previous)
 
   const telegramConfigured = Boolean(
     process.env.TELEGRAM_BOT_TOKEN && process.env.TELEGRAM_CHAT_ID,
@@ -65,8 +63,10 @@ export async function GET(req: Request) {
     reason: 'not_configured',
   }
 
-  if (telegramConfigured && alerts.length > 0) {
-    telegramResult = await sendTelegramMessage(formatMetricsAlertMessage(alerts))
+  if (telegramConfigured) {
+    telegramResult = await sendTelegramMessage(
+      formatDailyDigestMessage({ snapshot: snapshotRow, previous, alerts }),
+    )
   }
 
   return NextResponse.json({
@@ -77,7 +77,7 @@ export async function GET(req: Request) {
     alerts,
     telegram: {
       configured: telegramConfigured,
-      alerts_sent: telegramResult.sent,
+      digest_sent: telegramResult.sent,
     },
   })
 }

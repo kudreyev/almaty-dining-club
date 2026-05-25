@@ -11,7 +11,7 @@ import { EmbeddedSignupLauncher } from './embedded-signup-launcher'
 export const dynamic = 'force-dynamic'
 
 export default async function AdminWhatsAppConnectPage() {
-  await requireAdmin()
+  await requireAdmin('/admin/whatsapp/connect')
 
   const appId = getMetaAppId()
   const configId = getEmbeddedSignupConfigId()
@@ -35,7 +35,10 @@ export default async function AdminWhatsAppConnectPage() {
 
       {!ready ? (
         <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
-          <p className="font-medium">Env не настроен</p>
+          <p className="font-medium">Env не настроен на Vercel</p>
+          <p className="mt-1 text-xs">
+            После добавления переменных нажмите Redeploy — без redeploy страница останется пустой.
+          </p>
           <ul className="mt-2 list-disc space-y-1 pl-5">
             <li>
               <code className="text-xs">NEXT_PUBLIC_META_APP_ID</code> — App ID из Meta Developers

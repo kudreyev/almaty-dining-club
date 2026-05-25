@@ -31,9 +31,18 @@ type FBLoginResponse = {
 type Props = {
   appId: string
   configId: string
+  redirectUri: string
+  urlCode?: string
+  urlError?: string
 }
 
-export function EmbeddedSignupLauncher({ appId, configId }: Props) {
+export function EmbeddedSignupLauncher({
+  appId,
+  configId,
+  redirectUri,
+  urlCode,
+  urlError,
+}: Props) {
   const [sdkReady, setSdkReady] = useState(false)
   const [sdkError, setSdkError] = useState<string | null>(null)
   const [popupOpen, setPopupOpen] = useState(false)
@@ -152,6 +161,17 @@ export function EmbeddedSignupLauncher({ appId, configId }: Props) {
     return () => window.removeEventListener('message', onMessage)
   }, [tryCompleteIfReady])
 
+  useEffect(() => {
+    if (urlError) {
+      setError(urlError)
+    }
+    if (urlCode && !exchangingRef.current && !pendingCodeRef.current) {
+      pendingCodeRef.current = urlCode
+      window.history.replaceState({}, '', '/admin/whatsapp/connect')
+      void tryCompleteIfReady()
+    }
+  }, [urlCode, urlError, tryCompleteIfReady])
+
   const resetFlow = () => {
     clearPopupTimeout()
     setPopupOpen(false)
@@ -207,6 +227,7 @@ export function EmbeddedSignupLauncher({ appId, configId }: Props) {
         config_id: configId,
         response_type: 'code',
         override_default_response_type: true,
+        redirect_uri: redirectUri,
         extras: {
           setup: {},
           featureType: 'whatsapp_business_app_onboarding',
@@ -214,6 +235,21 @@ export function EmbeddedSignupLauncher({ appId, configId }: Props) {
         },
       },
     )
+  }
+
+  const launchManualOAuth = () => {
+    resetFlow()
+    setResult(null)
+    setStatus('Переход на Meta OAuth…')
+
+    const url = new URL(`https://www.facebook.com/${GRAPH_API_VERSION}/dialog/oauth`)
+    url.searchParams.set('client_id', appId)
+    url.searchParams.set('redirect_uri', redirectUri)
+    url.searchParams.set('response_type', 'code')
+    url.searchParams.set('config_id', configId)
+    url.searchParams.set('state', 'whatsapp_connect')
+
+    window.location.assign(url.toString())
   }
 
   const buttonLabel = exchanging
@@ -257,7 +293,7 @@ export function EmbeddedSignupLauncher({ appId, configId }: Props) {
           </ol>
 
           <p className="text-xs text-gray-500">
-            App ID: {appId} · Config ID: {configId.slice(0, 6)}…
+            App ID: {appId} · Config ID: {configId.slice(0, 6)}… · redirect: {redirectUri}
           </p>
 
           <div className="flex flex-wrap gap-2">
@@ -267,6 +303,14 @@ export function EmbeddedSignupLauncher({ appId, configId }: Props) {
               disabled={!sdkReady || popupOpen || exchanging}
             >
               {buttonLabel}
+            </Button>
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={launchManualOAuth}
+              disabled={popupOpen || exchanging}
+            >
+              Meta OAuth (если popup белый)
             </Button>
             {error || popupOpen || status ? (
               <Button type="button" variant="ghost" onClick={resetFlow}>
@@ -291,9 +335,9 @@ export function EmbeddedSignupLauncher({ appId, configId }: Props) {
             <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-800">
               <p>{error}</p>
               <p className="mt-2 text-xs">
-                Popup Meta белый → OAuth: allowed domain <code>kudaclub.kz</code>, redirect{' '}
-                <code>https://kudaclub.kz/admin/whatsapp/connect</code>, вы — Admin/Developer в Meta App
-                Roles.
+                Popup Meta белый → нажмите «Meta OAuth (если popup белый)». OAuth: allowed domain{' '}
+                <code>kudaclub.kz</code>, redirect <code>{redirectUri}</code>, вы — Admin/Developer в
+                Meta App Roles. Code живёт ~30 сек — после ошибки нажмите «Сбросить».
               </p>
             </div>
           ) : null}

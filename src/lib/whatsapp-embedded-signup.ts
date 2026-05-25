@@ -7,10 +7,14 @@ function metaApiError(body: { error?: { message?: string; error_user_msg?: strin
 }
 
 /** Meta OAuth redirect — всегда kudaclub.kz (не NEXT_PUBLIC_SITE_URL). */
-function getOAuthRedirectUri(): string {
+export function getWhatsAppOAuthRedirectUri(): string {
   const override = process.env.WHATSAPP_OAUTH_REDIRECT_URI?.trim()
   if (override) return override
   return 'https://kudaclub.kz/admin/whatsapp/connect'
+}
+
+function getOAuthRedirectUri(): string {
+  return getWhatsAppOAuthRedirectUri()
 }
 
 export function getEmbeddedSignupConfigId(): string | null {
@@ -27,40 +31,94 @@ export function isEmbeddedSignupConfigured(): boolean {
 
 export async function exchangeEmbeddedSignupCode(
   code: string,
-): Promise<{ accessToken: string; expiresIn?: number }> {
+): Promise<{ accessToken: string; expiresIn?: number; redirectUriUsed: string }> {
   const appId = getMetaAppId()
   const appSecret = process.env.WHATSAPP_APP_SECRET?.trim()
   if (!appId || !appSecret) {
     throw new Error('Задайте NEXT_PUBLIC_META_APP_ID и WHATSAPP_APP_SECRET')
   }
 
-  const redirectUri = getOAuthRedirectUri()
-  const params = new URLSearchParams({
+  const redirectCandidates = [
+    getOAuthRedirectUri(),
+    'https://kudaclub.kz/',
+    'https://kudaclub.kz/admin/whatsapp',
+  ]
+
+  let lastError = 'Не удалось обменять code на token'
+
+  for (const redirectUri of redirectCandidates) {
+    const params = new URLSearchParams({
+      client_id: appId,
+      client_secret: appSecret,
+      code,
+      grant_type: 'authorization_code',
+      redirect_uri: redirectUri,
+    })
+
+    const res = await fetch(`${GRAPH_BASE}/oauth/access_token`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/x-www-form-urlencoded' },
+      body: params.toString(),
+    })
+    const body = (await res.json()) as {
+      access_token?: string
+      expires_in?: number
+      error?: { message?: string; error_user_msg?: string; code?: number; error_subcode?: number }
+    }
+
+    if (res.ok && body.access_token) {
+      return {
+        accessToken: body.access_token,
+        expiresIn: body.expires_in,
+        redirectUriUsed: redirectUri,
+      }
+    }
+
+    lastError = metaApiError(body)
+    const isRedirectMismatch =
+      body.error?.code === 100 ||
+      body.error?.error_subcode === 36008 ||
+      lastError.toLowerCase().includes('redirect_uri')
+
+    if (!isRedirectMismatch) {
+      logServerError('whatsapp-embedded-signup:exchange', new Error(JSON.stringify(body)))
+      throw new Error(
+        `${lastError} (redirect_uri=${redirectUri}). Проверьте WHATSAPP_APP_SECRET для App ID ${appId}.`,
+      )
+    }
+  }
+
+  // Embedded Signup иногда не передаёт redirect_uri в dialog — пробуем без него.
+  const noRedirectParams = new URLSearchParams({
     client_id: appId,
     client_secret: appSecret,
     code,
-    redirect_uri: redirectUri,
+    grant_type: 'authorization_code',
   })
 
-  const res = await fetch(`${GRAPH_BASE}/oauth/access_token`, {
+  const noRedirectRes = await fetch(`${GRAPH_BASE}/oauth/access_token`, {
     method: 'POST',
     headers: { 'content-type': 'application/x-www-form-urlencoded' },
-    body: params.toString(),
+    body: noRedirectParams.toString(),
   })
-  const body = (await res.json()) as {
+  const noRedirectBody = (await noRedirectRes.json()) as {
     access_token?: string
     expires_in?: number
     error?: { message?: string; error_user_msg?: string }
   }
 
-  if (!res.ok || !body.access_token) {
-    logServerError('whatsapp-embedded-signup:exchange', new Error(JSON.stringify(body)))
-    throw new Error(
-      `${metaApiError(body)} (redirect_uri=${redirectUri}). Проверьте WHATSAPP_APP_SECRET для App ID ${appId}.`,
-    )
+  if (noRedirectRes.ok && noRedirectBody.access_token) {
+    return {
+      accessToken: noRedirectBody.access_token,
+      expiresIn: noRedirectBody.expires_in,
+      redirectUriUsed: '(none)',
+    }
   }
 
-  return { accessToken: body.access_token, expiresIn: body.expires_in }
+  logServerError('whatsapp-embedded-signup:exchange', new Error(JSON.stringify(noRedirectBody)))
+  throw new Error(
+    `${metaApiError(noRedirectBody) || lastError}. Code живёт ~30 сек — нажмите «Сбросить» и пройдите popup заново. App ID ${appId}.`,
+  )
 }
 
 function getAppAccessToken(): string {

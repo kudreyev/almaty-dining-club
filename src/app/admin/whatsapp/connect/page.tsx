@@ -4,17 +4,24 @@ import { Button } from '@/components/ui/button'
 import {
   getEmbeddedSignupConfigId,
   getMetaAppId,
+  getWhatsAppOAuthRedirectUri,
   isEmbeddedSignupConfigured,
 } from '@/lib/whatsapp-embedded-signup'
 import { EmbeddedSignupLauncher } from './embedded-signup-launcher'
 
 export const dynamic = 'force-dynamic'
 
-export default async function AdminWhatsAppConnectPage() {
+export default async function AdminWhatsAppConnectPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ code?: string; error?: string; error_description?: string }>
+}) {
   await requireAdmin('/admin/whatsapp/connect')
 
+  const query = await searchParams
   const appId = getMetaAppId()
   const configId = getEmbeddedSignupConfigId()
+  const redirectUri = getWhatsAppOAuthRedirectUri()
   const ready = isEmbeddedSignupConfigured()
 
   return (
@@ -55,7 +62,13 @@ export default async function AdminWhatsAppConnectPage() {
           </p>
         </div>
       ) : (
-        <EmbeddedSignupLauncher appId={appId!} configId={configId!} />
+        <EmbeddedSignupLauncher
+          appId={appId!}
+          configId={configId!}
+          redirectUri={redirectUri}
+          urlCode={query.code?.trim() || undefined}
+          urlError={query.error_description?.trim() || query.error?.trim() || undefined}
+        />
       )}
 
       <p className="mt-6 text-sm text-gray-500">

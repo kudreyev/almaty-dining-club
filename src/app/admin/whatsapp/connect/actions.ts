@@ -2,16 +2,17 @@
 
 import { requireAdmin } from '@/lib/admin'
 import {
+  discoverWhatsAppAssetsFromToken,
   exchangeEmbeddedSignupCode,
   fetchPhoneCoexistenceStatus,
 } from '@/lib/whatsapp-embedded-signup'
 
 export type CompleteEmbeddedSignupInput = {
   code: string
-  wabaId: string
-  phoneNumberId: string
+  wabaId?: string
+  phoneNumberId?: string
   businessId?: string
-  event: string
+  event?: string
 }
 
 export type CompleteEmbeddedSignupResult = {
@@ -23,6 +24,7 @@ export type CompleteEmbeddedSignupResult = {
   expiresIn?: number
   isOnBizApp: boolean
   platformType: string | null
+  assetSource: 'session' | 'graph_api'
 }
 
 export async function completeEmbeddedSignup(
@@ -31,24 +33,32 @@ export async function completeEmbeddedSignup(
   await requireAdmin()
 
   const code = input.code.trim()
-  const wabaId = input.wabaId.trim()
-  const phoneNumberId = input.phoneNumberId.trim()
-
   if (!code) throw new Error('Пустой code')
-  if (!wabaId) throw new Error('Не получен waba_id')
-  if (!phoneNumberId) throw new Error('Не получен phone_number_id')
 
   const { accessToken, expiresIn } = await exchangeEmbeddedSignupCode(code)
+
+  let wabaId = input.wabaId?.trim() || ''
+  let phoneNumberId = input.phoneNumberId?.trim() || ''
+  let assetSource: 'session' | 'graph_api' = 'session'
+
+  if (!wabaId || !phoneNumberId) {
+    const discovered = await discoverWhatsAppAssetsFromToken(accessToken)
+    wabaId = wabaId || discovered.wabaId
+    phoneNumberId = phoneNumberId || discovered.phoneNumberId
+    assetSource = 'graph_api'
+  }
+
   const coexistence = await fetchPhoneCoexistenceStatus({ phoneNumberId, accessToken })
 
   return {
     wabaId,
     phoneNumberId,
     businessId: input.businessId?.trim() || undefined,
-    event: input.event,
+    event: input.event?.trim() || 'FINISH_WHATSAPP_BUSINESS_APP_ONBOARDING',
     accessToken,
     expiresIn,
     isOnBizApp: coexistence.isOnBizApp,
     platformType: coexistence.platformType,
+    assetSource,
   }
 }

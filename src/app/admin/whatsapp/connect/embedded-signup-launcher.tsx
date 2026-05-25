@@ -82,34 +82,37 @@ export function EmbeddedSignupLauncher({ appId, configId }: Props) {
 
   const tryCompleteIfReady = useCallback(async () => {
     const code = pendingCodeRef.current
+    if (!code) return
+
     const session = sessionRef.current
     const wabaId = session?.data?.waba_id
     const phoneNumberId = session?.data?.phone_number_id
     const event = session?.event
 
-    if (!code || !wabaId || !phoneNumberId || !event) {
-      if (code && !session?.data?.waba_id) {
-        setStatus('Code получен. Ждём waba_id от Meta (session logging)…')
-      }
-      return
-    }
-
     if (exchangingRef.current) return
     exchangingRef.current = true
     setExchanging(true)
     setError(null)
-    setStatus('Обмен code на token…')
+    setStatus(
+      wabaId && phoneNumberId
+        ? 'Обмен code на token…'
+        : 'Code получен — обмен на token и поиск WABA через Graph API…',
+    )
 
     try {
       const completed = await completeEmbeddedSignup({
         code,
         wabaId,
         phoneNumberId,
-        businessId: session.data?.business_id,
+        businessId: session?.data?.business_id,
         event,
       })
       setResult(completed)
-      setStatus('Готово — скопируйте значения в Vercel.')
+      setStatus(
+        completed.assetSource === 'graph_api'
+          ? 'Готово (WABA найден через Graph API — session logging не пришёл).'
+          : 'Готово — скопируйте значения в Vercel.',
+      )
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Ошибка onboarding')
       setStatus(null)
@@ -121,7 +124,7 @@ export function EmbeddedSignupLauncher({ appId, configId }: Props) {
 
   useEffect(() => {
     const onMessage = (event: MessageEvent) => {
-      if (!event.origin.endsWith('facebook.com')) return
+      if (!event.origin.includes('facebook.com') && !event.origin.includes('meta.com')) return
 
       let data: SessionPayload
       try {
@@ -293,6 +296,11 @@ export function EmbeddedSignupLauncher({ appId, configId }: Props) {
         <Card className="mt-4">
           <div className="space-y-3">
             <p className="font-semibold text-green-800">Onboarding завершён</p>
+            {result.assetSource === 'graph_api' ? (
+              <p className="text-xs text-blue-800">
+                WABA/phone найдены через Graph API (session logging Meta не сработал).
+              </p>
+            ) : null}
             <dl className="space-y-2 text-sm">
               <div>
                 <dt className="text-gray-500">WHATSAPP_PHONE_NUMBER_ID</dt>

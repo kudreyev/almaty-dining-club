@@ -43,6 +43,82 @@ export async function exchangeEmbeddedSignupCode(
   return { accessToken: body.access_token, expiresIn: body.expires_in }
 }
 
+function getAppAccessToken(): string {
+  const appId = getMetaAppId()
+  const appSecret = process.env.WHATSAPP_APP_SECRET?.trim()
+  if (!appId || !appSecret) {
+    throw new Error('Задайте NEXT_PUBLIC_META_APP_ID и WHATSAPP_APP_SECRET')
+  }
+  return `${appId}|${appSecret}`
+}
+
+/** Fallback, если session logging не прислал waba_id / phone_number_id. */
+export async function discoverWhatsAppAssetsFromToken(
+  accessToken: string,
+): Promise<{ wabaId: string; phoneNumberId: string }> {
+  const appAccessToken = getAppAccessToken()
+
+  const debugUrl = new URL(`${GRAPH_BASE}/debug_token`)
+  debugUrl.searchParams.set('input_token', accessToken)
+  debugUrl.searchParams.set('access_token', appAccessToken)
+
+  const debugRes = await fetch(debugUrl.toString())
+  const debugBody = (await debugRes.json()) as {
+    data?: {
+      granular_scopes?: Array<{ scope?: string; target_ids?: string[] }>
+    }
+    error?: { message?: string }
+  }
+
+  if (!debugRes.ok) {
+    logServerError('whatsapp-embedded-signup:debug_token', new Error(JSON.stringify(debugBody)))
+    throw new Error(debugBody.error?.message ?? 'debug_token failed')
+  }
+
+  const scopes = debugBody.data?.granular_scopes ?? []
+  const wabaId =
+    scopes
+      .filter((s) =>
+        s.scope === 'whatsapp_business_management' || s.scope === 'whatsapp_business_messaging',
+      )
+      .flatMap((s) => s.target_ids ?? [])
+      .find(Boolean) ?? null
+
+  if (!wabaId) {
+    throw new Error(
+      'WABA не найден в token. В Meta включите session logging в Embedded Signup configuration.',
+    )
+  }
+
+  const phonesUrl = new URL(`${GRAPH_BASE}/${wabaId}/phone_numbers`)
+  phonesUrl.searchParams.set('fields', 'id,display_phone_number,verified_name')
+
+  const phonesRes = await fetch(phonesUrl.toString(), {
+    headers: { authorization: `Bearer ${accessToken}` },
+  })
+
+  const phonesBody = (await phonesRes.json()) as {
+    data?: Array<{ id?: string; display_phone_number?: string }>
+    error?: { message?: string }
+  }
+
+  if (!phonesRes.ok) {
+    logServerError('whatsapp-embedded-signup:phone_numbers', new Error(JSON.stringify(phonesBody)))
+    throw new Error(phonesBody.error?.message ?? 'Не удалось получить phone_number_id')
+  }
+
+  const phones = phonesBody.data ?? []
+  const preferred =
+    phones.find((p) => p.display_phone_number?.replace(/\D/g, '').includes('77066059899')) ??
+    phones[0]
+
+  if (!preferred?.id) {
+    throw new Error('У WABA нет подключённых номеров телефона')
+  }
+
+  return { wabaId, phoneNumberId: preferred.id }
+}
+
 export async function fetchPhoneCoexistenceStatus(args: {
   phoneNumberId: string
   accessToken: string

@@ -121,6 +121,7 @@ export function EmbeddedSignupLauncher({
       const response = await completeEmbeddedSignup({
         code,
         oauthRedirectUri: redirectUri,
+        oauthExchangeMode: 'js_sdk_popup',
         wabaId,
         phoneNumberId,
         businessId: session?.data?.business_id,
@@ -177,12 +178,43 @@ export function EmbeddedSignupLauncher({
     if (urlError) {
       setError(urlError)
     }
-    if (urlCode && !exchangingRef.current && !pendingCodeRef.current) {
+    if (urlCode && !exchangingRef.current && consumedCodeRef.current !== urlCode) {
       pendingCodeRef.current = urlCode
       window.history.replaceState({}, '', '/admin/whatsapp/connect')
-      void tryCompleteIfReady()
+      void (async () => {
+        if (exchangingRef.current) return
+        exchangingRef.current = true
+        consumedCodeRef.current = urlCode
+        setExchanging(true)
+        setError(null)
+        setStatus('Обмен code из redirect…')
+
+        try {
+          const response = await completeEmbeddedSignup({
+            code: urlCode,
+            oauthRedirectUri: redirectUri,
+            oauthExchangeMode: 'oauth_redirect',
+            event: lastEvent ?? undefined,
+          })
+          if (!response.ok) {
+            consumedCodeRef.current = null
+            setError(`[${response.step}] ${response.error}`)
+            setStatus(null)
+            return
+          }
+          setResult(response.result)
+          setStatus('Готово — скопируйте значения в Vercel.')
+        } catch (err) {
+          consumedCodeRef.current = null
+          setError(err instanceof Error ? err.message : 'Ошибка onboarding')
+          setStatus(null)
+        } finally {
+          exchangingRef.current = false
+          setExchanging(false)
+        }
+      })()
     }
-  }, [urlCode, urlError, tryCompleteIfReady])
+  }, [urlCode, urlError, redirectUri, lastEvent])
 
   const resetFlow = () => {
     clearPopupTimeout()
@@ -240,7 +272,6 @@ export function EmbeddedSignupLauncher({
         config_id: configId,
         response_type: 'code',
         override_default_response_type: true,
-        redirect_uri: redirectUri,
         extras: { ...oauthExtras },
       },
     )
@@ -292,6 +323,11 @@ export function EmbeddedSignupLauncher({
             останется, Cloud API получит webhook на kudaclub.kz.
           </p>
 
+          <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-xs text-red-900">
+            <strong>Не используйте</strong> full-page OAuth для coexistence — он часто создаёт sandbox{' '}
+            <code>+1 555…</code> без вашего номера. Только <strong>синяя кнопка popup</strong> (Chrome).
+          </div>
+
           <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900">
             <strong>Обязательно:</strong> в Meta должен появиться экран «Подключить существующий WhatsApp Business»
             → введите <strong>+7 706 605 9899</strong> → Confirm в WhatsApp Business на телефоне.
@@ -327,7 +363,7 @@ export function EmbeddedSignupLauncher({
               onClick={launchManualOAuth}
               disabled={popupOpen || exchanging}
             >
-              Meta OAuth full-page (coexistence)
+              Full-page OAuth (только если popup не открывается)
             </Button>
             {error || popupOpen || status ? (
               <Button type="button" variant="ghost" onClick={resetFlow}>
@@ -348,13 +384,20 @@ export function EmbeddedSignupLauncher({
             <p className="text-xs text-gray-500">Событие Meta: {lastEvent}</p>
           ) : null}
 
+          {lastEvent && lastEvent !== 'FINISH_WHATSAPP_BUSINESS_APP_ONBOARDING' ? (
+            <p className="text-xs text-amber-800">
+              Событие Meta: {lastEvent} — coexistence не завершён. Нужен экран «Подключить существующий
+              WhatsApp Business» и событие FINISH_WHATSAPP_BUSINESS_APP_ONBOARDING.
+            </p>
+          ) : null}
+
           {error ? (
             <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-800">
               <p>{error}</p>
               <p className="mt-2 text-xs">
-                Popup Meta белый → нажмите «Meta OAuth (если popup белый)». OAuth: allowed domain{' '}
-                <code>kudaclub.kz</code>, redirect <code>{redirectUri}</code>, вы — Admin/Developer в
-                Meta App Roles. Code живёт ~30 сек — после ошибки нажмите «Сбросить».
+                [exchange] → «Сбросить» → только синяя кнопка popup в Chrome. [discover] +1 555… → flow без
+                coexistence; в Meta проверьте Config ID {configId.slice(0, 6)}… (WhatsApp Embedded Signup +
+                coexistence).
               </p>
             </div>
           ) : null}

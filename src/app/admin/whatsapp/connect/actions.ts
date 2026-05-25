@@ -10,6 +10,7 @@ import {
 export type CompleteEmbeddedSignupInput = {
   code: string
   oauthRedirectUri?: string
+  oauthExchangeMode?: 'js_sdk_popup' | 'oauth_redirect'
   wabaId?: string
   phoneNumberId?: string
   businessId?: string
@@ -44,21 +45,22 @@ export async function completeEmbeddedSignup(
       return { ok: false, error: 'Пустой code от Meta', step: 'validate' }
     }
 
-    const { accessToken, expiresIn } = await exchangeEmbeddedSignupCode(
-      code,
-      input.oauthRedirectUri?.trim() || undefined,
-    )
+    const { accessToken, expiresIn } = await exchangeEmbeddedSignupCode(code, {
+      preferredRedirectUri: input.oauthRedirectUri?.trim() || undefined,
+      mode: input.oauthExchangeMode ?? 'js_sdk_popup',
+    })
 
-    let wabaId = input.wabaId?.trim() || ''
-    let phoneNumberId = input.phoneNumberId?.trim() || ''
-    let assetSource: 'session' | 'graph_api' = 'session'
+    const hadSessionIds = Boolean(input.wabaId?.trim() && input.phoneNumberId?.trim())
+    const discovered = await discoverWhatsAppAssetsFromToken(accessToken)
+    const wabaId = discovered.wabaId
+    const phoneNumberId = discovered.phoneNumberId
+    const assetSource: 'session' | 'graph_api' = hadSessionIds ? 'session' : 'graph_api'
 
-    if (!wabaId || !phoneNumberId) {
-      const discovered = await discoverWhatsAppAssetsFromToken(accessToken)
-      wabaId = wabaId || discovered.wabaId
-      phoneNumberId = phoneNumberId || discovered.phoneNumberId
-      assetSource = 'graph_api'
-    }
+    const event = input.event?.trim() || 'FINISH_WHATSAPP_BUSINESS_APP_ONBOARDING'
+    const coexistenceEventMismatch =
+      event !== 'FINISH_WHATSAPP_BUSINESS_APP_ONBOARDING'
+        ? `Событие Meta: ${event} (ожидали FINISH_WHATSAPP_BUSINESS_APP_ONBOARDING — coexistence не завершён).`
+        : undefined
 
     const coexistence = await fetchPhoneCoexistenceStatus({ phoneNumberId, accessToken })
 
@@ -68,20 +70,23 @@ export async function completeEmbeddedSignup(
         wabaId,
         phoneNumberId,
         businessId: input.businessId?.trim() || undefined,
-        event: input.event?.trim() || 'FINISH_WHATSAPP_BUSINESS_APP_ONBOARDING',
+        event,
         accessToken,
         expiresIn,
         isOnBizApp: coexistence.isOnBizApp,
         platformType: coexistence.platformType,
         assetSource,
-        coexistenceWarning: coexistence.warning,
+        coexistenceWarning: [coexistenceEventMismatch, coexistence.warning].filter(Boolean).join(' ') || undefined,
       },
     }
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Неизвестная ошибка onboarding'
     const step = message.includes('обмен') || message.includes('redirect_uri')
       ? 'exchange'
-      : message.includes('WABA') || message.includes('debug_token')
+      : message.includes('WABA') ||
+          message.includes('debug_token') ||
+          message.includes('77066059899') ||
+          message.includes('не привязан')
         ? 'discover'
         : message.includes('admin') || message.includes('Сессия')
           ? 'auth'

@@ -29,9 +29,16 @@ export function isEmbeddedSignupConfigured(): boolean {
   return Boolean(getMetaAppId() && getEmbeddedSignupConfigId())
 }
 
+export type EmbeddedSignupExchangeMode = 'js_sdk_popup' | 'oauth_redirect'
+
+type ExchangeSpec = { redirectUri?: string; grantType?: boolean }
+
 export async function exchangeEmbeddedSignupCode(
   code: string,
-  preferredRedirectUri?: string,
+  options?: {
+    preferredRedirectUri?: string
+    mode?: EmbeddedSignupExchangeMode
+  },
 ): Promise<{ accessToken: string; expiresIn?: number; redirectUriUsed: string }> {
   const appId = getMetaAppId()
   const appSecret = process.env.WHATSAPP_APP_SECRET?.trim()
@@ -39,53 +46,68 @@ export async function exchangeEmbeddedSignupCode(
     throw new Error('Задайте NEXT_PUBLIC_META_APP_ID и WHATSAPP_APP_SECRET')
   }
 
+  const mode = options?.mode ?? 'js_sdk_popup'
   const redirectCandidates = [
     ...new Set(
-      [preferredRedirectUri, getOAuthRedirectUri(), 'https://kudaclub.kz/', 'https://kudaclub.kz/admin/whatsapp'].filter(
+      [options?.preferredRedirectUri, getOAuthRedirectUri(), 'https://kudaclub.kz/', 'https://kudaclub.kz/admin/whatsapp'].filter(
         (v): v is string => Boolean(v?.trim()),
       ),
     ),
   ]
 
-  let lastError = 'Не удалось обменять code на token'
+  const specs: ExchangeSpec[] =
+    mode === 'js_sdk_popup'
+      ? [
+          // Meta Embedded Signup popup: dialog без redirect_uri → обмен без redirect_uri первым.
+          { grantType: false },
+          { grantType: true },
+          ...redirectCandidates.flatMap((redirectUri) => [
+            { redirectUri, grantType: true },
+            { redirectUri, grantType: false },
+          ]),
+        ]
+      : [
+          ...redirectCandidates.flatMap((redirectUri) => [
+            { redirectUri, grantType: true },
+            { redirectUri, grantType: false },
+          ]),
+          { grantType: false },
+          { grantType: true },
+        ]
 
-  for (const redirectUri of redirectCandidates) {
-    for (const attempt of [tryPostExchange, tryGetExchange]) {
-      const result = await attempt({ appId, appSecret, code, redirectUri })
+  let lastError = 'Не удалось обменять code на token'
+  let lastRedirectMismatch = lastError
+
+  for (const spec of specs) {
+    for (const attempt of [tryGetExchange, tryPostExchange]) {
+      const result = await attempt({ appId, appSecret, code, ...spec })
       if (result.ok) {
         return {
           accessToken: result.accessToken,
           expiresIn: result.expiresIn,
-          redirectUriUsed: redirectUri,
+          redirectUriUsed: spec.redirectUri ?? '(none)',
         }
       }
+
       lastError = result.error
       const isRedirectMismatch =
         result.errorCode === 100 ||
         result.errorSubcode === 36008 ||
         result.error.toLowerCase().includes('redirect_uri')
-      if (!isRedirectMismatch) {
-        logServerError('whatsapp-embedded-signup:exchange', new Error(result.raw))
-        throw new Error(`${result.error} (redirect_uri=${redirectUri}). App ID ${appId}.`)
+
+      if (isRedirectMismatch) {
+        lastRedirectMismatch = result.error
+        continue
       }
+
+      logServerError('whatsapp-embedded-signup:exchange', new Error(result.raw))
+      throw new Error(`${result.error}. App ID ${appId}. Проверьте WHATSAPP_APP_SECRET.`)
     }
   }
 
-  for (const attempt of [tryPostExchange, tryGetExchange]) {
-    const result = await attempt({ appId, appSecret, code })
-    if (result.ok) {
-      return {
-        accessToken: result.accessToken,
-        expiresIn: result.expiresIn,
-        redirectUriUsed: '(none)',
-      }
-    }
-    lastError = result.error
-  }
-
-  logServerError('whatsapp-embedded-signup:exchange', new Error(lastError))
+  logServerError('whatsapp-embedded-signup:exchange', new Error(lastRedirectMismatch))
   throw new Error(
-    `${lastError}. Code одноразовый (~30 сек): «Сбросить» → новый проход Meta. Не обновляйте страницу с ?code= в URL повторно.`,
+    `${lastRedirectMismatch}. Code одноразовый (~30 сек): «Сбросить» → снова синяя кнопка popup. Не жмите F5 на ?code=.`,
   )
 }
 
@@ -94,13 +116,14 @@ async function tryPostExchange(args: {
   appSecret: string
   code: string
   redirectUri?: string
+  grantType?: boolean
 }): Promise<ExchangeAttempt> {
   const params = new URLSearchParams({
     client_id: args.appId,
     client_secret: args.appSecret,
     code: args.code,
-    grant_type: 'authorization_code',
   })
+  if (args.grantType) params.set('grant_type', 'authorization_code')
   if (args.redirectUri) params.set('redirect_uri', args.redirectUri)
 
   const res = await fetch(`${GRAPH_BASE}/oauth/access_token`, {
@@ -116,12 +139,13 @@ async function tryGetExchange(args: {
   appSecret: string
   code: string
   redirectUri?: string
+  grantType?: boolean
 }): Promise<ExchangeAttempt> {
   const url = new URL(`${GRAPH_BASE}/oauth/access_token`)
   url.searchParams.set('client_id', args.appId)
   url.searchParams.set('client_secret', args.appSecret)
   url.searchParams.set('code', args.code)
-  url.searchParams.set('grant_type', 'authorization_code')
+  if (args.grantType) url.searchParams.set('grant_type', 'authorization_code')
   if (args.redirectUri) url.searchParams.set('redirect_uri', args.redirectUri)
 
   const res = await fetch(url.toString())

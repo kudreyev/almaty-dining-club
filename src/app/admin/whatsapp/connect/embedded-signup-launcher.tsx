@@ -56,6 +56,13 @@ export function EmbeddedSignupLauncher({
   const exchangingRef = useRef(false)
   const popupTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const initRef = useRef(false)
+  const consumedCodeRef = useRef<string | null>(null)
+
+  const oauthExtras = {
+    setup: {},
+    featureType: 'whatsapp_business_app_onboarding',
+    sessionInfoVersion: '3',
+  } as const
 
   const clearPopupTimeout = useCallback(() => {
     if (popupTimeoutRef.current) {
@@ -92,6 +99,7 @@ export function EmbeddedSignupLauncher({
   const tryCompleteIfReady = useCallback(async () => {
     const code = pendingCodeRef.current
     if (!code) return
+    if (consumedCodeRef.current === code) return
 
     const session = sessionRef.current
     const wabaId = session?.data?.waba_id
@@ -100,6 +108,7 @@ export function EmbeddedSignupLauncher({
 
     if (exchangingRef.current) return
     exchangingRef.current = true
+    consumedCodeRef.current = code
     setExchanging(true)
     setError(null)
     setStatus(
@@ -111,6 +120,7 @@ export function EmbeddedSignupLauncher({
     try {
       const response = await completeEmbeddedSignup({
         code,
+        oauthRedirectUri: redirectUri,
         wabaId,
         phoneNumberId,
         businessId: session?.data?.business_id,
@@ -118,6 +128,7 @@ export function EmbeddedSignupLauncher({
       })
 
       if (!response.ok) {
+        consumedCodeRef.current = null
         setError(`[${response.step}] ${response.error}`)
         setStatus(null)
         return
@@ -131,13 +142,14 @@ export function EmbeddedSignupLauncher({
           : 'Готово — скопируйте значения в Vercel.',
       )
     } catch (err) {
+      consumedCodeRef.current = null
       setError(err instanceof Error ? err.message : 'Ошибка onboarding')
       setStatus(null)
     } finally {
       exchangingRef.current = false
       setExchanging(false)
     }
-  }, [])
+  }, [redirectUri])
 
   useEffect(() => {
     const onMessage = (event: MessageEvent) => {
@@ -181,6 +193,7 @@ export function EmbeddedSignupLauncher({
     exchangingRef.current = false
     sessionRef.current = null
     pendingCodeRef.current = null
+    consumedCodeRef.current = null
   }
 
   const launch = () => {
@@ -228,11 +241,7 @@ export function EmbeddedSignupLauncher({
         response_type: 'code',
         override_default_response_type: true,
         redirect_uri: redirectUri,
-        extras: {
-          setup: {},
-          featureType: 'whatsapp_business_app_onboarding',
-          sessionInfoVersion: '3',
-        },
+        extras: { ...oauthExtras },
       },
     )
   }
@@ -240,14 +249,16 @@ export function EmbeddedSignupLauncher({
   const launchManualOAuth = () => {
     resetFlow()
     setResult(null)
-    setStatus('Переход на Meta OAuth…')
+    setStatus('Переход на Meta OAuth (coexistence)…')
 
     const url = new URL(`https://www.facebook.com/${GRAPH_API_VERSION}/dialog/oauth`)
     url.searchParams.set('client_id', appId)
     url.searchParams.set('redirect_uri', redirectUri)
     url.searchParams.set('response_type', 'code')
+    url.searchParams.set('override_default_response_type', 'true')
     url.searchParams.set('config_id', configId)
     url.searchParams.set('state', 'whatsapp_connect')
+    url.searchParams.set('extras', JSON.stringify(oauthExtras))
 
     window.location.assign(url.toString())
   }
@@ -281,9 +292,15 @@ export function EmbeddedSignupLauncher({
             останется, Cloud API получит webhook на kudaclub.kz.
           </p>
 
+          <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900">
+            <strong>Обязательно:</strong> в Meta должен появиться экран «Подключить существующий WhatsApp Business»
+            → введите <strong>+7 706 605 9899</strong> → Confirm в WhatsApp Business на телефоне.
+            Если номер не спрашивают — flow не тот (без coexistence inbound не работает).
+          </div>
+
           <div className="rounded-lg border border-blue-200 bg-blue-50 p-3 text-xs text-blue-900">
-            Используйте <strong>Google Chrome</strong>. Safari часто блокирует popup Meta (белый экран).
-            Сначала войдите на kudaclub.kz как admin в том же браузере.
+            Chrome, admin-логин на kudaclub.kz. После ошибки <strong>«Сбросить»</strong> и новый проход
+            (code одноразовый, ~30 сек). Не жмите F5 на URL с <code>?code=</code>.
           </div>
 
           <ol className="list-decimal space-y-1 pl-5 text-sm text-gray-600">
@@ -310,7 +327,7 @@ export function EmbeddedSignupLauncher({
               onClick={launchManualOAuth}
               disabled={popupOpen || exchanging}
             >
-              Meta OAuth (если popup белый)
+              Meta OAuth full-page (coexistence)
             </Button>
             {error || popupOpen || status ? (
               <Button type="button" variant="ghost" onClick={resetFlow}>
@@ -353,10 +370,14 @@ export function EmbeddedSignupLauncher({
                 WABA/phone найдены через Graph API (session logging Meta не пришёл).
               </p>
             ) : null}
-            {result.coexistenceWarning ? (
+            {!result.isOnBizApp ? (
               <p className="text-xs text-amber-800">
-                Coexistence check: {result.coexistenceWarning}
+                is_on_biz_app=false — номер может быть не связан с WhatsApp Business на телефоне. Пройдите
+                connect заново с экраном «Подключить существующий WhatsApp Business».
               </p>
+            ) : null}
+            {result.coexistenceWarning ? (
+              <p className="text-xs text-amber-800">Coexistence check: {result.coexistenceWarning}</p>
             ) : null}
             <dl className="space-y-2 text-sm">
               <div>

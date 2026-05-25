@@ -9,6 +9,7 @@ import {
 
 export type CompleteEmbeddedSignupInput = {
   code: string
+  oauthRedirectUri?: string
   wabaId?: string
   phoneNumberId?: string
   businessId?: string
@@ -43,7 +44,10 @@ export async function completeEmbeddedSignup(
       return { ok: false, error: 'Пустой code от Meta', step: 'validate' }
     }
 
-    const { accessToken, expiresIn } = await exchangeEmbeddedSignupCode(code)
+    const { accessToken, expiresIn } = await exchangeEmbeddedSignupCode(
+      code,
+      input.oauthRedirectUri?.trim() || undefined,
+    )
 
     let wabaId = input.wabaId?.trim() || ''
     let phoneNumberId = input.phoneNumberId?.trim() || ''

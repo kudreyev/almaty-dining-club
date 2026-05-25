@@ -31,6 +31,7 @@ export function isEmbeddedSignupConfigured(): boolean {
 
 export async function exchangeEmbeddedSignupCode(
   code: string,
+  preferredRedirectUri?: string,
 ): Promise<{ accessToken: string; expiresIn?: number; redirectUriUsed: string }> {
   const appId = getMetaAppId()
   const appSecret = process.env.WHATSAPP_APP_SECRET?.trim()
@@ -39,86 +40,116 @@ export async function exchangeEmbeddedSignupCode(
   }
 
   const redirectCandidates = [
-    getOAuthRedirectUri(),
-    'https://kudaclub.kz/',
-    'https://kudaclub.kz/admin/whatsapp',
+    ...new Set(
+      [preferredRedirectUri, getOAuthRedirectUri(), 'https://kudaclub.kz/', 'https://kudaclub.kz/admin/whatsapp'].filter(
+        (v): v is string => Boolean(v?.trim()),
+      ),
+    ),
   ]
 
   let lastError = 'Не удалось обменять code на token'
 
   for (const redirectUri of redirectCandidates) {
-    const params = new URLSearchParams({
-      client_id: appId,
-      client_secret: appSecret,
-      code,
-      grant_type: 'authorization_code',
-      redirect_uri: redirectUri,
-    })
-
-    const res = await fetch(`${GRAPH_BASE}/oauth/access_token`, {
-      method: 'POST',
-      headers: { 'content-type': 'application/x-www-form-urlencoded' },
-      body: params.toString(),
-    })
-    const body = (await res.json()) as {
-      access_token?: string
-      expires_in?: number
-      error?: { message?: string; error_user_msg?: string; code?: number; error_subcode?: number }
-    }
-
-    if (res.ok && body.access_token) {
-      return {
-        accessToken: body.access_token,
-        expiresIn: body.expires_in,
-        redirectUriUsed: redirectUri,
+    for (const attempt of [tryPostExchange, tryGetExchange]) {
+      const result = await attempt({ appId, appSecret, code, redirectUri })
+      if (result.ok) {
+        return {
+          accessToken: result.accessToken,
+          expiresIn: result.expiresIn,
+          redirectUriUsed: redirectUri,
+        }
+      }
+      lastError = result.error
+      const isRedirectMismatch =
+        result.errorCode === 100 ||
+        result.errorSubcode === 36008 ||
+        result.error.toLowerCase().includes('redirect_uri')
+      if (!isRedirectMismatch) {
+        logServerError('whatsapp-embedded-signup:exchange', new Error(result.raw))
+        throw new Error(`${result.error} (redirect_uri=${redirectUri}). App ID ${appId}.`)
       }
     }
-
-    lastError = metaApiError(body)
-    const isRedirectMismatch =
-      body.error?.code === 100 ||
-      body.error?.error_subcode === 36008 ||
-      lastError.toLowerCase().includes('redirect_uri')
-
-    if (!isRedirectMismatch) {
-      logServerError('whatsapp-embedded-signup:exchange', new Error(JSON.stringify(body)))
-      throw new Error(
-        `${lastError} (redirect_uri=${redirectUri}). Проверьте WHATSAPP_APP_SECRET для App ID ${appId}.`,
-      )
-    }
   }
 
-  // Embedded Signup иногда не передаёт redirect_uri в dialog — пробуем без него.
-  const noRedirectParams = new URLSearchParams({
-    client_id: appId,
-    client_secret: appSecret,
-    code,
+  for (const attempt of [tryPostExchange, tryGetExchange]) {
+    const result = await attempt({ appId, appSecret, code })
+    if (result.ok) {
+      return {
+        accessToken: result.accessToken,
+        expiresIn: result.expiresIn,
+        redirectUriUsed: '(none)',
+      }
+    }
+    lastError = result.error
+  }
+
+  logServerError('whatsapp-embedded-signup:exchange', new Error(lastError))
+  throw new Error(
+    `${lastError}. Code одноразовый (~30 сек): «Сбросить» → новый проход Meta. Не обновляйте страницу с ?code= в URL повторно.`,
+  )
+}
+
+async function tryPostExchange(args: {
+  appId: string
+  appSecret: string
+  code: string
+  redirectUri?: string
+}): Promise<ExchangeAttempt> {
+  const params = new URLSearchParams({
+    client_id: args.appId,
+    client_secret: args.appSecret,
+    code: args.code,
     grant_type: 'authorization_code',
   })
+  if (args.redirectUri) params.set('redirect_uri', args.redirectUri)
 
-  const noRedirectRes = await fetch(`${GRAPH_BASE}/oauth/access_token`, {
+  const res = await fetch(`${GRAPH_BASE}/oauth/access_token`, {
     method: 'POST',
     headers: { 'content-type': 'application/x-www-form-urlencoded' },
-    body: noRedirectParams.toString(),
+    body: params.toString(),
   })
-  const noRedirectBody = (await noRedirectRes.json()) as {
+  return parseExchangeResponse(res)
+}
+
+async function tryGetExchange(args: {
+  appId: string
+  appSecret: string
+  code: string
+  redirectUri?: string
+}): Promise<ExchangeAttempt> {
+  const url = new URL(`${GRAPH_BASE}/oauth/access_token`)
+  url.searchParams.set('client_id', args.appId)
+  url.searchParams.set('client_secret', args.appSecret)
+  url.searchParams.set('code', args.code)
+  url.searchParams.set('grant_type', 'authorization_code')
+  if (args.redirectUri) url.searchParams.set('redirect_uri', args.redirectUri)
+
+  const res = await fetch(url.toString())
+  return parseExchangeResponse(res)
+}
+
+type ExchangeAttempt =
+  | { ok: true; accessToken: string; expiresIn?: number }
+  | { ok: false; error: string; errorCode?: number; errorSubcode?: number; raw: string }
+
+async function parseExchangeResponse(res: Response): Promise<ExchangeAttempt> {
+  const body = (await res.json()) as {
     access_token?: string
     expires_in?: number
-    error?: { message?: string; error_user_msg?: string }
+    error?: { message?: string; error_user_msg?: string; code?: number; error_subcode?: number }
   }
 
-  if (noRedirectRes.ok && noRedirectBody.access_token) {
-    return {
-      accessToken: noRedirectBody.access_token,
-      expiresIn: noRedirectBody.expires_in,
-      redirectUriUsed: '(none)',
-    }
+  if (res.ok && body.access_token) {
+    return { ok: true, accessToken: body.access_token, expiresIn: body.expires_in }
   }
 
-  logServerError('whatsapp-embedded-signup:exchange', new Error(JSON.stringify(noRedirectBody)))
-  throw new Error(
-    `${metaApiError(noRedirectBody) || lastError}. Code живёт ~30 сек — нажмите «Сбросить» и пройдите popup заново. App ID ${appId}.`,
-  )
+  return {
+    ok: false,
+    error: metaApiError(body),
+    errorCode: body.error?.code,
+    errorSubcode: body.error?.error_subcode,
+    raw: JSON.stringify(body),
+  }
 }
 
 function getAppAccessToken(): string {
@@ -186,15 +217,20 @@ export async function discoverWhatsAppAssetsFromToken(
   }
 
   const phones = phonesBody.data ?? []
-  const preferred =
-    phones.find((p) => p.display_phone_number?.replace(/\D/g, '').includes('77066059899')) ??
-    phones[0]
+  const kzPhone =
+    phones.find((p) => p.display_phone_number?.replace(/\D/g, '').includes('77066059899')) ?? null
 
-  if (!preferred?.id) {
-    throw new Error('У WABA нет подключённых номеров телефона')
+  if (!kzPhone?.id) {
+    const listed = phones
+      .map((p) => p.display_phone_number ?? p.id)
+      .filter(Boolean)
+      .join(', ')
+    throw new Error(
+      `Номер 77066059899 не привязан к WABA. В Meta пройдите «Подключить существующий WhatsApp Business». Сейчас в WABA: ${listed || 'нет номеров'}.`,
+    )
   }
 
-  return { wabaId, phoneNumberId: preferred.id }
+  return { wabaId, phoneNumberId: kzPhone.id }
 }
 
 export async function fetchPhoneCoexistenceStatus(args: {

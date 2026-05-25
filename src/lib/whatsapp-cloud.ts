@@ -124,3 +124,8 @@ export async function sendWhatsAppText(args: {
 export function isWhatsAppCloudConfigured(): boolean {
   return Boolean(getAccessToken() && getPhoneNumberId())
 }
+
+/** Исходящие через Cloud API. По умолчанию выкл — фаза 1: только черновики, ответ с телефона. */
+export function isWhatsAppOutboundEnabled(): boolean {
+  return process.env.WHATSAPP_OUTBOUND_ENABLED === 'true' && isWhatsAppCloudConfigured()
+}

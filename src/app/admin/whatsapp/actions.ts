@@ -4,7 +4,7 @@ import { revalidatePath } from 'next/cache'
 import { requireAdmin } from '@/lib/admin'
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 import { generateCopilotDraft } from '@/lib/whatsapp-copilot'
-import { sendWhatsAppText } from '@/lib/whatsapp-cloud'
+import { sendWhatsAppText, isWhatsAppOutboundEnabled } from '@/lib/whatsapp-cloud'
 import { logServerError } from '@/lib/safe-errors'
 
 export async function sendWhatsAppReply(formData: FormData): Promise<void> {
@@ -25,6 +25,12 @@ export async function sendWhatsAppReply(formData: FormData): Promise<void> {
     .maybeSingle()
 
   if (error || !conv) throw new Error('Диалог не найден')
+
+  if (!isWhatsAppOutboundEnabled()) {
+    throw new Error(
+      'Отправка через API отключена. Скопируйте черновик и ответьте с телефона, либо задайте WHATSAPP_OUTBOUND_ENABLED=true.',
+    )
+  }
 
   const sent = await sendWhatsAppText({ toWaId: conv.wa_id, text })
   if (!sent.ok) throw new Error('Не удалось отправить в WhatsApp')

@@ -1,7 +1,7 @@
 import { requireAdmin } from '@/lib/admin'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { formatContextSummary, type CopilotContext } from '@/lib/whatsapp-copilot'
-import { isWhatsAppCloudConfigured } from '@/lib/whatsapp-cloud'
+import { isWhatsAppCloudConfigured, isWhatsAppOutboundEnabled } from '@/lib/whatsapp-cloud'
 import { isKZNumber, normalizeToE164Like } from '@/lib/kz-phone'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -91,18 +91,24 @@ export default async function AdminWhatsAppPage() {
   const pending = (conversations ?? []).filter((c) => c.status === 'pending_approval')
   const resolved = (conversations ?? []).filter((c) => c.status === 'resolved')
   const cloudOk = isWhatsAppCloudConfigured()
+  const outboundOk = isWhatsAppOutboundEnabled()
 
   return (
     <div className="mx-auto max-w-4xl px-5 py-8">
       <div className="mb-6">
         <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">WhatsApp-копилот</h1>
         <p className="mt-1 text-base leading-6 text-gray-500">
-          Входящие сообщения → черновик ответа → подтверждение оператором (Слой 5).
+          Входящие → контекст из БД → черновик ответа (Слой 5). По умолчанию отвечайте с телефона.
         </p>
         {!cloudOk ? (
           <p className="mt-2 text-sm text-amber-700">
-            WhatsApp Cloud API не настроен — отправка ответов недоступна. Задайте WHATSAPP_CLOUD_ACCESS_TOKEN
-            и WHATSAPP_PHONE_NUMBER_ID.
+            Webhook Meta не настроен — задайте WHATSAPP_* env и callback{' '}
+            <code className="text-xs">/api/whatsapp/webhook</code>.
+          </p>
+        ) : !outboundOk ? (
+          <p className="mt-2 text-sm text-blue-800">
+            Фаза 1: черновики в админке, отправка с телефона. API-отправка включается через{' '}
+            <code className="text-xs">WHATSAPP_OUTBOUND_ENABLED=true</code> после coexistence в Meta.
           </p>
         ) : null}
       </div>
@@ -118,7 +124,12 @@ export default async function AdminWhatsAppPage() {
             Ожидают ответа ({pending.length})
           </h2>
           {pending.map((item) => (
-            <ConversationCard key={item.id} item={item} cloudOk={cloudOk} />
+            <ConversationCard
+              key={item.id}
+              item={item}
+              cloudOk={cloudOk}
+              outboundOk={outboundOk}
+            />
           ))}
         </div>
       )}
@@ -127,7 +138,13 @@ export default async function AdminWhatsAppPage() {
         <div className="space-y-4">
           <h2 className="text-lg font-semibold text-gray-800">Закрытые</h2>
           {resolved.slice(0, 10).map((item) => (
-            <ConversationCard key={item.id} item={item} cloudOk={cloudOk} readonly />
+            <ConversationCard
+              key={item.id}
+              item={item}
+              cloudOk={cloudOk}
+              outboundOk={outboundOk}
+              readonly
+            />
           ))}
         </div>
       ) : null}
@@ -138,10 +155,12 @@ export default async function AdminWhatsAppPage() {
 function ConversationCard({
   item,
   cloudOk,
+  outboundOk,
   readonly = false,
 }: {
   item: ConversationRow
   cloudOk: boolean
+  outboundOk: boolean
   readonly?: boolean
 }) {
   const ctx = item.copilot_context
@@ -182,16 +201,21 @@ function ConversationCard({
                 className="w-full rounded-lg border border-gray-200 px-3 py-2 text-base leading-6 focus:border-gray-400 focus:outline-none"
               />
               <div className="flex flex-wrap gap-2">
-                <Button type="submit" disabled={!cloudOk}>
-                  Отправить в WhatsApp
+                <Button type="submit" disabled={!outboundOk}>
+                  Отправить через API
                 </Button>
                 <Button type="submit" formAction={regenerateWhatsAppDraft} variant="secondary">
                   Перегенерировать
                 </Button>
                 <Button type="submit" formAction={dismissWhatsAppConversation} variant="ghost">
-                  Закрыть без ответа
+                  Закрыть (ответил с телефона)
                 </Button>
               </div>
+              {!outboundOk ? (
+                <p className="text-xs text-gray-500">
+                  Скопируйте текст выше → вставьте в WhatsApp Business на телефоне → нажмите «Закрыть».
+                </p>
+              ) : null}
             </form>
           </>
         ) : item.copilot_draft ? (

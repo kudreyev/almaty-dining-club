@@ -6,9 +6,10 @@ function metaApiError(body: { error?: { message?: string; error_user_msg?: strin
   return body.error?.error_user_msg ?? body.error?.message ?? 'Meta API error'
 }
 
+/** Meta OAuth redirect — всегда kudaclub.kz (не NEXT_PUBLIC_SITE_URL). */
 function getOAuthRedirectUri(): string {
-  const site = process.env.NEXT_PUBLIC_SITE_URL?.trim().replace(/\/$/, '')
-  if (site) return `${site}/admin/whatsapp/connect`
+  const override = process.env.WHATSAPP_OAUTH_REDIRECT_URI?.trim()
+  if (override) return override
   return 'https://kudaclub.kz/admin/whatsapp/connect'
 }
 

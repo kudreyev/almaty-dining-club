@@ -96,6 +96,11 @@ export function EmbeddedSignupLauncher({
 
   useEffect(() => () => clearPopupTimeout(), [clearPopupTimeout])
 
+  const getPageUrl = useCallback(() => {
+    if (typeof window === 'undefined') return redirectUri
+    return `${window.location.origin}${window.location.pathname}`
+  }, [redirectUri])
+
   const tryCompleteIfReady = useCallback(async () => {
     const code = pendingCodeRef.current
     if (!code) return
@@ -121,6 +126,7 @@ export function EmbeddedSignupLauncher({
       const response = await completeEmbeddedSignup({
         code,
         oauthRedirectUri: redirectUri,
+        oauthPageUrl: getPageUrl(),
         oauthExchangeMode: 'js_sdk_popup',
         wabaId,
         phoneNumberId,
@@ -150,7 +156,7 @@ export function EmbeddedSignupLauncher({
       exchangingRef.current = false
       setExchanging(false)
     }
-  }, [redirectUri])
+  }, [redirectUri, getPageUrl])
 
   useEffect(() => {
     const onMessage = (event: MessageEvent) => {
@@ -167,12 +173,12 @@ export function EmbeddedSignupLauncher({
 
       sessionRef.current = data
       setLastEvent(data.event ?? null)
-      void tryCompleteIfReady()
+      // Обмен code — только из FB.login callback (code одноразовый).
     }
 
     window.addEventListener('message', onMessage)
     return () => window.removeEventListener('message', onMessage)
-  }, [tryCompleteIfReady])
+  }, [])
 
   useEffect(() => {
     if (urlError) {

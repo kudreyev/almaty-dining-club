@@ -10,6 +10,7 @@ import {
 export type CompleteEmbeddedSignupInput = {
   code: string
   oauthRedirectUri?: string
+  oauthPageUrl?: string
   oauthExchangeMode?: 'js_sdk_popup' | 'oauth_redirect'
   wabaId?: string
   phoneNumberId?: string
@@ -47,6 +48,7 @@ export async function completeEmbeddedSignup(
 
     const { accessToken, expiresIn } = await exchangeEmbeddedSignupCode(code, {
       preferredRedirectUri: input.oauthRedirectUri?.trim() || undefined,
+      pageUrl: input.oauthPageUrl?.trim() || undefined,
       mode: input.oauthExchangeMode ?? 'js_sdk_popup',
     })
 

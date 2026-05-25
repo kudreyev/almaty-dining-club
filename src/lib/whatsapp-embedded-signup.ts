@@ -31,12 +31,47 @@ export function isEmbeddedSignupConfigured(): boolean {
 
 export type EmbeddedSignupExchangeMode = 'js_sdk_popup' | 'oauth_redirect'
 
-type ExchangeSpec = { redirectUri?: string; grantType?: boolean }
+type ExchangeSpec = {
+  redirectUri?: string
+  grantType?: boolean
+  /** FB JS SDK popup часто использует redirect_uri="" — явно передаём пустую строку. */
+  emptyRedirect?: boolean
+}
+
+function buildPopupExchangeSpecs(pageUrl?: string): ExchangeSpec[] {
+  const page = pageUrl?.trim()
+  return [
+    { emptyRedirect: true, grantType: false },
+    { grantType: false },
+    ...(page ? [{ redirectUri: page, grantType: false }] : []),
+    { redirectUri: getOAuthRedirectUri(), grantType: false },
+  ]
+}
+
+function buildRedirectExchangeSpecs(preferredRedirectUri?: string): ExchangeSpec[] {
+  const redirectCandidates = [
+    ...new Set(
+      [preferredRedirectUri, getOAuthRedirectUri(), 'https://kudaclub.kz/', 'https://kudaclub.kz/admin/whatsapp'].filter(
+        (v): v is string => Boolean(v?.trim()),
+      ),
+    ),
+  ]
+
+  return [
+    ...redirectCandidates.flatMap((redirectUri) => [
+      { redirectUri, grantType: true },
+      { redirectUri, grantType: false },
+    ]),
+    { emptyRedirect: true, grantType: false },
+    { grantType: false },
+  ]
+}
 
 export async function exchangeEmbeddedSignupCode(
   code: string,
   options?: {
     preferredRedirectUri?: string
+    pageUrl?: string
     mode?: EmbeddedSignupExchangeMode
   },
 ): Promise<{ accessToken: string; expiresIn?: number; redirectUriUsed: string }> {
@@ -47,49 +82,29 @@ export async function exchangeEmbeddedSignupCode(
   }
 
   const mode = options?.mode ?? 'js_sdk_popup'
-  const redirectCandidates = [
-    ...new Set(
-      [options?.preferredRedirectUri, getOAuthRedirectUri(), 'https://kudaclub.kz/', 'https://kudaclub.kz/admin/whatsapp'].filter(
-        (v): v is string => Boolean(v?.trim()),
-      ),
-    ),
-  ]
-
-  const specs: ExchangeSpec[] =
+  const specs =
     mode === 'js_sdk_popup'
-      ? [
-          // Meta Embedded Signup popup: dialog без redirect_uri → обмен без redirect_uri первым.
-          { grantType: false },
-          { grantType: true },
-          ...redirectCandidates.flatMap((redirectUri) => [
-            { redirectUri, grantType: true },
-            { redirectUri, grantType: false },
-          ]),
-        ]
-      : [
-          ...redirectCandidates.flatMap((redirectUri) => [
-            { redirectUri, grantType: true },
-            { redirectUri, grantType: false },
-          ]),
-          { grantType: false },
-          { grantType: true },
-        ]
+      ? buildPopupExchangeSpecs(options?.pageUrl ?? options?.preferredRedirectUri)
+      : buildRedirectExchangeSpecs(options?.preferredRedirectUri)
 
-  let lastError = 'Не удалось обменять code на token'
-  let lastRedirectMismatch = lastError
+  let lastRedirectMismatch = 'Не удалось обменять code на token'
 
   for (const spec of specs) {
-    for (const attempt of [tryGetExchange, tryPostExchange]) {
+    // Popup: только GET (Meta Embedded Signup). Redirect flow: GET, затем POST.
+    const methods = mode === 'js_sdk_popup' ? [tryGetExchange] : [tryGetExchange, tryPostExchange]
+
+    for (const attempt of methods) {
       const result = await attempt({ appId, appSecret, code, ...spec })
       if (result.ok) {
         return {
           accessToken: result.accessToken,
           expiresIn: result.expiresIn,
-          redirectUriUsed: spec.redirectUri ?? '(none)',
+          redirectUriUsed: spec.emptyRedirect
+            ? '""'
+            : spec.redirectUri ?? '(none)',
         }
       }
 
-      lastError = result.error
       const isRedirectMismatch =
         result.errorCode === 100 ||
         result.errorSubcode === 36008 ||
@@ -117,6 +132,7 @@ async function tryPostExchange(args: {
   code: string
   redirectUri?: string
   grantType?: boolean
+  emptyRedirect?: boolean
 }): Promise<ExchangeAttempt> {
   const params = new URLSearchParams({
     client_id: args.appId,
@@ -124,7 +140,8 @@ async function tryPostExchange(args: {
     code: args.code,
   })
   if (args.grantType) params.set('grant_type', 'authorization_code')
-  if (args.redirectUri) params.set('redirect_uri', args.redirectUri)
+  if (args.emptyRedirect) params.set('redirect_uri', '')
+  else if (args.redirectUri) params.set('redirect_uri', args.redirectUri)
 
   const res = await fetch(`${GRAPH_BASE}/oauth/access_token`, {
     method: 'POST',
@@ -140,13 +157,15 @@ async function tryGetExchange(args: {
   code: string
   redirectUri?: string
   grantType?: boolean
+  emptyRedirect?: boolean
 }): Promise<ExchangeAttempt> {
   const url = new URL(`${GRAPH_BASE}/oauth/access_token`)
   url.searchParams.set('client_id', args.appId)
   url.searchParams.set('client_secret', args.appSecret)
   url.searchParams.set('code', args.code)
   if (args.grantType) url.searchParams.set('grant_type', 'authorization_code')
-  if (args.redirectUri) url.searchParams.set('redirect_uri', args.redirectUri)
+  if (args.emptyRedirect) url.searchParams.set('redirect_uri', '')
+  else if (args.redirectUri) url.searchParams.set('redirect_uri', args.redirectUri)
 
   const res = await fetch(url.toString())
   return parseExchangeResponse(res)

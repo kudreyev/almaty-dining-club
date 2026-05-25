@@ -11,6 +11,7 @@ import {
 
 const GRAPH_API_VERSION = 'v21.0'
 const FB_SDK_URL = 'https://connect.facebook.net/ru_RU/sdk.js'
+const POPUP_TIMEOUT_MS = 120_000
 
 type SessionPayload = {
   type?: string
@@ -35,13 +36,24 @@ type Props = {
 export function EmbeddedSignupLauncher({ appId, configId }: Props) {
   const [sdkReady, setSdkReady] = useState(false)
   const [sdkError, setSdkError] = useState<string | null>(null)
-  const [busy, setBusy] = useState(false)
+  const [popupOpen, setPopupOpen] = useState(false)
+  const [exchanging, setExchanging] = useState(false)
+  const [status, setStatus] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [result, setResult] = useState<CompleteEmbeddedSignupResult | null>(null)
   const [lastEvent, setLastEvent] = useState<string | null>(null)
   const sessionRef = useRef<SessionPayload | null>(null)
   const pendingCodeRef = useRef<string | null>(null)
+  const exchangingRef = useRef(false)
+  const popupTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const initRef = useRef(false)
+
+  const clearPopupTimeout = useCallback(() => {
+    if (popupTimeoutRef.current) {
+      clearTimeout(popupTimeoutRef.current)
+      popupTimeoutRef.current = null
+    }
+  }, [])
 
   const initFacebookSdk = useCallback(() => {
     if (initRef.current || !window.FB) return
@@ -66,6 +78,8 @@ export function EmbeddedSignupLauncher({ appId, configId }: Props) {
     if (window.FB) initFacebookSdk()
   }, [initFacebookSdk])
 
+  useEffect(() => () => clearPopupTimeout(), [clearPopupTimeout])
+
   const tryCompleteIfReady = useCallback(async () => {
     const code = pendingCodeRef.current
     const session = sessionRef.current
@@ -73,10 +87,18 @@ export function EmbeddedSignupLauncher({ appId, configId }: Props) {
     const phoneNumberId = session?.data?.phone_number_id
     const event = session?.event
 
-    if (!code || !wabaId || !phoneNumberId || !event) return
+    if (!code || !wabaId || !phoneNumberId || !event) {
+      if (code && !session?.data?.waba_id) {
+        setStatus('Code получен. Ждём waba_id от Meta (session logging)…')
+      }
+      return
+    }
 
-    setBusy(true)
+    if (exchangingRef.current) return
+    exchangingRef.current = true
+    setExchanging(true)
     setError(null)
+    setStatus('Обмен code на token…')
 
     try {
       const completed = await completeEmbeddedSignup({
@@ -87,10 +109,13 @@ export function EmbeddedSignupLauncher({ appId, configId }: Props) {
         event,
       })
       setResult(completed)
+      setStatus('Готово — скопируйте значения в Vercel.')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Ошибка onboarding')
+      setStatus(null)
     } finally {
-      setBusy(false)
+      exchangingRef.current = false
+      setExchanging(false)
     }
   }, [])
 
@@ -116,24 +141,51 @@ export function EmbeddedSignupLauncher({ appId, configId }: Props) {
     return () => window.removeEventListener('message', onMessage)
   }, [tryCompleteIfReady])
 
+  const resetFlow = () => {
+    clearPopupTimeout()
+    setPopupOpen(false)
+    setExchanging(false)
+    setStatus(null)
+    setError(null)
+    exchangingRef.current = false
+    sessionRef.current = null
+    pendingCodeRef.current = null
+  }
+
   const launch = () => {
     if (!sdkReady || !window.FB) {
       setError('Facebook SDK ещё не загрузился. Обновите страницу.')
       return
     }
 
-    setBusy(true)
-    setError(null)
+    resetFlow()
     setResult(null)
-    sessionRef.current = null
-    pendingCodeRef.current = null
+    setPopupOpen(true)
+    setStatus('Откройте popup Meta и завершите подключение…')
+
+    popupTimeoutRef.current = setTimeout(() => {
+      setPopupOpen(false)
+      if (!pendingCodeRef.current && !exchangingRef.current) {
+        setError(
+          'Popup Meta не ответил за 2 минуты. Используйте Chrome, отключите блокировщик, проверьте OAuth redirect URI.',
+        )
+        setStatus(null)
+      }
+    }, POPUP_TIMEOUT_MS)
 
     window.FB.login(
       (response: FBLoginResponse) => {
+        clearPopupTimeout()
+        setPopupOpen(false)
+
         const code = response.authResponse?.code
         if (!code) {
-          setBusy(false)
-          setError('Flow отменён или code не получен')
+          setError(
+            response.status === 'not_authorized'
+              ? 'Meta: доступ не авторизован. Войдите в Facebook в этом браузере.'
+              : 'Flow отменён или code не получен',
+          )
+          setStatus(null)
           return
         }
 
@@ -152,6 +204,12 @@ export function EmbeddedSignupLauncher({ appId, configId }: Props) {
       },
     )
   }
+
+  const buttonLabel = exchanging
+    ? 'Сохранение…'
+    : popupOpen
+      ? 'Ожидание Meta…'
+      : 'Подключить WhatsApp Business'
 
   return (
     <>
@@ -176,6 +234,11 @@ export function EmbeddedSignupLauncher({ appId, configId }: Props) {
             останется, Cloud API получит webhook на kudaclub.kz.
           </p>
 
+          <div className="rounded-lg border border-blue-200 bg-blue-50 p-3 text-xs text-blue-900">
+            Используйте <strong>Google Chrome</strong>. Safari часто блокирует popup Meta (белый экран).
+            Сначала войдите на kudaclub.kz как admin в том же браузере.
+          </div>
+
           <ol className="list-decimal space-y-1 pl-5 text-sm text-gray-600">
             <li>WhatsApp Business на телефоне, версия 2.24.17+</li>
             <li>В popup выберите «Подключить существующий WhatsApp Business»</li>
@@ -186,13 +249,26 @@ export function EmbeddedSignupLauncher({ appId, configId }: Props) {
             App ID: {appId} · Config ID: {configId.slice(0, 6)}…
           </p>
 
-          <Button type="button" onClick={launch} disabled={!sdkReady || busy}>
-            {busy ? 'Подключение…' : 'Подключить WhatsApp Business'}
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <Button
+              type="button"
+              onClick={launch}
+              disabled={!sdkReady || popupOpen || exchanging}
+            >
+              {buttonLabel}
+            </Button>
+            {error || popupOpen || status ? (
+              <Button type="button" variant="ghost" onClick={resetFlow}>
+                Сбросить
+              </Button>
+            ) : null}
+          </div>
 
           {!sdkReady && !sdkError ? (
             <p className="text-xs text-gray-400">Загрузка Facebook SDK…</p>
           ) : null}
+
+          {status ? <p className="text-xs text-gray-600">{status}</p> : null}
 
           {sdkError ? <p className="text-sm text-red-600">{sdkError}</p> : null}
 
@@ -204,8 +280,9 @@ export function EmbeddedSignupLauncher({ appId, configId }: Props) {
             <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-800">
               <p>{error}</p>
               <p className="mt-2 text-xs">
-                Если popup Meta белый: проверьте OAuth domains (<code>kudaclub.kz</code>), redirect URI{' '}
-                <code>/admin/whatsapp/connect</code>, App ID и Configuration ID в Vercel.
+                Popup Meta белый → OAuth: allowed domain <code>kudaclub.kz</code>, redirect{' '}
+                <code>https://kudaclub.kz/admin/whatsapp/connect</code>, вы — Admin/Developer в Meta App
+                Roles.
               </p>
             </div>
           ) : null}

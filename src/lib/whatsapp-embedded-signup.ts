@@ -49,22 +49,9 @@ function buildPopupExchangeSpecs(pageUrl?: string): ExchangeSpec[] {
 }
 
 function buildRedirectExchangeSpecs(preferredRedirectUri?: string): ExchangeSpec[] {
-  const redirectCandidates = [
-    ...new Set(
-      [preferredRedirectUri, getOAuthRedirectUri(), 'https://kudaclub.kz/', 'https://kudaclub.kz/admin/whatsapp'].filter(
-        (v): v is string => Boolean(v?.trim()),
-      ),
-    ),
-  ]
-
-  return [
-    ...redirectCandidates.flatMap((redirectUri) => [
-      { redirectUri, grantType: true },
-      { redirectUri, grantType: false },
-    ]),
-    { emptyRedirect: true, grantType: false },
-    { grantType: false },
-  ]
+  const redirectUri = preferredRedirectUri?.trim() || getOAuthRedirectUri()
+  // Redirect OAuth: один запрос — code одноразовый, повторные redirect_uri его сжигают.
+  return [{ redirectUri, grantType: false }]
 }
 
 export async function exchangeEmbeddedSignupCode(
@@ -90,8 +77,7 @@ export async function exchangeEmbeddedSignupCode(
   let lastRedirectMismatch = 'Не удалось обменять code на token'
 
   for (const spec of specs) {
-    // Popup: только GET (Meta Embedded Signup). Redirect flow: GET, затем POST.
-    const methods = mode === 'js_sdk_popup' ? [tryGetExchange] : [tryGetExchange, tryPostExchange]
+    const methods = mode === 'js_sdk_popup' ? [tryGetExchange] : [tryGetExchange]
 
     for (const attempt of methods) {
       const result = await attempt({ appId, appSecret, code, ...spec })
@@ -122,7 +108,7 @@ export async function exchangeEmbeddedSignupCode(
 
   logServerError('whatsapp-embedded-signup:exchange', new Error(lastRedirectMismatch))
   throw new Error(
-    `${lastRedirectMismatch}. Code одноразовый (~30 сек): «Сбросить» → снова синяя кнопка popup. Не жмите F5 на ?code=.`,
+    `${lastRedirectMismatch}. Code одноразовый (~30 сек): «Сбросить» → снова «Подключить WhatsApp Business».`,
   )
 }
 

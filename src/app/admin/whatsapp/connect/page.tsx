@@ -8,6 +8,7 @@ import {
   isEmbeddedSignupConfigured,
 } from '@/lib/whatsapp-embedded-signup'
 import { EmbeddedSignupLauncher } from './embedded-signup-launcher'
+import { WhatsAppOAuthBridge } from './oauth-bridge'
 
 export const dynamic = 'force-dynamic'
 
@@ -26,6 +27,7 @@ export default async function AdminWhatsAppConnectPage({
 
   return (
     <div className="mx-auto max-w-4xl px-5 py-8">
+      <WhatsAppOAuthBridge />
       <div className="mb-6 flex flex-wrap items-center gap-3">
         <div className="flex-1">
           <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">

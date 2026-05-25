@@ -1,7 +1,6 @@
 'use client'
 
 import { useCallback, useEffect, useRef, useState } from 'react'
-import Script from 'next/script'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import {
@@ -10,7 +9,6 @@ import {
 } from './actions'
 
 const GRAPH_API_VERSION = 'v21.0'
-const FB_SDK_URL = 'https://connect.facebook.net/ru_RU/sdk.js'
 const POPUP_TIMEOUT_MS = 120_000
 
 type SessionPayload = {
@@ -21,11 +19,6 @@ type SessionPayload = {
     phone_number_id?: string
     business_id?: string
   }
-}
-
-type FBLoginResponse = {
-  authResponse?: { code?: string }
-  status?: string
 }
 
 type Props = {
@@ -43,8 +36,6 @@ export function EmbeddedSignupLauncher({
   urlCode,
   urlError,
 }: Props) {
-  const [sdkReady, setSdkReady] = useState(false)
-  const [sdkError, setSdkError] = useState<string | null>(null)
   const [popupOpen, setPopupOpen] = useState(false)
   const [exchanging, setExchanging] = useState(false)
   const [status, setStatus] = useState<string | null>(null)
@@ -52,11 +43,10 @@ export function EmbeddedSignupLauncher({
   const [result, setResult] = useState<CompleteEmbeddedSignupResult | null>(null)
   const [lastEvent, setLastEvent] = useState<string | null>(null)
   const sessionRef = useRef<SessionPayload | null>(null)
-  const pendingCodeRef = useRef<string | null>(null)
   const exchangingRef = useRef(false)
-  const popupTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const initRef = useRef(false)
   const consumedCodeRef = useRef<string | null>(null)
+  const popupPollRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const popupTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const oauthExtras = {
     setup: {},
@@ -64,102 +54,86 @@ export function EmbeddedSignupLauncher({
     sessionInfoVersion: '3',
   } as const
 
-  const clearPopupTimeout = useCallback(() => {
+  const clearPopupTimers = useCallback(() => {
+    if (popupPollRef.current) {
+      clearInterval(popupPollRef.current)
+      popupPollRef.current = null
+    }
     if (popupTimeoutRef.current) {
       clearTimeout(popupTimeoutRef.current)
       popupTimeoutRef.current = null
     }
   }, [])
 
-  const initFacebookSdk = useCallback(() => {
-    if (initRef.current || !window.FB) return
-    initRef.current = true
+  useEffect(() => () => clearPopupTimers(), [clearPopupTimers])
 
-    try {
-      window.FB.init({
-        appId,
-        autoLogAppEvents: false,
-        xfbml: false,
-        version: GRAPH_API_VERSION,
-      })
-      setSdkReady(true)
-      setSdkError(null)
-    } catch (err) {
-      setSdkError(err instanceof Error ? err.message : 'Не удалось инициализировать Facebook SDK')
-    }
-  }, [appId])
+  const buildOAuthUrl = useCallback(() => {
+    const url = new URL(`https://www.facebook.com/${GRAPH_API_VERSION}/dialog/oauth`)
+    url.searchParams.set('client_id', appId)
+    url.searchParams.set('redirect_uri', redirectUri)
+    url.searchParams.set('response_type', 'code')
+    url.searchParams.set('override_default_response_type', 'true')
+    url.searchParams.set('config_id', configId)
+    url.searchParams.set('state', 'whatsapp_connect')
+    url.searchParams.set('extras', JSON.stringify(oauthExtras))
+    return url.toString()
+  }, [appId, configId, redirectUri])
 
-  useEffect(() => {
-    window.fbAsyncInit = initFacebookSdk
-    if (window.FB) initFacebookSdk()
-  }, [initFacebookSdk])
+  const runComplete = useCallback(
+    async (code: string) => {
+      if (consumedCodeRef.current === code || exchangingRef.current) return
 
-  useEffect(() => () => clearPopupTimeout(), [clearPopupTimeout])
+      const session = sessionRef.current
+      exchangingRef.current = true
+      consumedCodeRef.current = code
+      setExchanging(true)
+      setError(null)
+      setStatus('Обмен code на token…')
 
-  const getPageUrl = useCallback(() => {
-    if (typeof window === 'undefined') return redirectUri
-    return `${window.location.origin}${window.location.pathname}`
-  }, [redirectUri])
+      try {
+        const response = await completeEmbeddedSignup({
+          code,
+          oauthRedirectUri: redirectUri,
+          oauthExchangeMode: 'oauth_redirect',
+          wabaId: session?.data?.waba_id,
+          phoneNumberId: session?.data?.phone_number_id,
+          businessId: session?.data?.business_id,
+          event: session?.event,
+        })
 
-  const tryCompleteIfReady = useCallback(async () => {
-    const code = pendingCodeRef.current
-    if (!code) return
-    if (consumedCodeRef.current === code) return
+        if (!response.ok) {
+          consumedCodeRef.current = null
+          setError(`[${response.step}] ${response.error}`)
+          setStatus(null)
+          return
+        }
 
-    const session = sessionRef.current
-    const wabaId = session?.data?.waba_id
-    const phoneNumberId = session?.data?.phone_number_id
-    const event = session?.event
-
-    if (exchangingRef.current) return
-    exchangingRef.current = true
-    consumedCodeRef.current = code
-    setExchanging(true)
-    setError(null)
-    setStatus(
-      wabaId && phoneNumberId
-        ? 'Обмен code на token…'
-        : 'Code получен — обмен на token и поиск WABA через Graph API…',
-    )
-
-    try {
-      const response = await completeEmbeddedSignup({
-        code,
-        oauthRedirectUri: redirectUri,
-        oauthPageUrl: getPageUrl(),
-        oauthExchangeMode: 'js_sdk_popup',
-        wabaId,
-        phoneNumberId,
-        businessId: session?.data?.business_id,
-        event,
-      })
-
-      if (!response.ok) {
+        setResult(response.result)
+        setStatus('Готово — скопируйте значения в Vercel.')
+      } catch (err) {
         consumedCodeRef.current = null
-        setError(`[${response.step}] ${response.error}`)
+        setError(err instanceof Error ? err.message : 'Ошибка onboarding')
         setStatus(null)
-        return
+      } finally {
+        exchangingRef.current = false
+        setExchanging(false)
+        setPopupOpen(false)
+        clearPopupTimers()
       }
-
-      const completed = response.result
-      setResult(completed)
-      setStatus(
-        completed.assetSource === 'graph_api'
-          ? 'Готово (WABA найден через Graph API).'
-          : 'Готово — скопируйте значения в Vercel.',
-      )
-    } catch (err) {
-      consumedCodeRef.current = null
-      setError(err instanceof Error ? err.message : 'Ошибка onboarding')
-      setStatus(null)
-    } finally {
-      exchangingRef.current = false
-      setExchanging(false)
-    }
-  }, [redirectUri, getPageUrl])
+    },
+    [redirectUri, clearPopupTimers],
+  )
 
   useEffect(() => {
     const onMessage = (event: MessageEvent) => {
+      if (event.origin === window.location.origin) {
+        const data = event.data as { type?: string; code?: string }
+        if (data?.type === 'KUDACLUB_WA_OAUTH' && data.code) {
+          void runComplete(data.code)
+        }
+        return
+      }
+
       if (!event.origin.includes('facebook.com') && !event.origin.includes('meta.com')) return
 
       let data: SessionPayload
@@ -173,131 +147,74 @@ export function EmbeddedSignupLauncher({
 
       sessionRef.current = data
       setLastEvent(data.event ?? null)
-      // Обмен code — только из FB.login callback (code одноразовый).
     }
 
     window.addEventListener('message', onMessage)
     return () => window.removeEventListener('message', onMessage)
-  }, [])
+  }, [runComplete])
 
   useEffect(() => {
-    if (urlError) {
-      setError(urlError)
-    }
-    if (urlCode && !exchangingRef.current && consumedCodeRef.current !== urlCode) {
-      pendingCodeRef.current = urlCode
+    if (urlError) setError(urlError)
+    if (urlCode && !window.opener) {
       window.history.replaceState({}, '', '/admin/whatsapp/connect')
-      void (async () => {
-        if (exchangingRef.current) return
-        exchangingRef.current = true
-        consumedCodeRef.current = urlCode
-        setExchanging(true)
-        setError(null)
-        setStatus('Обмен code из redirect…')
-
-        try {
-          const response = await completeEmbeddedSignup({
-            code: urlCode,
-            oauthRedirectUri: redirectUri,
-            oauthExchangeMode: 'oauth_redirect',
-            event: lastEvent ?? undefined,
-          })
-          if (!response.ok) {
-            consumedCodeRef.current = null
-            setError(`[${response.step}] ${response.error}`)
-            setStatus(null)
-            return
-          }
-          setResult(response.result)
-          setStatus('Готово — скопируйте значения в Vercel.')
-        } catch (err) {
-          consumedCodeRef.current = null
-          setError(err instanceof Error ? err.message : 'Ошибка onboarding')
-          setStatus(null)
-        } finally {
-          exchangingRef.current = false
-          setExchanging(false)
-        }
-      })()
+      void runComplete(urlCode)
     }
-  }, [urlCode, urlError, redirectUri, lastEvent])
+  }, [urlCode, urlError, runComplete])
 
   const resetFlow = () => {
-    clearPopupTimeout()
+    clearPopupTimers()
     setPopupOpen(false)
     setExchanging(false)
     setStatus(null)
     setError(null)
     exchangingRef.current = false
     sessionRef.current = null
-    pendingCodeRef.current = null
     consumedCodeRef.current = null
   }
 
-  const launch = () => {
-    if (!sdkReady || !window.FB) {
-      setError('Facebook SDK ещё не загрузился. Обновите страницу.')
-      return
-    }
-
+  const launchOAuthPopup = () => {
     resetFlow()
     setResult(null)
     setPopupOpen(true)
-    setStatus('Откройте popup Meta и завершите подключение…')
+    setStatus('Popup Meta — завершите подключение…')
+
+    const popup = window.open(
+      buildOAuthUrl(),
+      'meta_whatsapp_oauth',
+      'width=520,height=720,scrollbars=yes,resizable=yes',
+    )
+
+    if (!popup) {
+      setPopupOpen(false)
+      setError('Popup заблокирован. Разрешите popup для kudaclub.kz или используйте full-page OAuth.')
+      setStatus(null)
+      return
+    }
+
+    popupPollRef.current = setInterval(() => {
+      if (popup.closed) {
+        clearPopupTimers()
+        setPopupOpen(false)
+        if (!consumedCodeRef.current && !exchangingRef.current) {
+          setError('Popup закрыт без code. Нажмите «Сбросить» и попробуйте снова.')
+          setStatus(null)
+        }
+      }
+    }, 500)
 
     popupTimeoutRef.current = setTimeout(() => {
-      setPopupOpen(false)
-      if (!pendingCodeRef.current && !exchangingRef.current) {
-        setError(
-          'Popup Meta не ответил за 2 минуты. Используйте Chrome, отключите блокировщик, проверьте OAuth redirect URI.',
-        )
+      if (!consumedCodeRef.current && !exchangingRef.current) {
+        setPopupOpen(false)
+        setError('Meta не вернула code за 2 минуты. «Сбросить» → повтор.')
         setStatus(null)
       }
     }, POPUP_TIMEOUT_MS)
-
-    window.FB.login(
-      (response: FBLoginResponse) => {
-        clearPopupTimeout()
-        setPopupOpen(false)
-
-        const code = response.authResponse?.code
-        if (!code) {
-          setError(
-            response.status === 'not_authorized'
-              ? 'Meta: доступ не авторизован. Войдите в Facebook в этом браузере.'
-              : 'Flow отменён или code не получен',
-          )
-          setStatus(null)
-          return
-        }
-
-        pendingCodeRef.current = code
-        void tryCompleteIfReady()
-      },
-      {
-        config_id: configId,
-        response_type: 'code',
-        override_default_response_type: true,
-        extras: { ...oauthExtras },
-      },
-    )
   }
 
-  const launchManualOAuth = () => {
+  const launchFullPageOAuth = () => {
     resetFlow()
     setResult(null)
-    setStatus('Переход на Meta OAuth (coexistence)…')
-
-    const url = new URL(`https://www.facebook.com/${GRAPH_API_VERSION}/dialog/oauth`)
-    url.searchParams.set('client_id', appId)
-    url.searchParams.set('redirect_uri', redirectUri)
-    url.searchParams.set('response_type', 'code')
-    url.searchParams.set('override_default_response_type', 'true')
-    url.searchParams.set('config_id', configId)
-    url.searchParams.set('state', 'whatsapp_connect')
-    url.searchParams.set('extras', JSON.stringify(oauthExtras))
-
-    window.location.assign(url.toString())
+    window.location.assign(buildOAuthUrl())
   }
 
   const buttonLabel = exchanging
@@ -308,20 +225,6 @@ export function EmbeddedSignupLauncher({
 
   return (
     <>
-      <div id="fb-root" />
-
-      <Script
-        src={FB_SDK_URL}
-        strategy="afterInteractive"
-        crossOrigin="anonymous"
-        onLoad={() => {
-          if (window.fbAsyncInit) window.fbAsyncInit()
-        }}
-        onError={() => {
-          setSdkError('Не удалось загрузить Facebook SDK. Проверьте блокировщик рекламы.')
-        }}
-      />
-
       <Card>
         <div className="space-y-4">
           <p className="text-sm text-gray-600">
@@ -329,47 +232,38 @@ export function EmbeddedSignupLauncher({
             останется, Cloud API получит webhook на kudaclub.kz.
           </p>
 
-          <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-xs text-red-900">
-            <strong>Не используйте</strong> full-page OAuth для coexistence — он часто создаёт sandbox{' '}
-            <code>+1 555…</code> без вашего номера. Только <strong>синяя кнопка popup</strong> (Chrome).
-          </div>
-
           <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900">
-            <strong>Обязательно:</strong> в Meta должен появиться экран «Подключить существующий WhatsApp Business»
-            → введите <strong>+7 706 605 9899</strong> → Confirm в WhatsApp Business на телефоне.
-            Если номер не спрашивают — flow не тот (без coexistence inbound не работает).
+            <strong>Обязательно:</strong> экран «Подключить существующий WhatsApp Business» →{' '}
+            <strong>+7 706 605 9899</strong> → Confirm на телефоне. Если номер не спрашивают — в Meta
+            нужна другая Configuration (coexistence), не sandbox <code>+1 555…</code>.
           </div>
 
           <div className="rounded-lg border border-blue-200 bg-blue-50 p-3 text-xs text-blue-900">
-            Chrome, admin-логин на kudaclub.kz. После ошибки <strong>«Сбросить»</strong> и новый проход
-            (code одноразовый, ~30 сек). Не жмите F5 на URL с <code>?code=</code>.
+            Chrome, admin на kudaclub.kz. OAuth redirect: <code>{redirectUri}</code>. После ошибки —{' '}
+            <strong>«Сбросить»</strong> и новый проход (code ~30 сек).
           </div>
 
           <ol className="list-decimal space-y-1 pl-5 text-sm text-gray-600">
             <li>WhatsApp Business на телефоне, версия 2.24.17+</li>
-            <li>В popup выберите «Подключить существующий WhatsApp Business»</li>
-            <li>Подтвердите Connect в приложении и завершите flow</li>
+            <li>В Meta popup — «Подключить существующий WhatsApp Business»</li>
+            <li>Confirm в приложении → дождитесь «Готово» на этой странице</li>
           </ol>
 
           <p className="text-xs text-gray-500">
-            App ID: {appId} · Config ID: {configId.slice(0, 6)}… · redirect: {redirectUri}
+            App ID: {appId} · Config ID: {configId.slice(0, 6)}…
           </p>
 
           <div className="flex flex-wrap gap-2">
-            <Button
-              type="button"
-              onClick={launch}
-              disabled={!sdkReady || popupOpen || exchanging}
-            >
+            <Button type="button" onClick={launchOAuthPopup} disabled={popupOpen || exchanging}>
               {buttonLabel}
             </Button>
             <Button
               type="button"
               variant="secondary"
-              onClick={launchManualOAuth}
+              onClick={launchFullPageOAuth}
               disabled={popupOpen || exchanging}
             >
-              Full-page OAuth (только если popup не открывается)
+              Full-page OAuth
             </Button>
             {error || popupOpen || status ? (
               <Button type="button" variant="ghost" onClick={resetFlow}>
@@ -378,13 +272,7 @@ export function EmbeddedSignupLauncher({
             ) : null}
           </div>
 
-          {!sdkReady && !sdkError ? (
-            <p className="text-xs text-gray-400">Загрузка Facebook SDK…</p>
-          ) : null}
-
           {status ? <p className="text-xs text-gray-600">{status}</p> : null}
-
-          {sdkError ? <p className="text-sm text-red-600">{sdkError}</p> : null}
 
           {lastEvent ? (
             <p className="text-xs text-gray-500">Событие Meta: {lastEvent}</p>
@@ -392,8 +280,7 @@ export function EmbeddedSignupLauncher({
 
           {lastEvent && lastEvent !== 'FINISH_WHATSAPP_BUSINESS_APP_ONBOARDING' ? (
             <p className="text-xs text-amber-800">
-              Событие Meta: {lastEvent} — coexistence не завершён. Нужен экран «Подключить существующий
-              WhatsApp Business» и событие FINISH_WHATSAPP_BUSINESS_APP_ONBOARDING.
+              Coexistence не завершён — нужно событие FINISH_WHATSAPP_BUSINESS_APP_ONBOARDING.
             </p>
           ) : null}
 
@@ -401,9 +288,9 @@ export function EmbeddedSignupLauncher({
             <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-800">
               <p>{error}</p>
               <p className="mt-2 text-xs">
-                [exchange] → «Сбросить» → только синяя кнопка popup в Chrome. [discover] +1 555… → flow без
-                coexistence; в Meta проверьте Config ID {configId.slice(0, 6)}… (WhatsApp Embedded Signup +
-                coexistence).
+                [exchange] → проверьте <code>WHATSAPP_APP_SECRET</code> и redirect URI в Meta. [discover]{' '}
+                +1 555… → создайте новую Embedded Signup Configuration с coexistence (Config{' '}
+                {configId.slice(0, 6)}…).
               </p>
             </div>
           ) : null}
@@ -421,8 +308,8 @@ export function EmbeddedSignupLauncher({
             ) : null}
             {!result.isOnBizApp ? (
               <p className="text-xs text-amber-800">
-                is_on_biz_app=false — номер может быть не связан с WhatsApp Business на телефоне. Пройдите
-                connect заново с экраном «Подключить существующий WhatsApp Business».
+                is_on_biz_app=false — пройдите connect с экраном «Подключить существующий WhatsApp
+                Business».
               </p>
             ) : null}
             {result.coexistenceWarning ? (
@@ -450,26 +337,11 @@ export function EmbeddedSignupLauncher({
               </div>
             </dl>
             <p className="text-xs text-amber-800">
-              Скопируйте значения в Vercel → Environment Variables → Redeploy. Токен живёт{' '}
-              {result.expiresIn ? `${result.expiresIn} сек` : '~60 дней'} — позже замените на System
-              User token.
+              Скопируйте значения в Vercel → Environment Variables → Redeploy.
             </p>
           </div>
         </Card>
       ) : null}
     </>
   )
-}
-
-declare global {
-  interface Window {
-    FB?: {
-      init: (params: Record<string, unknown>) => void
-      login: (
-        callback: (response: FBLoginResponse) => void,
-        options: Record<string, unknown>,
-      ) => void
-    }
-    fbAsyncInit?: () => void
-  }
 }

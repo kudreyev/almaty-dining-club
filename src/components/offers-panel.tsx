@@ -107,7 +107,7 @@ export function OffersPanel({
                 </span>
               </div>
 
-              <p className="mt-3 text-base leading-6 text-gray-600">
+              <p className="mt-3 whitespace-pre-line text-base leading-6 text-gray-600">
                 {offer.offer_terms_short}
               </p>
 

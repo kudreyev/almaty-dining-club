@@ -112,7 +112,7 @@ export default async function RedeemPage({ params, searchParams }: PageProps) {
 
         <h1 className="mt-4 text-xl font-bold">{restaurant.restaurant_name}</h1>
         <p className="mt-1 text-sm font-medium">{formatOfferHeadline(offer.offer_type, offer.offer_title)}</p>
-        <p className="mt-2 text-sm text-gray-500">{offer.offer_terms_short}</p>
+        <p className="mt-2 whitespace-pre-line text-sm text-gray-500">{offer.offer_terms_short}</p>
 
         {success === 'code_generated' ? (
           <div className="mt-4 rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-700">

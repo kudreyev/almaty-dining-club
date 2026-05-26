@@ -3,7 +3,7 @@ import { createOffer } from '../../actions'
 import { FormSubmitGuard } from '@/components/form-submit-guard'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Input, Select } from '@/components/ui/input'
+import { Input, Select, Textarea } from '@/components/ui/input'
 import { DEFAULT_OFFER_COOLDOWN_DAYS } from '@/lib/offers'
 
 type PageProps = { params: Promise<{ restaurantId: string }> }
@@ -39,7 +39,14 @@ export default async function AdminOfferNewPage({ params }: PageProps) {
           </Select>
 
           <Input name="offer_title" label="Название предложения" placeholder="Например: Паста" required />
-          <Input name="offer_terms_short" label="Краткие условия" placeholder="1 строка" required />
+          <Textarea
+            name="offer_terms_short"
+            label="Краткие условия"
+            rows={5}
+            placeholder={'• Пункт 1\n• Пункт 2\n• Пункт 3'}
+            hint="Можно несколько строк — каждая строка отобразится отдельно в карточке оффера."
+            required
+          />
           <Input
             name="end_date"
             type="date"

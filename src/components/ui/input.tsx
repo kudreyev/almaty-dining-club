@@ -50,9 +50,10 @@ export function Select({ label, id, className = '', children, ...props }: Select
 
 type TextareaProps = React.TextareaHTMLAttributes<HTMLTextAreaElement> & {
   label?: string
+  hint?: string
 }
 
-export function Textarea({ label, id, className = '', ...props }: TextareaProps) {
+export function Textarea({ label, hint, id, className = '', ...props }: TextareaProps) {
   return (
     <div>
       {label ? (
@@ -65,6 +66,7 @@ export function Textarea({ label, id, className = '', ...props }: TextareaProps)
         className={`w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-base outline-none transition-colors placeholder:text-gray-500 focus:border-accent focus:ring-1 focus:ring-accent/20 ${className}`}
         {...props}
       />
+      {hint ? <p className="mt-1 text-sm text-gray-500">{hint}</p> : null}
     </div>
   )
 }

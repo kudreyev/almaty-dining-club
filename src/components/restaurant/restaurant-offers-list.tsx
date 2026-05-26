@@ -186,7 +186,7 @@ function OfferCard({
 
         {offer.offer_terms_short ? (
           <p
-            className="text-xs leading-[1.5] text-neutral-600"
+            className="whitespace-pre-line text-xs leading-[1.5] text-neutral-600"
             style={{ marginBottom: '10px' }}
           >
             {offer.offer_terms_short}

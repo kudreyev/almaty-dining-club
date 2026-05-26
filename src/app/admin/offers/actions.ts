@@ -28,6 +28,14 @@ function sanitizeCooldownDays(value: FormDataEntryValue | null): number {
   return parsed
 }
 
+function sanitizeEndDate(value: FormDataEntryValue | null): string | null {
+  if (value == null) return null
+  const stringValue = String(value).trim()
+  if (!stringValue) return null
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(stringValue)) return null
+  return stringValue
+}
+
 async function generateUniqueOfferKey(
   supabase: Awaited<ReturnType<typeof requireAdmin>>['supabase'],
   restaurantId: string,
@@ -63,6 +71,10 @@ export async function createOffer(formData: FormData) {
   const offerType = String(formData.get('offer_type') || '2for1')
   const offerTitle = String(formData.get('offer_title') || '').trim()
   if (!offerTitle) throw new Error('Название предложения обязательно')
+  const endDate = sanitizeEndDate(formData.get('end_date'))
+  if (offerType === 'kudafest_set' && !endDate) {
+    throw new Error('Для оффера Kudafest укажите дату окончания')
+  }
   const providedOfferKey = String(formData.get('offer_key') || '').trim()
   const offerKey = providedOfferKey || await generateUniqueOfferKey(supabase, restaurantId, offerTitle, offerType)
 
@@ -75,6 +87,7 @@ export async function createOffer(formData: FormData) {
     offer_terms_full: '',
     estimated_value: sanitizeEstimatedValue(formData.get('estimated_value')),
     cooldown_days: sanitizeCooldownDays(formData.get('cooldown_days')),
+    end_date: endDate,
     dish_photo_url: String(formData.get('dish_photo_url') || '').trim() || null,
     is_active: formData.get('is_active') === 'on',
   }
@@ -95,6 +108,10 @@ export async function updateOffer(formData: FormData) {
   const offerType = String(formData.get('offer_type') || '2for1')
   const offerTitle = String(formData.get('offer_title') || '').trim()
   if (!offerTitle) throw new Error('Название предложения обязательно')
+  const endDate = sanitizeEndDate(formData.get('end_date'))
+  if (offerType === 'kudafest_set' && !endDate) {
+    throw new Error('Для оффера Kudafest укажите дату окончания')
+  }
 
   const { data: existingOffer, error: existingOfferError } = await supabase
     .from('offers')
@@ -119,6 +136,7 @@ export async function updateOffer(formData: FormData) {
     offer_terms_full: '',
     estimated_value: sanitizeEstimatedValue(formData.get('estimated_value')),
     cooldown_days: sanitizeCooldownDays(formData.get('cooldown_days')),
+    end_date: endDate,
     dish_photo_url: String(formData.get('dish_photo_url') || '').trim() || null,
     is_active: formData.get('is_active') === 'on',
   }

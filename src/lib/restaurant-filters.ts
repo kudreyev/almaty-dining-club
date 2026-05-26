@@ -1,4 +1,6 @@
-export type OfferType = '2for1' | 'compliment'
+import type { OfferType } from '@/lib/offers'
+
+export type { OfferType }
 
 export type SortMode = 'distance' | 'benefit'
 
@@ -46,7 +48,7 @@ export function parseFiltersFromSearchParams(sp: URLSearchParams): RestaurantFil
   const offersRaw = sp.get('offers') ?? sp.get('type') ?? sp.get('offer') ?? ''
   const offers = new Set<OfferType>()
   for (const x of parseCsv(offersRaw)) {
-    if (x === '2for1' || x === 'compliment') offers.add(x)
+    if (x === '2for1' || x === 'compliment' || x === 'kudafest_set') offers.add(x)
   }
 
   const cuisinesRaw = sp.get('cuisine') ?? sp.get('cuisines') ?? ''

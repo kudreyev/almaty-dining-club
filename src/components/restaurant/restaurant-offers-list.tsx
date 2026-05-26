@@ -304,5 +304,8 @@ function formatTypeBadge(offerType: OfferType): { label: string; bg: string } {
   if (offerType === '2for1') {
     return { label: '2 за 1', bg: '#D85A30' }
   }
+  if (offerType === 'kudafest_set') {
+    return { label: 'Kudafest', bg: '#5B21B6' }
+  }
   return { label: 'В подарок', bg: '#0F6E56' }
 }

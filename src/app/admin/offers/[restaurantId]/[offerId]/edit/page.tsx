@@ -46,10 +46,18 @@ export default async function AdminOfferEditPage({ params }: PageProps) {
           <Select name="offer_type" label="Тип оффера" defaultValue={offer.offer_type}>
             <option value="2for1">2за1</option>
             <option value="compliment">в подарок</option>
+            <option value="kudafest_set">Сеты Kudafest</option>
           </Select>
 
           <Input name="offer_title" label="Название предложения" defaultValue={offer.offer_title ?? ''} required />
           <Input name="offer_terms_short" label="Краткие условия" defaultValue={offer.offer_terms_short} required />
+          <Input
+            name="end_date"
+            type="date"
+            label="Дата окончания"
+            defaultValue={offer.end_date ?? ''}
+            hint="Обязательно для Kudafest. Для обычных офферов — необязательно."
+          />
           <Input
             name="dish_photo_url"
             label="Фото блюда (URL)"

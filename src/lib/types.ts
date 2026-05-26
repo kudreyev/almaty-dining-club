@@ -1,6 +1,7 @@
 import type { OpenStatus, RestaurantHour } from '@/lib/opening-hours'
+import type { OfferType } from '@/lib/offers'
 
-export type OfferType = '2for1' | 'compliment'
+export type { OfferType }
 
 export type Offer = {
   offer_type: OfferType
@@ -8,6 +9,7 @@ export type Offer = {
   offer_terms_short?: string
   estimated_value?: number | null
   cooldown_days?: number | null
+  end_date?: string | null
   is_active: boolean
 }
 

@@ -10,6 +10,7 @@ import {
   persistUserLocation,
   requestUserPosition,
 } from '@/lib/user-location'
+import type { OfferType } from '@/lib/offers'
 import type { RestaurantFilters } from '@/lib/restaurant-filters'
 
 type Place = {
@@ -18,7 +19,7 @@ type Place = {
   lat: number | null
   lng: number | null
   offerChips: string[]
-  offerTypes: Array<'2for1' | 'compliment'>
+  offerTypes: OfferType[]
   cuisines: string[]
   isOpen: boolean
   statusLine: string

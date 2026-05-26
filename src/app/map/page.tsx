@@ -1,16 +1,22 @@
 import Link from 'next/link'
 import { createSupabasePublicClient } from '@/lib/supabase/public'
-import { formatOfferHeadline } from '@/lib/offers'
+import {
+  filterCatalogActiveOffers,
+  formatOfferHeadline,
+  getTodayDateStringInTz,
+} from '@/lib/offers'
 import { DEFAULT_TZ, computeOpenStatus, type RestaurantHour } from '@/lib/opening-hours'
 import { MapScreen } from './map-screen'
+import type { OfferType } from '@/lib/offers'
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 300
 
 type Offer = {
-  offer_type: '2for1' | 'compliment'
+  offer_type: OfferType
   offer_title: string
   is_active: boolean
+  end_date?: string | null
 }
 
 type RestaurantLocation = {
@@ -51,7 +57,8 @@ export default async function MapPage() {
       offers (
         offer_type,
         offer_title,
-        is_active
+        is_active,
+        end_date
       ),
       restaurant_hours (
         day_of_week,
@@ -73,7 +80,12 @@ export default async function MapPage() {
     .returns<Restaurant[]>()
 
   const now = new Date()
-  const places = (restaurants ?? []).map((restaurant) => {
+  const today = getTodayDateStringInTz(now, DEFAULT_TZ)
+  const places = (restaurants ?? [])
+    .map((restaurant) => {
+      const activeOffers = filterCatalogActiveOffers(restaurant.offers ?? [], today)
+      if (activeOffers.length === 0) return null
+
       const primaryLocation = (restaurant.restaurant_locations ?? [])
         .filter((location) => location.is_active)
         .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0))[0]
@@ -87,15 +99,14 @@ export default async function MapPage() {
             ? `Закрыто · ${openStatus.labelDetail.charAt(0).toLowerCase()}${openStatus.labelDetail.slice(1)}`
             : 'Закрыто')
 
-      const offerChips = (restaurant.offers ?? [])
-        .filter((offer) => offer.is_active)
+      const offerChips = activeOffers
         .slice(0, 3)
         .map((offer) => formatOfferHeadline(offer.offer_type, offer.offer_title))
 
-      const activeOffersCount = (restaurant.offers ?? []).filter((offer) => offer.is_active).length
+      const activeOffersCount = activeOffers.length
 
       const offerTypes = Array.from(
-        new Set((restaurant.offers ?? []).filter((o) => o.is_active).map((o) => o.offer_type))
+        new Set(activeOffers.map((o) => o.offer_type))
       )
 
       const cuisines = [restaurant.cuisine, restaurant.cuisine_2, restaurant.cuisine_3]
@@ -116,6 +127,7 @@ export default async function MapPage() {
         statusLine,
       }
     })
+    .filter((place): place is NonNullable<typeof place> => place !== null)
   
   const allCuisineOptions = Array.from(
     new Set(places.flatMap((p) => p.cuisines).map((x) => x.trim()).filter(Boolean))

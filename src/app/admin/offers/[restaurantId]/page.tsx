@@ -19,7 +19,7 @@ export default async function AdminOffersForRestaurantPage({ params }: PageProps
 
   const { data: offers } = await supabase
     .from('offers')
-    .select('id, offer_type, offer_title, is_active')
+    .select('id, offer_type, offer_title, is_active, end_date')
     .eq('restaurant_id', restaurantId)
     .order('created_at', { ascending: true })
 
@@ -45,9 +45,20 @@ export default async function AdminOffersForRestaurantPage({ params }: PageProps
               <div className="min-w-0">
                 <div className="flex flex-wrap items-center gap-2">
                   <p className="truncate font-semibold">{o.offer_title}</p>
-                  <Badge color={o.offer_type === '2for1' ? 'dark' : 'blue'}>
+                  <Badge
+                    color={
+                      o.offer_type === '2for1'
+                        ? 'dark'
+                        : o.offer_type === 'kudafest_set'
+                          ? 'yellow'
+                          : 'blue'
+                    }
+                  >
                     {offerTypeLabel(o.offer_type)}
                   </Badge>
+                  {o.end_date ? (
+                    <Badge color="default">до {o.end_date}</Badge>
+                  ) : null}
                   <Badge color={o.is_active ? 'green' : 'default'}>
                     {listingVisibilityLabel(!!o.is_active)}
                   </Badge>

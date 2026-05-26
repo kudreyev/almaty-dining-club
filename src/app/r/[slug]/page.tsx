@@ -8,8 +8,11 @@ import {
 } from '@/lib/subscription'
 import {
   resolveOfferCooldownDays,
+  filterCatalogActiveOffers,
+  getTodayDateStringInTz,
   type OfferType,
 } from '@/lib/offers'
+import { DEFAULT_TZ } from '@/lib/opening-hours'
 import { RestaurantNavBar } from '@/components/restaurant/restaurant-nav-bar'
 import { RestaurantHeroGallery } from '@/components/restaurant/restaurant-hero-gallery'
 import { RestaurantHero } from '@/components/restaurant/restaurant-hero'
@@ -49,6 +52,7 @@ type Offer = {
   estimated_value: number | null
   cooldown_days: number | null
   dish_photo_url: string | null
+  end_date: string | null
   is_active: boolean
 }
 
@@ -192,7 +196,7 @@ export default async function RestaurantPage({ params }: PageProps) {
       .from('offers')
       .select(`
         id, offer_type, offer_title, offer_terms_short,
-        estimated_value, cooldown_days, dish_photo_url, is_active
+        estimated_value, cooldown_days, dish_photo_url, end_date, is_active
       `)
       .eq('restaurant_id', restaurant.id)
       .eq('is_active', true)
@@ -216,7 +220,8 @@ export default async function RestaurantPage({ params }: PageProps) {
     getCurrentUserSubscription(),
   ])
 
-  const offers = offersResult.data ?? []
+  const today = getTodayDateStringInTz(new Date(), DEFAULT_TZ)
+  const offers = filterCatalogActiveOffers(offersResult.data ?? [], today)
   const offersError = offersResult.error
   const primaryLocation = primaryLocationResult.data
   const hasSubscription = isSubscriptionCurrentlyActive(subscription)

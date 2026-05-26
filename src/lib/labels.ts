@@ -39,8 +39,10 @@ export function paymentStatusLabel(status: 'pending' | 'approved' | 'rejected') 
     }
   }
   
-  export function offerTypeLabel(type: '2for1' | 'compliment') {
-    return type === '2for1' ? '2за1' : 'в подарок'
+  export function offerTypeLabel(type: '2for1' | 'compliment' | 'kudafest_set') {
+    if (type === '2for1') return '2за1'
+    if (type === 'compliment') return 'в подарок'
+    return 'Сеты Kudafest'
   }
 
   /** Статусы записей activation_links для отображения в админке */

@@ -3,6 +3,7 @@ import Image from 'next/image'
 import { MapPin } from 'lucide-react'
 import {
   formatBenefitLabel,
+  formatKudafestBadgeDate,
   formatOfferChipLabel,
   pickTopOffers,
 } from '@/lib/offers'
@@ -52,6 +53,17 @@ export function RestaurantCard({ restaurant, distanceKm }: Props) {
         {topOffers.length > 0 ? (
           <div className="pointer-events-none absolute left-2.5 top-2.5 flex max-w-[70%] flex-col items-start gap-[5px]">
             {topOffers.map((offer, i) => {
+              if (offer.offer_type === 'kudafest_set' && offer.end_date) {
+                return (
+                  <span
+                    key={`${r.id}-kudafest-${i}`}
+                    className="max-w-full truncate rounded-md bg-[#5B21B6]/92 px-2.5 py-[5px] text-xs font-medium text-white backdrop-blur-md"
+                  >
+                    {formatKudafestBadgeDate(offer.end_date)}
+                  </span>
+                )
+              }
+
               const label = formatOfferChipLabel(offer.offer_type, offer.offer_title)
               const isTwoFor1 = offer.offer_type === '2for1'
               return (

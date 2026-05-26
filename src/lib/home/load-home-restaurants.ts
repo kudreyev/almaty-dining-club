@@ -4,6 +4,10 @@ import {
   computeOpenStatus,
   type RestaurantHour,
 } from '@/lib/opening-hours'
+import {
+  filterCatalogActiveOffers,
+  getTodayDateStringInTz,
+} from '@/lib/offers'
 import type { Offer, RestaurantWithStatus } from '@/lib/types'
 
 type SupabaseRow = {
@@ -38,6 +42,7 @@ export type HomeRestaurantsResult = {
 export async function loadHomeRestaurants(): Promise<HomeRestaurantsResult> {
   const supabase = createSupabasePublicClient()
   const now = new Date()
+  const today = getTodayDateStringInTz(now, DEFAULT_TZ)
 
   const { data: restaurants } = await supabase
     .from('restaurants')
@@ -56,6 +61,7 @@ export async function loadHomeRestaurants(): Promise<HomeRestaurantsResult> {
         offer_terms_short,
         estimated_value,
         cooldown_days,
+        end_date,
         is_active
       ),
       restaurant_hours (
@@ -77,11 +83,13 @@ export async function loadHomeRestaurants(): Promise<HomeRestaurantsResult> {
     .order('restaurant_name', { ascending: true })
     .returns<SupabaseRow[]>()
 
-  const safeRestaurants: SupabaseRow[] = (restaurants ?? []).map((r) => ({
-    ...r,
-    offers: (r.offers ?? []).filter((o) => o.is_active),
-    restaurant_hours: r.restaurant_hours ?? [],
-  }))
+  const safeRestaurants: SupabaseRow[] = (restaurants ?? [])
+    .map((r) => ({
+      ...r,
+      offers: filterCatalogActiveOffers(r.offers ?? [], today),
+      restaurant_hours: r.restaurant_hours ?? [],
+    }))
+    .filter((r) => r.offers.length > 0)
 
   const photoByRestaurantId = new Map<string, string>()
   if (safeRestaurants.length > 0) {

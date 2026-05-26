@@ -3,7 +3,8 @@ import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 import { getStaffSessionRestaurantId } from '@/lib/staff-session'
 import { logoutStaff } from '../login/actions'
-import { redeemTokenByCode, verifyStaffPinForRedeem } from './actions'
+import { verifyStaffPinForRedeem } from './actions'
+import { StaffRedeemConfirmForm } from '@/components/staff-redeem-confirm-form'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -216,37 +217,10 @@ export default async function StaffRedeemPage({ searchParams }: PageProps) {
           </div>
         ) : null}
 
-        {tokenFromUrl && tokenUrlIssue === 'none' ? (
-          <form action={redeemTokenByCode} className="mt-6 space-y-4">
-            <input type="hidden" name="tokenCode" value={tokenFromUrl} />
-            <p className="text-center text-2xl font-semibold tracking-[0.15em]">
-              {tokenFromUrl}
-            </p>
-            <p className="text-center text-xs text-gray-500">
-              Нажмите, когда гость предъявил этот код.
-            </p>
-            <Button type="submit" className="w-full">
-              Подтвердить
-            </Button>
-          </form>
-        ) : (
-          <form action={redeemTokenByCode} className="mt-6 space-y-4">
-            <Input
-              id="tokenCode"
-              name="tokenCode"
-              type="text"
-              label="Код гостя"
-              required
-              defaultValue={tokenUrlIssue !== 'none' ? '' : tokenFromUrl}
-              placeholder="Например: 482193"
-              className="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-center text-sm tracking-[0.2em] outline-none transition-colors focus:border-accent"
-              data-ym-disable-keys
-            />
-            <Button type="submit" className="w-full">
-              Подтвердить код
-            </Button>
-          </form>
-        )}
+        <StaffRedeemConfirmForm
+          tokenFromUrl={tokenFromUrl}
+          tokenUrlIssue={tokenUrlIssue}
+        />
       </Card>
     </div>
   )

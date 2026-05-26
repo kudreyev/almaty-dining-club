@@ -96,6 +96,14 @@ export async function verifyStaffPinForRedeem(formData: FormData) {
   redirect(`/staff/redeem?token=${encodeURIComponent(tokenCode)}`)
 }
 
+const REDEEM_IDEMPOTENCY_WINDOW_SECONDS = 60
+
+type RedeemTokenAtomicResult = {
+  ok?: boolean
+  reason?: string
+  idempotent?: boolean
+}
+
 export async function redeemTokenByCode(formData: FormData) {
   await assertStaffRedeemNotRateLimited()
 
@@ -107,74 +115,39 @@ export async function redeemTokenByCode(formData: FormData) {
 
   const { restaurantId, staffUserId } = await requireStaffContext()
   const admin = createSupabaseAdminClient()
-  const nowIso = new Date().toISOString()
 
-  const { data: tokens } = await admin
-    .from('redeem_tokens')
-    .select(
-      'id, user_id, restaurant_id, offer_id, token_code, status, expires_at, redeemed_at, used_at'
-    )
-    .eq('token_code', tokenCode)
-    .eq('restaurant_id', restaurantId)
-    .limit(1)
+  const { data: rpcRaw, error: rpcError } = await admin.rpc('redeem_token_atomic', {
+    p_token_code: tokenCode,
+    p_restaurant_id: restaurantId,
+    p_staff_user_id: staffUserId,
+    p_idempotency_window_seconds: REDEEM_IDEMPOTENCY_WINDOW_SECONDS,
+  })
 
-  const token = tokens?.[0] as
-    | {
-        id: string
-        user_id: string
-        restaurant_id: string
-        offer_id: string
-        token_code: string
-        status: string
-        expires_at: string
-        redeemed_at: string | null
-        used_at: string | null
-      }
-    | undefined
-
-  if (!token) {
-    const limited = await recordStaffRedeemFailure('not_found')
-    redirect(`/staff/redeem?error=${limited ? 'rate_limited' : 'not_found'}`)
+  if (rpcError) {
+    redirect('/staff/redeem?error=redemption_failed')
   }
 
-  if (token.used_at != null || token.status !== 'active') {
-    const limited = await recordStaffRedeemFailure('already_used')
-    redirect(`/staff/redeem?error=${limited ? 'rate_limited' : 'already_used'}`)
+  const result = rpcRaw as RedeemTokenAtomicResult | null
+  if (!result || typeof result.ok !== 'boolean') {
+    redirect('/staff/redeem?error=redemption_failed')
   }
 
-  if (token.expires_at <= nowIso) {
-    const limited = await recordStaffRedeemFailure('expired')
-    redirect(`/staff/redeem?error=${limited ? 'rate_limited' : 'expired'}`)
-  }
+  if (!result.ok) {
+    const reason = result.reason ?? 'redemption_failed'
+    const failureKind =
+      reason === 'not_found'
+        ? 'not_found'
+        : reason === 'already_used'
+          ? 'already_used'
+          : reason === 'expired'
+            ? 'expired'
+            : null
 
-  const redeemedAt = new Date().toISOString()
+    if (failureKind) {
+      const limited = await recordStaffRedeemFailure(failureKind)
+      redirect(`/staff/redeem?error=${limited ? 'rate_limited' : failureKind}`)
+    }
 
-  const { error: updateError } = await admin
-    .from('redeem_tokens')
-    .update({
-      status: 'redeemed',
-      used_at: redeemedAt,
-      redeemed_at: redeemedAt,
-      redeemed_by_staff_id: staffUserId,
-    })
-    .eq('id', token.id)
-
-  if (updateError) {
-    redirect('/staff/redeem?error=update_failed')
-  }
-
-  const { error: insertRedemptionError } = await admin
-    .from('redemptions')
-    .insert({
-      user_id: token.user_id,
-      restaurant_id: token.restaurant_id,
-      offer_id: token.offer_id,
-      redeem_token_id: token.id,
-      staff_user_id: staffUserId,
-      redeemed_at: redeemedAt,
-    })
-
-  if (insertRedemptionError) {
     redirect('/staff/redeem?error=redemption_failed')
   }
 

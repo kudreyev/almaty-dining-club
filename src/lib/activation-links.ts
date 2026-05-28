@@ -1,7 +1,7 @@
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 import { normalizePhoneToE164 } from '@/lib/auth/whatsapp-login'
 import { sendPurchaseEvent } from '@/lib/meta-capi'
-import { buildPurchaseEventId } from '@/lib/meta-purchase'
+import { buildPurchaseEventId, buildTrialEventId } from '@/lib/meta-purchase'
 import { ensureProfilePhone } from '@/lib/profile-sync'
 
 export type ActivationLinkStatus = 'issued' | 'activated' | 'revoked' | 'expired'
@@ -125,7 +125,7 @@ export function precheckActivationLink(row: ActivationLinkRow): ActivationPreche
 }
 
 export type CompleteActivationResult =
-  | { ok: true; purchaseEventId: string; kind: ActivationLinkKind }
+  | { ok: true; purchaseEventId: string; trialEventId: string; kind: ActivationLinkKind }
   | {
       ok: false
       reason:
@@ -238,6 +238,7 @@ export async function completeActivation(args: {
 
   const eventTime = Math.floor(Date.now() / 1000)
   const purchaseEventId = buildPurchaseEventId(args.userId, eventTime)
+  const trialEventId = buildTrialEventId(args.userId, eventTime)
 
   // Trial activations are not real purchases — skip Meta CAPI Purchase event.
   if (kind === 'paid') {
@@ -252,7 +253,7 @@ export async function completeActivation(args: {
     }
   }
 
-  return { ok: true, purchaseEventId, kind }
+  return { ok: true, purchaseEventId, trialEventId, kind }
 }
 
 export function generateHashedActivationToken() {

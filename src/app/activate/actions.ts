@@ -6,7 +6,7 @@ import { completeActivation, getActivationLinkByToken } from '@/lib/activation-l
 import { logAnalyticsEvent } from '@/lib/analytics'
 
 export type ActivateActionResult =
-  | { ok: true; purchaseEventId: string; kind: 'paid' | 'trial' }
+  | { ok: true; purchaseEventId: string; trialEventId: string; kind: 'paid' | 'trial' }
   | {
       ok: false
       reason:
@@ -59,6 +59,7 @@ export async function activateAction(
     return {
       ok: true,
       purchaseEventId: result.purchaseEventId,
+      trialEventId: result.trialEventId,
       kind: result.kind,
     }
   }

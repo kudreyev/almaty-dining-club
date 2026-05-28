@@ -2,7 +2,11 @@
 
 import type { ComponentProps } from 'react'
 import { trackGoal } from '@/lib/analytics-client'
-import { META_SUBSCRIPTION_PRICE_KZT, trackMetaPixel } from '@/lib/meta-pixel-client'
+import {
+  META_SUBSCRIPTION_PRICE_KZT,
+  trackMetaPixelInitiateCheckout,
+} from '@/lib/meta-pixel-client'
+import { buildInitiateCheckoutEventId } from '@/lib/meta-purchase'
 import {
   buildKudaclubSubscribeWhatsAppUrl,
   type WhatsAppMessageKind,
@@ -27,17 +31,26 @@ export function WhatsappGoalLink({
   extraGoal,
   messageKind,
   restaurantName,
+  target = '_blank',
+  rel = 'noopener noreferrer',
   ...rest
 }: WhatsappGoalLinkProps) {
   return (
     <a
       {...rest}
       href={href ?? buildKudaclubSubscribeWhatsAppUrl(messageKind, restaurantName)}
+      target={target}
+      rel={rel}
       onClick={(e) => {
-        trackMetaPixel('InitiateCheckout', {
-          value: META_SUBSCRIPTION_PRICE_KZT,
-          currency: 'KZT',
-        })
+        const eventTime = Math.floor(Date.now() / 1000)
+        const eventId = buildInitiateCheckoutEventId(source, eventTime)
+        trackMetaPixelInitiateCheckout(
+          {
+            value: META_SUBSCRIPTION_PRICE_KZT,
+            currency: 'KZT',
+          },
+          eventId,
+        )
         trackGoal('whatsapp_click', { source })
         if (extraGoal) {
           trackGoal(extraGoal, { source })

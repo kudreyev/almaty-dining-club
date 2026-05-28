@@ -21,14 +21,23 @@ type ActivateCardProps = {
 type Status =
   | { state: 'idle' }
   | { state: 'loading' }
-  | { state: 'success'; purchaseEventId: string; kind: 'paid' | 'trial' }
+  | { state: 'success'; purchaseEventId: string; trialEventId: string; kind: 'paid' | 'trial' }
   | { state: 'error'; reason: Exclude<ActivateActionResult, { ok: true }>['reason'] }
 
-function buildMeActivatedHref(purchaseEventId: string): string {
+function buildMeActivatedHref(args: {
+  kind: 'paid' | 'trial'
+  purchaseEventId: string
+  trialEventId: string
+}): string {
   const query = new URLSearchParams({
     activated: 'true',
-    purchase_event_id: purchaseEventId,
+    activation_kind: args.kind,
   })
+  if (args.kind === 'paid') {
+    query.set('purchase_event_id', args.purchaseEventId)
+  } else {
+    query.set('trial_event_id', args.trialEventId)
+  }
   return `/app/me?${query.toString()}`
 }
 
@@ -83,7 +92,13 @@ export function ActivateCard({ token, phoneTarget, linkKind, trialDays }: Activa
   useEffect(() => {
     if (status.state !== 'success') return
     const id = window.setTimeout(() => {
-      router.push(buildMeActivatedHref(status.purchaseEventId))
+      router.push(
+        buildMeActivatedHref({
+          kind: status.kind,
+          purchaseEventId: status.purchaseEventId,
+          trialEventId: status.trialEventId,
+        }),
+      )
     }, 2000)
     return () => window.clearTimeout(id)
   }, [status, router])
@@ -97,6 +112,7 @@ export function ActivateCard({ token, phoneTarget, linkKind, trialDays }: Activa
         setStatus({
           state: 'success',
           purchaseEventId: result.purchaseEventId,
+          trialEventId: result.trialEventId,
           kind: result.kind,
         })
       } else {
@@ -129,7 +145,11 @@ export function ActivateCard({ token, phoneTarget, linkKind, trialDays }: Activa
               Перейти к заведениям
             </Link>
             <Link
-              href={buildMeActivatedHref(status.purchaseEventId)}
+              href={buildMeActivatedHref({
+                kind: status.kind,
+                purchaseEventId: status.purchaseEventId,
+                trialEventId: status.trialEventId,
+              })}
               className="inline-flex rounded-md border border-gray-300 bg-white px-5 py-3 text-sm font-medium text-gray-900 transition-colors hover:bg-gray-50"
             >
               Открыть кабинет

@@ -1,5 +1,14 @@
+import Link from 'next/link'
 import { requireAdmin } from '@/lib/admin'
 import { buildActivationUrl } from '@/lib/activation-links'
+import {
+  activationLinkUserKindBadgeColor,
+  activationLinkUserKindBadgeLabel,
+  buildUserKindByPhoneE164,
+  resolveActivationLinkDisplayKind,
+  shouldShowActivationLinkInList,
+} from '@/lib/activation-links-list'
+import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 import { createActivationLink } from './actions'
 import { CopyLinkButton } from '@/components/copy-link-button'
 import { PhoneInput } from '@/components/phone-input'
@@ -75,12 +84,24 @@ const SUCCESS_MESSAGES: Record<string, string> = {
   trial: 'Trial-ссылка на 14 дней создана.',
 }
 
+function buildListHref(filter: string, showInternal: boolean): string {
+  const params = new URLSearchParams({ filter })
+  if (showInternal) params.set('showInternal', '1')
+  return `/admin/activation-links?${params.toString()}`
+}
+
 export default async function AdminActivationLinksPage({
   searchParams,
 }: {
-  searchParams: Promise<{ filter?: string; error?: string; created?: string }>
+  searchParams: Promise<{
+    filter?: string
+    error?: string
+    created?: string
+    showInternal?: string
+  }>
 }) {
-  const { supabase } = await requireAdmin()
+  await requireAdmin()
+  const supabase = createSupabaseAdminClient()
 
   const sinceIso = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()
   const [createdCount, openedCount, activatedCount, expiredCount] = await Promise.all([
@@ -93,8 +114,14 @@ export default async function AdminActivationLinksPage({
   const openedPerCreated = createdCount > 0 ? openedCount / createdCount : 0
   const activatedPerOpened = openedCount > 0 ? activatedCount / openedCount : 0
 
-  const { filter: filterRaw, error: errorParam, created: createdParam } = await searchParams
+  const {
+    filter: filterRaw,
+    error: errorParam,
+    created: createdParam,
+    showInternal: showInternalRaw,
+  } = await searchParams
   const filter = filterRaw && isValidFilter(filterRaw) ? filterRaw : 'active'
+  const showInternal = showInternalRaw === '1'
   const nowIso = new Date().toISOString()
 
   let query = supabase
@@ -113,8 +140,20 @@ export default async function AdminActivationLinksPage({
     query = query.eq('status', 'activated')
   }
 
-  const { data: rows, error } = await query.returns<ActivationLinkListRow[]>()
+  const { data: rawRows, error } = await query.returns<ActivationLinkListRow[]>()
   if (error) throw new Error(error.message)
+
+  const { data: profileRows, error: profilesError } = await supabase
+    .from('profiles')
+    .select('phone, user_kind')
+    .not('phone', 'is', null)
+  if (profilesError) throw new Error(profilesError.message)
+
+  const kindByPhone = buildUserKindByPhoneE164(profileRows ?? [])
+  const rows = (rawRows ?? []).filter((row) => {
+    const displayKind = resolveActivationLinkDisplayKind(row.phone_target, kindByPhone)
+    return shouldShowActivationLinkInList(displayKind, showInternal)
+  })
 
   const metrics = [
     { label: 'Создано', value: createdCount },
@@ -125,11 +164,15 @@ export default async function AdminActivationLinksPage({
   ]
 
   const filterTabs = [
-    { id: 'active', label: 'Активные', href: '/admin/activation-links?filter=active' },
-    { id: 'expired', label: 'Истекшие', href: '/admin/activation-links?filter=expired' },
-    { id: 'activated', label: 'Активированные', href: '/admin/activation-links?filter=activated' },
-    { id: 'all', label: 'Все', href: '/admin/activation-links?filter=all' },
+    { id: 'active', label: 'Активные', href: buildListHref('active', showInternal) },
+    { id: 'expired', label: 'Истекшие', href: buildListHref('expired', showInternal) },
+    { id: 'activated', label: 'Активированные', href: buildListHref('activated', showInternal) },
+    { id: 'all', label: 'Все', href: buildListHref('all', showInternal) },
   ]
+
+  const internalToggleHref = showInternal
+    ? buildListHref(filter, false)
+    : buildListHref(filter, true)
 
   const errorMessage = errorParam ? ERROR_MESSAGES[errorParam] : null
   const successMessage = createdParam ? SUCCESS_MESSAGES[createdParam] : null
@@ -139,7 +182,8 @@ export default async function AdminActivationLinksPage({
       <div className="mb-6">
         <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">Ссылки активации</h1>
         <p className="mt-1 text-base leading-6 text-gray-500">
-          Создайте платную ссылку после оплаты или выдайте пробный доступ на 14 дней. Срок действия любой ссылки — 24 часа.
+          Создайте платную ссылку после оплаты или выдайте пробный доступ на 14 дней. Срок действия
+          любой ссылки — 24 часа. В списке по умолчанию только клиенты (без staff/test).
         </p>
       </div>
 
@@ -240,13 +284,26 @@ export default async function AdminActivationLinksPage({
       </div>
 
       {/* FILTERS */}
-      <div className="mb-6">
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <Tabs tabs={filterTabs} active={filter} />
+        <Link
+          href={internalToggleHref}
+          className="rounded-lg border border-gray-200 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+        >
+          {showInternal ? 'Только клиенты' : 'Показать staff/test'}
+        </Link>
       </div>
 
       {/* TABLE */}
-      {!rows?.length ? (
-        <EmptyState title="Пока нет ссылок" description="Создайте первую ссылку выше" />
+      {!rows.length ? (
+        <EmptyState
+          title={showInternal ? 'Пока нет ссылок' : 'Нет ссылок для клиентов'}
+          description={
+            showInternal
+              ? 'Создайте первую ссылку выше'
+              : 'Ссылки staff/test скрыты. Включите «Показать staff/test» или создайте ссылку для клиента.'
+          }
+        />
       ) : (
         <Card padding="none" className="overflow-hidden">
           <div className="overflow-x-auto">
@@ -263,6 +320,10 @@ export default async function AdminActivationLinksPage({
               </thead>
               <tbody className="divide-y divide-gray-50">
                 {rows.map((row) => {
+                  const displayKind = resolveActivationLinkDisplayKind(
+                    row.phone_target,
+                    kindByPhone,
+                  )
                   const url = buildActivationUrl(row.token)
                   const waHref = buildManagerWhatsAppHref(
                     row.phone_target,
@@ -274,7 +335,16 @@ export default async function AdminActivationLinksPage({
                   const isTrial = row.kind === 'trial'
                   return (
                     <tr key={row.id} className="transition-colors hover:bg-gray-50/50">
-                      <td className="px-4 py-3 font-medium">{row.phone_target}</td>
+                      <td className="px-4 py-3 font-medium">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span>{row.phone_target}</span>
+                          {showInternal ? (
+                            <Badge color={activationLinkUserKindBadgeColor(displayKind)}>
+                              {activationLinkUserKindBadgeLabel(displayKind)}
+                            </Badge>
+                          ) : null}
+                        </div>
+                      </td>
                       <td className="px-4 py-3">
                         <Badge color={isTrial ? 'accent' : 'dark'}>
                           {isTrial ? `TRIAL · ${row.trial_days ?? 14}д` : 'PAID'}

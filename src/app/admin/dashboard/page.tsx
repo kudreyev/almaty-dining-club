@@ -1,4 +1,5 @@
 import { requireAdmin } from '@/lib/admin'
+import { createCustomerMetricsScope, type CustomerMetricsScope } from '@/lib/customer-metrics'
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 import { logServerError } from '@/lib/safe-errors'
 import { isKZNumber, normalizeToE164Like } from '@/lib/kz-phone'
@@ -101,6 +102,7 @@ type ProfilePhone = {
 
 type RedemptionForTop = {
   restaurant_id: string
+  user_id: string
 }
 
 type RestaurantNameRow = {
@@ -168,7 +170,7 @@ function aggregateWhatsappFunnel(rows: AnalyticsEventRow[]): WhatsappFunnelStats
   }
 }
 
-async function loadWhatsappFunnel(daysAgo: number) {
+async function loadWhatsappFunnel(scope: CustomerMetricsScope, daysAgo: number) {
   const supabase = createSupabaseAdminClient()
   const since = isoTimestamp(-daysAgo)
   return safe(async () => {
@@ -180,11 +182,11 @@ async function loadWhatsappFunnel(daysAgo: number) {
       .returns<AnalyticsEventRow[]>()
     if (error) throw error
 
-    return aggregateWhatsappFunnel(data ?? [])
+    return aggregateWhatsappFunnel(scope.filterNullableUserRows(data ?? []))
   }, `whatsapp_funnel_${daysAgo}d`)
 }
 
-async function loadWhatsappConversion(daysAgo: number) {
+async function loadWhatsappConversion(scope: CustomerMetricsScope, daysAgo: number) {
   const supabase = createSupabaseAdminClient()
   const since = isoTimestamp(-daysAgo)
   return safe(async () => {
@@ -195,18 +197,16 @@ async function loadWhatsappConversion(daysAgo: number) {
         .eq('event_name', 'whatsapp_click')
         .gte('created_at', since)
         .returns<WhatsappClickRow[]>(),
-      supabase
-        .from('subscriptions')
-        .select('user_id, created_at')
-        .gte('created_at', since)
-        .returns<SubscriptionCreatedRow[]>(),
+      scope.applySubscriptionExclusion(
+        supabase.from('subscriptions').select('user_id, created_at').gte('created_at', since),
+      ).returns<SubscriptionCreatedRow[]>(),
     ])
     if (clicksRes.error) throw clicksRes.error
     if (subsRes.error) throw subsRes.error
 
     return computeWhatsappConversion({
-      clicks: clicksRes.data ?? [],
-      newSubscriptions: subsRes.data ?? [],
+      clicks: scope.filterNullableUserRows(clicksRes.data ?? []),
+      newSubscriptions: scope.filterUserRows(subsRes.data ?? []),
     })
   }, `whatsapp_conversion_${daysAgo}d`)
 }
@@ -229,88 +229,90 @@ async function loadMetricaWhatsappFunnel(daysAgo: number) {
   }, `metrica_whatsapp_${daysAgo}d`)
 }
 
-async function loadActiveSubscribers() {
+async function loadActiveSubscribers(scope: CustomerMetricsScope) {
   const supabase = createSupabaseAdminClient()
   const today = isoDateUtc(0)
   return safe(async () => {
-    const total = await supabase
-      .from('subscriptions')
-      .select('id', { count: 'exact', head: true })
-      .eq('status', 'active')
-      .gte('end_date', today)
+    const total = await scope.applySubscriptionExclusion(
+      supabase
+        .from('subscriptions')
+        .select('id', { count: 'exact', head: true })
+        .eq('status', 'active')
+        .gte('end_date', today),
+    )
     if (total.error) throw total.error
 
-    const paid = await supabase
-      .from('subscriptions')
-      .select('id', { count: 'exact', head: true })
-      .eq('status', 'active')
-      .eq('plan_type', 'paid')
-      .gte('end_date', today)
+    const paid = await scope.applySubscriptionExclusion(
+      supabase
+        .from('subscriptions')
+        .select('id', { count: 'exact', head: true })
+        .eq('status', 'active')
+        .eq('plan_type', 'paid')
+        .gte('end_date', today),
+    )
     if (paid.error) throw paid.error
 
     return { total: total.count ?? 0, paid: paid.count ?? 0 }
   }, 'active_subscribers')
 }
 
-async function loadNewSubscriptions(daysAgo: number) {
+async function loadNewSubscriptions(scope: CustomerMetricsScope, daysAgo: number) {
   const supabase = createSupabaseAdminClient()
   const since = isoTimestamp(-daysAgo)
   return safe(async () => {
-    const total = await supabase
-      .from('subscriptions')
-      .select('id', { count: 'exact', head: true })
-      .gte('created_at', since)
+    const total = await scope.applySubscriptionExclusion(
+      supabase
+        .from('subscriptions')
+        .select('id', { count: 'exact', head: true })
+        .gte('created_at', since),
+    )
     if (total.error) throw total.error
 
-    const paid = await supabase
-      .from('subscriptions')
-      .select('id', { count: 'exact', head: true })
-      .eq('plan_type', 'paid')
-      .gte('created_at', since)
+    const paid = await scope.applySubscriptionExclusion(
+      supabase
+        .from('subscriptions')
+        .select('id', { count: 'exact', head: true })
+        .eq('plan_type', 'paid')
+        .gte('created_at', since),
+    )
     if (paid.error) throw paid.error
 
     return { total: total.count ?? 0, paid: paid.count ?? 0 }
   }, `new_subscriptions_${daysAgo}d`)
 }
 
-async function loadRedemptions30d() {
+async function loadRedemptions30d(scope: CustomerMetricsScope) {
   const supabase = createSupabaseAdminClient()
   const since = isoTimestamp(-30)
   return safe(async () => {
-    const totalRes = await supabase
-      .from('redemptions')
-      .select('id', { count: 'exact', head: true })
-      .gte('redeemed_at', since)
-    if (totalRes.error) throw totalRes.error
-
-    const usersRes = await supabase
-      .from('redemptions')
-      .select('user_id')
-      .gte('redeemed_at', since)
-      .returns<RedemptionUserRow[]>()
+    const usersRes = await scope.applyUserIdExclusion(
+      supabase.from('redemptions').select('id, user_id').gte('redeemed_at', since),
+    ).returns<RedemptionUserRow[]>()
     if (usersRes.error) throw usersRes.error
 
-    const uniqueUsers = new Set((usersRes.data ?? []).map((r) => r.user_id)).size
+    const rows = usersRes.data ?? []
+    const uniqueUsers = new Set(rows.map((r) => r.user_id)).size
 
-    return { total: totalRes.count ?? 0, uniqueUsers }
+    return { total: rows.length, uniqueUsers }
   }, 'redemptions_30d')
 }
 
-async function loadTopRestaurants30d() {
+async function loadTopRestaurants30d(scope: CustomerMetricsScope) {
   const supabase = createSupabaseAdminClient()
   const since = isoTimestamp(-30)
   return safe(async () => {
     // Стратегия: тянем все redemptions за 30 дней (объём пока маленький),
     // группируем в JS, затем достаём имена топ-5 заведений.
-    const rdRes = await supabase
-      .from('redemptions')
-      .select('restaurant_id')
-      .gte('redeemed_at', since)
-      .returns<RedemptionForTop[]>()
+    const rdRes = await scope.applyUserIdExclusion(
+      supabase
+        .from('redemptions')
+        .select('restaurant_id, user_id')
+        .gte('redeemed_at', since),
+    ).returns<RedemptionForTop[]>()
     if (rdRes.error) throw rdRes.error
 
     const counts = new Map<string, number>()
-    for (const row of rdRes.data ?? []) {
+    for (const row of scope.filterUserRows(rdRes.data ?? [])) {
       counts.set(row.restaurant_id, (counts.get(row.restaurant_id) ?? 0) + 1)
     }
 
@@ -335,22 +337,23 @@ async function loadTopRestaurants30d() {
   }, 'top_restaurants_30d')
 }
 
-async function loadExpiringSubscriptions() {
+async function loadExpiringSubscriptions(scope: CustomerMetricsScope) {
   const supabase = createSupabaseAdminClient()
   const today = isoDateUtc(0)
   const in7 = isoDateUtc(7)
   return safe(async () => {
-    const subRes = await supabase
-      .from('subscriptions')
-      .select('id, user_id, end_date, plan_type')
-      .eq('status', 'active')
-      .gte('end_date', today)
-      .lte('end_date', in7)
-      .order('end_date', { ascending: true })
-      .returns<ExpiringRow[]>()
+    const subRes = await scope.applySubscriptionExclusion(
+      supabase
+        .from('subscriptions')
+        .select('id, user_id, end_date, plan_type')
+        .eq('status', 'active')
+        .gte('end_date', today)
+        .lte('end_date', in7)
+        .order('end_date', { ascending: true }),
+    ).returns<ExpiringRow[]>()
     if (subRes.error) throw subRes.error
 
-    const rows = subRes.data ?? []
+    const rows = scope.filterUserRows(subRes.data ?? [])
     if (rows.length === 0) return [] as Array<ExpiringRow & { phone: string | null }>
 
     const profRes = await supabase
@@ -365,7 +368,7 @@ async function loadExpiringSubscriptions() {
   }, 'expiring_subscriptions')
 }
 
-async function loadRetention30d() {
+async function loadRetention30d(scope: CustomerMetricsScope) {
   const supabase = createSupabaseAdminClient()
   const cohortStart = isoTimestamp(-60)
   const cohortEnd = isoTimestamp(-30)
@@ -375,16 +378,17 @@ async function loadRetention30d() {
     //    Для определения "первой" — берём min(created_at) по user_id среди ВСЕХ
     //    подписок до cohortEnd, чтобы не записать в когорту тех, кто оформил
     //    раньше 60 дней назад, но получил вторую подписку в окне 30-60.
-    const earlyRes = await supabase
-      .from('subscriptions')
-      .select('user_id, created_at')
-      .lte('created_at', cohortEnd)
-      .order('created_at', { ascending: true })
-      .returns<SubscriptionRetentionRow[]>()
+    const earlyRes = await scope.applySubscriptionExclusion(
+      supabase
+        .from('subscriptions')
+        .select('user_id, created_at')
+        .lte('created_at', cohortEnd)
+        .order('created_at', { ascending: true }),
+    ).returns<SubscriptionRetentionRow[]>()
     if (earlyRes.error) throw earlyRes.error
 
     const firstByUser = new Map<string, string>()
-    for (const row of earlyRes.data ?? []) {
+    for (const row of scope.filterUserRows(earlyRes.data ?? [])) {
       if (!firstByUser.has(row.user_id)) firstByUser.set(row.user_id, row.created_at)
     }
 
@@ -400,16 +404,18 @@ async function loadRetention30d() {
     }
 
     // 2) Из когорты — сколько имеют активную подписку прямо сейчас.
-    const activeRes = await supabase
-      .from('subscriptions')
-      .select('user_id')
-      .in('user_id', cohort)
-      .eq('status', 'active')
-      .gte('end_date', today)
-      .returns<RedemptionUserRow[]>()
+    const activeRes = await scope.applySubscriptionExclusion(
+      supabase
+        .from('subscriptions')
+        .select('user_id')
+        .in('user_id', cohort)
+        .eq('status', 'active')
+        .gte('end_date', today),
+    ).returns<RedemptionUserRow[]>()
     if (activeRes.error) throw activeRes.error
 
-    const stillActive = new Set((activeRes.data ?? []).map((r) => r.user_id)).size
+    const stillActive = new Set(scope.filterUserRows(activeRes.data ?? []).map((r) => r.user_id))
+      .size
 
     return { cohortSize: cohort.length, stillActive }
   }, 'retention_30d')
@@ -455,6 +461,9 @@ function renderNewBlock(m: MetricValue<{ total: number; paid: number }>): {
 export default async function AdminDashboardPage() {
   await requireAdmin()
 
+  const admin = createSupabaseAdminClient()
+  const scope = await createCustomerMetricsScope(admin)
+
   const [
     activeSubs,
     new7d,
@@ -469,18 +478,18 @@ export default async function AdminDashboardPage() {
     expiring,
     retention,
   ] = await Promise.all([
-    loadActiveSubscribers(),
-    loadNewSubscriptions(7),
-    loadNewSubscriptions(30),
-    loadWhatsappFunnel(7),
-    loadWhatsappFunnel(30),
-    loadWhatsappConversion(7),
-    loadWhatsappConversion(30),
+    loadActiveSubscribers(scope),
+    loadNewSubscriptions(scope, 7),
+    loadNewSubscriptions(scope, 30),
+    loadWhatsappFunnel(scope, 7),
+    loadWhatsappFunnel(scope, 30),
+    loadWhatsappConversion(scope, 7),
+    loadWhatsappConversion(scope, 30),
     loadMetricaWhatsappFunnel(7),
-    loadRedemptions30d(),
-    loadTopRestaurants30d(),
-    loadExpiringSubscriptions(),
-    loadRetention30d(),
+    loadRedemptions30d(scope),
+    loadTopRestaurants30d(scope),
+    loadExpiringSubscriptions(scope),
+    loadRetention30d(scope),
   ])
 
   // --- derived metrics ---
@@ -531,7 +540,8 @@ export default async function AdminDashboardPage() {
       <div className="mb-6">
         <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">Дашборд Kudaclub</h1>
         <p className="mt-1 text-base leading-6 text-gray-500">
-          Внутренние метрики продукта. Обновляется при каждом заходе.
+          Внутренние метрики продукта (только customer, без staff/test). Обновляется при
+          каждом заходе.
         </p>
       </div>
 

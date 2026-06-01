@@ -1,3 +1,4 @@
+import { createCustomerMetricsScope } from '@/lib/customer-metrics'
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 import { computeWhatsappConversion } from '@/lib/whatsapp-analytics'
 
@@ -39,6 +40,7 @@ function isoTimestamp(daysOffset: number): string {
 
 export async function buildWeeklyDigestContext(): Promise<WeeklyDigestContext> {
   const admin = createSupabaseAdminClient()
+  const scope = await createCustomerMetricsScope(admin)
   const sinceDate = isoDateUtc(-7)
   const sinceTs = isoTimestamp(-7)
 
@@ -55,11 +57,16 @@ export async function buildWeeklyDigestContext(): Promise<WeeklyDigestContext> {
       .select('user_id, created_at, meta')
       .eq('event_name', 'whatsapp_click')
       .gte('created_at', sinceTs),
-    admin.from('subscriptions').select('user_id, created_at').gte('created_at', sinceTs),
-    admin
-      .from('redemptions')
-      .select('restaurant_id')
-      .gte('redeemed_at', sinceTs),
+    scope
+      .applySubscriptionExclusion(
+        admin.from('subscriptions').select('user_id, created_at').gte('created_at', sinceTs),
+      ),
+    scope.applyUserIdExclusion(
+      admin
+        .from('redemptions')
+        .select('restaurant_id, user_id')
+        .gte('redeemed_at', sinceTs),
+    ),
   ])
 
   if (snapshotsRes.error) throw snapshotsRes.error
@@ -68,12 +75,12 @@ export async function buildWeeklyDigestContext(): Promise<WeeklyDigestContext> {
   if (redemptionsRes.error) throw redemptionsRes.error
 
   const conversion = computeWhatsappConversion({
-    clicks: clicksRes.data ?? [],
-    newSubscriptions: subsRes.data ?? [],
+    clicks: scope.filterNullableUserRows(clicksRes.data ?? []),
+    newSubscriptions: scope.filterUserRows(subsRes.data ?? []),
   })
 
   const counts = new Map<string, number>()
-  for (const row of redemptionsRes.data ?? []) {
+  for (const row of scope.filterUserRows(redemptionsRes.data ?? [])) {
     counts.set(row.restaurant_id, (counts.get(row.restaurant_id) ?? 0) + 1)
   }
 

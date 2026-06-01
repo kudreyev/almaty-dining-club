@@ -136,6 +136,7 @@ export type CompleteActivationResult =
         | 'wrong_phone'
         | 'subscription_error'
         | 'trial_already_used'
+        | 'not_customer'
     }
 
 /**
@@ -221,6 +222,9 @@ export async function completeActivation(args: {
     }
     if (rpcPayload.reason === 'trial_already_used') {
       return { ok: false, reason: 'trial_already_used' }
+    }
+    if (rpcPayload.reason === 'not_customer') {
+      return { ok: false, reason: 'not_customer' }
     }
     return { ok: false, reason: 'subscription_error' }
   }

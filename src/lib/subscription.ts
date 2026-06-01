@@ -5,7 +5,7 @@ export type SubscriptionRow = {
   id: string
   status: 'inactive' | 'pending_payment' | 'active' | 'expired'
   plan_name: string
-  plan_type: 'paid' | 'trial'
+  plan_type: 'paid' | 'trial' | 'staff'
   start_date: string | null
   end_date: string | null
 }

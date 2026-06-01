@@ -1,3 +1,4 @@
+import { createCustomerMetricsScope, type CustomerMetricsScope } from '@/lib/customer-metrics'
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 
 export const MONTHLY_PRICE_KZT = 1990
@@ -50,17 +51,20 @@ function addDaysToIsoDate(isoDate: string, days: number): string {
 }
 
 async function countActiveSubscribersAtEndOfDay(
+  scope: CustomerMetricsScope,
   admin: ReturnType<typeof createSupabaseAdminClient>,
   date: string,
   planType?: 'paid',
 ) {
   const { end } = almatyDayUtcBounds(date)
-  let q = admin
-    .from('subscriptions')
-    .select('id', { count: 'exact', head: true })
-    .eq('status', 'active')
-    .gte('end_date', date)
-    .lt('created_at', end)
+  let q = scope.applySubscriptionExclusion(
+    admin
+      .from('subscriptions')
+      .select('id', { count: 'exact', head: true })
+      .eq('status', 'active')
+      .gte('end_date', date)
+      .lt('created_at', end),
+  )
   if (planType) q = q.eq('plan_type', planType)
   const { count, error } = await q
   if (error) throw error
@@ -68,16 +72,19 @@ async function countActiveSubscribersAtEndOfDay(
 }
 
 async function countNewSubscriptionsInDay(
+  scope: CustomerMetricsScope,
   admin: ReturnType<typeof createSupabaseAdminClient>,
   date: string,
   planType?: 'paid',
 ) {
   const { start, end } = almatyDayUtcBounds(date)
-  let q = admin
-    .from('subscriptions')
-    .select('id', { count: 'exact', head: true })
-    .gte('created_at', start)
-    .lt('created_at', end)
+  let q = scope.applySubscriptionExclusion(
+    admin
+      .from('subscriptions')
+      .select('id', { count: 'exact', head: true })
+      .gte('created_at', start)
+      .lt('created_at', end),
+  )
   if (planType) q = q.eq('plan_type', planType)
   const { count, error } = await q
   if (error) throw error
@@ -85,17 +92,20 @@ async function countNewSubscriptionsInDay(
 }
 
 async function countRedemptionsInDay(
+  scope: CustomerMetricsScope,
   admin: ReturnType<typeof createSupabaseAdminClient>,
   date: string,
 ) {
   const { start, end } = almatyDayUtcBounds(date)
-  const { count, error } = await admin
-    .from('redemptions')
-    .select('id', { count: 'exact', head: true })
-    .gte('redeemed_at', start)
-    .lt('redeemed_at', end)
+  const { data, error } = await scope.applyUserIdExclusion(
+    admin
+      .from('redemptions')
+      .select('id')
+      .gte('redeemed_at', start)
+      .lt('redeemed_at', end),
+  )
   if (error) throw error
-  return count ?? 0
+  return (data ?? []).length
 }
 
 async function loadWhatsappClicksInDay(
@@ -123,6 +133,7 @@ async function loadWhatsappClicksInDay(
 }
 
 async function computeRetention30dPct(
+  scope: CustomerMetricsScope,
   admin: ReturnType<typeof createSupabaseAdminClient>,
   asOfDate: string,
 ): Promise<number | null> {
@@ -132,15 +143,17 @@ async function computeRetention30dPct(
   const cohortStart = new Date(cohortStartMs).toISOString()
   const cohortEnd = new Date(cohortEndMs).toISOString()
 
-  const earlyRes = await admin
-    .from('subscriptions')
-    .select('user_id, created_at')
-    .lte('created_at', cohortEnd)
-    .order('created_at', { ascending: true })
+  const earlyRes = await scope.applySubscriptionExclusion(
+    admin
+      .from('subscriptions')
+      .select('user_id, created_at')
+      .lte('created_at', cohortEnd)
+      .order('created_at', { ascending: true }),
+  )
   if (earlyRes.error) throw earlyRes.error
 
   const firstByUser = new Map<string, string>()
-  for (const row of earlyRes.data ?? []) {
+  for (const row of scope.filterUserRows(earlyRes.data ?? [])) {
     if (!firstByUser.has(row.user_id)) firstByUser.set(row.user_id, row.created_at)
   }
 
@@ -153,30 +166,35 @@ async function computeRetention30dPct(
 
   if (cohort.length === 0) return null
 
-  const activeRes = await admin
-    .from('subscriptions')
-    .select('user_id')
-    .in('user_id', cohort)
-    .eq('status', 'active')
-    .gte('end_date', asOfDate)
-    .lt('created_at', end)
+  const activeRes = await scope.applySubscriptionExclusion(
+    admin
+      .from('subscriptions')
+      .select('user_id')
+      .in('user_id', cohort)
+      .eq('status', 'active')
+      .gte('end_date', asOfDate)
+      .lt('created_at', end),
+  )
   if (activeRes.error) throw activeRes.error
 
-  const stillActive = new Set((activeRes.data ?? []).map((r) => r.user_id)).size
+  const stillActive = new Set(scope.filterUserRows(activeRes.data ?? []).map((r) => r.user_id)).size
   return Math.round((stillActive / cohort.length) * 1000) / 10
 }
 
 async function countExpiringNext7d(
+  scope: CustomerMetricsScope,
   admin: ReturnType<typeof createSupabaseAdminClient>,
   asOfDate: string,
 ) {
   const in7 = addDaysToIsoDate(asOfDate, 7)
-  const { count, error } = await admin
-    .from('subscriptions')
-    .select('id', { count: 'exact', head: true })
-    .eq('status', 'active')
-    .gte('end_date', asOfDate)
-    .lte('end_date', in7)
+  const { count, error } = await scope.applySubscriptionExclusion(
+    admin
+      .from('subscriptions')
+      .select('id', { count: 'exact', head: true })
+      .eq('status', 'active')
+      .gte('end_date', asOfDate)
+      .lte('end_date', in7),
+  )
   if (error) throw error
   return count ?? 0
 }
@@ -184,6 +202,7 @@ async function countExpiringNext7d(
 /** Считает метрики за календарный день Алматы и возвращает строку для upsert. */
 export async function computeDailySnapshot(date: string): Promise<MetricsDailySnapshot> {
   const admin = createSupabaseAdminClient()
+  const scope = await createCustomerMetricsScope(admin)
 
   const [
     activeSubscribers,
@@ -195,14 +214,14 @@ export async function computeDailySnapshot(date: string): Promise<MetricsDailySn
     retentionPct,
     expiringNext7d,
   ] = await Promise.all([
-    countActiveSubscribersAtEndOfDay(admin, date),
-    countActiveSubscribersAtEndOfDay(admin, date, 'paid'),
-    countNewSubscriptionsInDay(admin, date),
-    countNewSubscriptionsInDay(admin, date, 'paid'),
-    countRedemptionsInDay(admin, date),
+    countActiveSubscribersAtEndOfDay(scope, admin, date),
+    countActiveSubscribersAtEndOfDay(scope, admin, date, 'paid'),
+    countNewSubscriptionsInDay(scope, admin, date),
+    countNewSubscriptionsInDay(scope, admin, date, 'paid'),
+    countRedemptionsInDay(scope, admin, date),
     loadWhatsappClicksInDay(admin, date),
-    computeRetention30dPct(admin, date),
-    countExpiringNext7d(admin, date),
+    computeRetention30dPct(scope, admin, date),
+    countExpiringNext7d(scope, admin, date),
   ])
 
   return {

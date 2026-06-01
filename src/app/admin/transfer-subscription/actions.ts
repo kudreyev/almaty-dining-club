@@ -61,7 +61,7 @@ export async function transferSubscription(formData: FormData): Promise<Transfer
 
   const { data: subscription } = await admin
     .from('subscriptions')
-    .select('id, status, plan_name, start_date, end_date')
+    .select('id, status, plan_name, plan_type, start_date, end_date')
     .eq('user_id', fromUser.id)
     .eq('status', 'active')
     .order('created_at', { ascending: false })
@@ -70,6 +70,19 @@ export async function transferSubscription(formData: FormData): Promise<Transfer
 
   if (!subscription) {
     return { ok: false, error: `У ${fromPhone} нет активной подписки.` }
+  }
+
+  const { data: fromProfile } = await admin
+    .from('profiles')
+    .select('user_kind')
+    .eq('id', fromUser.id)
+    .maybeSingle()
+
+  if (
+    fromProfile?.user_kind !== 'customer' ||
+    subscription.plan_type === 'staff'
+  ) {
+    return { ok: false, error: 'Перенос недоступен для стафф/тест-аккаунтов.' }
   }
 
   const toUser = await findUserByPhone(toPhone)
@@ -179,7 +192,7 @@ export async function previewTransfer(formData: FormData) {
 
   const { data: subscription } = await admin
     .from('subscriptions')
-    .select('id, status, plan_name, start_date, end_date')
+    .select('id, status, plan_name, start_date, end_date, plan_type')
     .eq('user_id', fromUser.id)
     .eq('status', 'active')
     .order('created_at', { ascending: false })
@@ -187,6 +200,19 @@ export async function previewTransfer(formData: FormData) {
     .maybeSingle()
 
   if (!subscription) return { ok: false as const, error: `У ${fromPhone} нет активной подписки.` }
+
+  const { data: fromProfile } = await admin
+    .from('profiles')
+    .select('user_kind')
+    .eq('id', fromUser.id)
+    .maybeSingle()
+
+  if (
+    fromProfile?.user_kind !== 'customer' ||
+    subscription.plan_type === 'staff'
+  ) {
+    return { ok: false as const, error: 'Стафф/тест-аккаунты не переносятся.' }
+  }
 
   const toUser = await findUserByPhone(toPhone)
 

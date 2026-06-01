@@ -18,6 +18,7 @@ export type ActivateActionResult =
         | 'wrong_phone'
         | 'subscription_error'
         | 'trial_already_used'
+        | 'not_customer'
     }
 
 export async function activateAction(

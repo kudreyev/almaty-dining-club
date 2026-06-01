@@ -81,6 +81,11 @@ const ERROR_COPY: Record<
     description:
       'На этот номер уже выдавался пробный доступ. Чтобы продолжить — оформите платную подписку.',
   },
+  not_customer: {
+    title: 'Внутренний доступ',
+    description:
+      'Этот аккаунт помечен как стафф/тест. Активация по ссылке недоступна — доступ выдаётся админом.',
+  },
 }
 
 export function ActivateCard({ token, phoneTarget, linkKind, trialDays }: ActivateCardProps) {

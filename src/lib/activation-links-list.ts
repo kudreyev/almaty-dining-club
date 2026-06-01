@@ -1,68 +1,128 @@
 import { normalizePhoneToE164 } from '@/lib/auth/whatsapp-login'
+import { normalizeToE164Like } from '@/lib/kz-phone'
 import type { UserKind } from '@/lib/user-kind'
 
-/** Классификация номера ссылки для отображения в админке (не влияет на активацию). */
-export type ActivationLinkDisplayKind = 'customer' | 'staff' | 'test' | 'unknown'
+/** Классификация для админ-списка (не влияет на активацию). */
+export type ActivationLinkDisplayKind = 'customer' | 'staff' | 'test'
 
-type ProfilePhoneRow = {
+type ProfileRow = {
+  id: string
   phone: string | null
   user_kind: string | null
 }
 
-export function buildUserKindByPhoneE164(
-  profiles: ProfilePhoneRow[],
-): Map<string, UserKind> {
-  const map = new Map<string, UserKind>()
-  for (const row of profiles) {
-    if (!row.phone) continue
-    const e164 = normalizePhoneToE164(row.phone)
-    if (!e164) continue
-    const kind = (row.user_kind ?? 'customer') as UserKind
-    map.set(e164, kind)
+export type InternalUsersIndex = {
+  userKindById: Map<string, UserKind>
+  phoneKeys: Set<string>
+}
+
+export type ActivationLinkForDisplay = {
+  phone_target: string
+  activated_user_id?: string | null
+}
+
+/** Все варианты ключа для сопоставления phone_target ↔ profiles.phone. */
+export function phoneLookupKeys(raw: string): string[] {
+  const keys = new Set<string>()
+  const e164Like = normalizeToE164Like(raw)
+  const e164Auth = normalizePhoneToE164(raw)
+  if (e164Like) keys.add(e164Like)
+  if (e164Auth) keys.add(e164Auth)
+
+  const digits = raw.replace(/\D/g, '')
+  if (digits.length === 11 && digits.startsWith('8')) {
+    keys.add(`+7${digits.slice(1)}`)
+    keys.add(digits)
   }
-  return map
+  if (digits.length === 11 && digits.startsWith('7')) {
+    keys.add(`+${digits}`)
+    keys.add(digits)
+  }
+  if (digits.length === 10) {
+    keys.add(`+7${digits}`)
+  }
+
+  return [...keys]
+}
+
+export function buildInternalUsersIndex(profiles: ProfileRow[]): InternalUsersIndex {
+  const userKindById = new Map<string, UserKind>()
+  const phoneKeys = new Set<string>()
+
+  for (const row of profiles) {
+    if (row.user_kind !== 'staff' && row.user_kind !== 'test') continue
+    userKindById.set(row.id, row.user_kind)
+    if (!row.phone) continue
+    for (const key of phoneLookupKeys(row.phone)) {
+      phoneKeys.add(key)
+    }
+  }
+
+  return { userKindById, phoneKeys }
+}
+
+export function enrichInternalIndexWithPhones(
+  index: InternalUsersIndex,
+  entries: Array<{ userId: string; phone: string | null | undefined }>,
+): void {
+  for (const { userId, phone } of entries) {
+    if (!index.userKindById.has(userId) || !phone) continue
+    for (const key of phoneLookupKeys(phone)) {
+      index.phoneKeys.add(key)
+    }
+  }
 }
 
 export function resolveActivationLinkDisplayKind(
-  phoneTarget: string,
-  kindByPhone: Map<string, UserKind>,
+  link: ActivationLinkForDisplay,
+  index: InternalUsersIndex,
+  internalProfiles: ProfileRow[],
 ): ActivationLinkDisplayKind {
-  const e164 = normalizePhoneToE164(phoneTarget)
-  if (!e164) return 'unknown'
+  if (link.activated_user_id) {
+    const byUser = index.userKindById.get(link.activated_user_id)
+    if (byUser === 'staff' || byUser === 'test') return byUser
+  }
 
-  const kind = kindByPhone.get(e164)
-  if (!kind) return 'unknown'
-  if (kind === 'staff' || kind === 'test') return kind
+  for (const key of phoneLookupKeys(link.phone_target)) {
+    if (!index.phoneKeys.has(key)) continue
+    for (const row of internalProfiles) {
+      if (row.user_kind !== 'staff' && row.user_kind !== 'test') continue
+      if (!row.phone) continue
+      if (phoneLookupKeys(row.phone).includes(key)) {
+        return row.user_kind as 'staff' | 'test'
+      }
+    }
+  }
+
   return 'customer'
 }
 
 export function shouldShowActivationLinkInList(
-  displayKind: ActivationLinkDisplayKind,
+  link: ActivationLinkForDisplay,
+  index: InternalUsersIndex,
+  internalProfiles: ProfileRow[],
   showInternal: boolean,
 ): boolean {
   if (showInternal) return true
-  return displayKind === 'customer' || displayKind === 'unknown'
+  const kind = resolveActivationLinkDisplayKind(link, index, internalProfiles)
+  return kind === 'customer'
 }
 
-export function activationLinkUserKindBadgeLabel(
-  displayKind: ActivationLinkDisplayKind,
-): string {
-  switch (displayKind) {
+export function activationLinkUserKindBadgeLabel(kind: ActivationLinkDisplayKind): string {
+  switch (kind) {
     case 'staff':
       return 'STAFF'
     case 'test':
       return 'TEST'
-    case 'customer':
-      return 'CUSTOMER'
     default:
       return 'CUSTOMER'
   }
 }
 
 export function activationLinkUserKindBadgeColor(
-  displayKind: ActivationLinkDisplayKind,
+  kind: ActivationLinkDisplayKind,
 ): 'green' | 'dark' | 'yellow' | 'default' {
-  switch (displayKind) {
+  switch (kind) {
     case 'staff':
       return 'dark'
     case 'test':

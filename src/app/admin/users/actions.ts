@@ -52,6 +52,7 @@ export async function markStaffByPhone(formData: FormData): Promise<{
 
   revalidatePath('/admin/users')
   revalidatePath('/admin/dashboard')
+  revalidatePath('/admin/activation-links')
 
   return { ok: true, marked }
 }

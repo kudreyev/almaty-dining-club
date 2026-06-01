@@ -4,7 +4,8 @@ import { buildActivationUrl } from '@/lib/activation-links'
 import {
   activationLinkUserKindBadgeColor,
   activationLinkUserKindBadgeLabel,
-  buildUserKindByPhoneE164,
+  buildInternalUsersIndex,
+  enrichInternalIndexWithPhones,
   resolveActivationLinkDisplayKind,
   shouldShowActivationLinkInList,
 } from '@/lib/activation-links-list'
@@ -31,6 +32,7 @@ type ActivationLinkListRow = {
   created_at: string
   expires_at: string
   activated_at: string | null
+  activated_user_id: string | null
 }
 
 function waMeDigits(phoneE164: string) {
@@ -127,7 +129,7 @@ export default async function AdminActivationLinksPage({
   let query = supabase
     .from('activation_links')
     .select(
-      'id, token, phone_target, amount, currency, status, kind, trial_days, created_at, expires_at, activated_at',
+      'id, token, phone_target, amount, currency, status, kind, trial_days, created_at, expires_at, activated_at, activated_user_id',
     )
     .order('created_at', { ascending: false })
     .limit(50)
@@ -143,17 +145,41 @@ export default async function AdminActivationLinksPage({
   const { data: rawRows, error } = await query.returns<ActivationLinkListRow[]>()
   if (error) throw new Error(error.message)
 
-  const { data: profileRows, error: profilesError } = await supabase
+  const { data: internalProfiles, error: profilesError } = await supabase
     .from('profiles')
-    .select('phone, user_kind')
-    .not('phone', 'is', null)
+    .select('id, phone, user_kind')
+    .in('user_kind', ['staff', 'test'])
   if (profilesError) throw new Error(profilesError.message)
 
-  const kindByPhone = buildUserKindByPhoneE164(profileRows ?? [])
-  const rows = (rawRows ?? []).filter((row) => {
-    const displayKind = resolveActivationLinkDisplayKind(row.phone_target, kindByPhone)
-    return shouldShowActivationLinkInList(displayKind, showInternal)
-  })
+  const internalIndex = buildInternalUsersIndex(internalProfiles ?? [])
+
+  const idsWithoutPhone = (internalProfiles ?? [])
+    .filter((p) => !p.phone)
+    .map((p) => p.id)
+  if (idsWithoutPhone.length > 0) {
+    const { data: authData, error: authError } = await supabase.auth.admin.listUsers({
+      perPage: 1000,
+    })
+    if (authError) throw new Error(authError.message)
+
+    enrichInternalIndexWithPhones(
+      internalIndex,
+      authData.users
+        .filter((u) => idsWithoutPhone.includes(u.id))
+        .map((u) => ({
+          userId: u.id,
+          phone:
+            typeof u.user_metadata?.phone_e164 === 'string'
+              ? u.user_metadata.phone_e164
+              : u.phone,
+        })),
+    )
+  }
+
+  const internalList = internalProfiles ?? []
+  const rows = (rawRows ?? []).filter((row) =>
+    shouldShowActivationLinkInList(row, internalIndex, internalList, showInternal),
+  )
 
   const metrics = [
     { label: 'Создано', value: createdCount },
@@ -321,8 +347,9 @@ export default async function AdminActivationLinksPage({
               <tbody className="divide-y divide-gray-50">
                 {rows.map((row) => {
                   const displayKind = resolveActivationLinkDisplayKind(
-                    row.phone_target,
-                    kindByPhone,
+                    row,
+                    internalIndex,
+                    internalList,
                   )
                   const url = buildActivationUrl(row.token)
                   const waHref = buildManagerWhatsAppHref(

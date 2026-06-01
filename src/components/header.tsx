@@ -38,6 +38,7 @@ export async function Header() {
   const adminLinks = role === 'admin'
     ? [
         { href: '/admin/dashboard', label: 'Дашборд' },
+        { href: '/admin/users', label: 'Пользователи' },
         { href: '/admin/restaurants', label: 'Заведения' },
         { href: '/admin/offers', label: 'Офферы' },
         { href: '/admin/staff', label: 'Сотрудники' },

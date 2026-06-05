@@ -21,7 +21,7 @@ export default function MapEntryCard({ href = '/map' }: Props) {
       <div className="pointer-events-none absolute inset-0 bg-black/0 transition-colors duration-200 group-hover:bg-black/[0.03]" />
       {/* пилюля-кнопка по центру */}
       <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-        <span className="inline-flex items-center gap-2 rounded-full bg-[#1a1a1a] px-5 py-2.5 text-sm font-medium text-white shadow-md">
+        <span className="inline-flex items-center gap-2 rounded-full bg-primary px-5 py-2.5 text-sm font-medium text-white shadow-md transition-colors duration-200 group-hover:bg-primary-hover">
           {/* иконка карты */}
           <svg
             width="18"

@@ -1,9 +1,8 @@
 'use client'
 
 import { useCallback, useMemo } from 'react'
-import Link from 'next/link'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
-import { Map as MapIcon } from 'lucide-react'
+import MapEntryCard from '@/components/MapEntryCard'
 import { FilterChipsBar } from '@/components/home/filter-chips-bar'
 import { RestaurantCard } from '@/components/home/restaurant-card'
 import { EmptyState } from '@/components/ui/empty-state'
@@ -208,18 +207,13 @@ export function VenuesSection({
         <h2 className="text-2xl font-semibold tracking-tight text-neutral-900 sm:text-3xl">
           {title}
         </h2>
-        <div className="flex items-center gap-3">
-          {showCount ? (
-            <span className="hidden text-xs text-neutral-500 sm:inline">{countLabel}</span>
-          ) : null}
-          <Link
-            href={mapHref}
-            className="inline-flex items-center gap-1.5 rounded-full bg-primary px-3.5 py-1.5 text-sm font-medium text-white transition-colors hover:bg-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2"
-          >
-            <MapIcon size={12} aria-hidden="true" />
-            Карта
-          </Link>
-        </div>
+        {showCount ? (
+          <span className="hidden text-xs text-neutral-500 sm:inline">{countLabel}</span>
+        ) : null}
+      </div>
+
+      <div className="mb-4">
+        <MapEntryCard href={mapHref} />
       </div>
 
       <FilterChipsBar

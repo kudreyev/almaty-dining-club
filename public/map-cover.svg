@@ -1,0 +1,95 @@
+<svg viewBox="0 0 1200 500" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Декоративная карта">
+  <defs>
+    <clipPath id="frame">
+      <rect x="0" y="0" width="1200" height="500" rx="0"/>
+    </clipPath>
+    <linearGradient id="parkGrad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#C3D6B2"/>
+      <stop offset="1" stop-color="#B2C9A0"/>
+    </linearGradient>
+  </defs>
+
+  <g clip-path="url(#frame)">
+    <!-- base -->
+    <rect x="0" y="0" width="1200" height="500" fill="#F1EBDE"/>
+
+    <!-- subtle city blocks -->
+    <g fill="#E8E1D1">
+      <rect x="60" y="60" width="180" height="110" rx="6"/>
+      <rect x="280" y="40" width="150" height="90" rx="6"/>
+      <rect x="470" y="70" width="120" height="120" rx="6"/>
+      <rect x="640" y="50" width="170" height="100" rx="6"/>
+      <rect x="900" y="70" width="150" height="130" rx="6"/>
+      <rect x="40" y="220" width="140" height="120" rx="6"/>
+      <rect x="240" y="250" width="130" height="100" rx="6"/>
+      <rect x="780" y="270" width="160" height="110" rx="6"/>
+      <rect x="990" y="250" width="150" height="140" rx="6"/>
+      <rect x="120" y="390" width="170" height="90" rx="6"/>
+      <rect x="350" y="400" width="140" height="80" rx="6"/>
+      <rect x="600" y="400" width="150" height="90" rx="6"/>
+    </g>
+    <g fill="#ECE5D6">
+      <rect x="470" y="240" width="150" height="120" rx="6"/>
+      <rect x="650" y="220" width="100" height="80" rx="6"/>
+      <rect x="900" y="410" width="170" height="80" rx="6"/>
+    </g>
+
+    <!-- water (gentle river) -->
+    <path d="M-40,150 C 180,120 240,260 430,250 C 620,240 700,360 920,330 C 1080,308 1140,400 1260,380"
+          fill="none" stroke="#BFD4D9" stroke-width="46" stroke-linecap="round"/>
+
+    <!-- park -->
+    <path d="M760,360 C 760,300 820,275 880,278 C 960,282 1010,330 1000,400 C 992,455 920,470 850,460 C 790,452 760,420 760,360 Z"
+          fill="url(#parkGrad)"/>
+
+    <!-- street casing (soft shadow under roads) -->
+    <g fill="none" stroke="#E2DAC7" stroke-linecap="round">
+      <path d="M-40,360 L 1260,150" stroke-width="20"/>
+      <path d="M180,-30 L 560,540" stroke-width="16"/>
+      <path d="M-30,250 L 1240,210" stroke-width="14"/>
+      <path d="M700,-30 L 1020,540" stroke-width="14"/>
+    </g>
+
+    <!-- main streets -->
+    <g fill="none" stroke="#FCFAF4" stroke-linecap="round">
+      <path d="M-40,360 L 1260,150" stroke-width="13"/>
+      <path d="M180,-30 L 560,540" stroke-width="10"/>
+      <path d="M-30,250 L 1240,210" stroke-width="9"/>
+      <path d="M700,-30 L 1020,540" stroke-width="9"/>
+    </g>
+
+    <!-- minor streets -->
+    <g fill="none" stroke="#FCFAF4" stroke-linecap="round" stroke-width="5">
+      <path d="M70,40 L 250,420"/>
+      <path d="M420,30 L 470,470"/>
+      <path d="M880,30 L 950,470"/>
+      <path d="M40,170 L 1180,90"/>
+      <path d="M60,440 L 1160,430"/>
+      <path d="M300,300 C 460,360 640,340 820,420" />
+    </g>
+
+    <!-- roundabout -->
+    <circle cx="635" cy="252" r="26" fill="none" stroke="#FCFAF4" stroke-width="9"/>
+    <circle cx="635" cy="252" r="8" fill="#E8E1D1"/>
+
+    <!-- location pins (brand coral) -->
+    <g fill="#D85A30">
+      <g transform="translate(360,210)">
+        <path d="M0,0 C-3.3,-6 -9,-9 -9,-15 a9,9 0 1,1 18,0 C9,-9 3.3,-6 0,0 Z"/>
+        <circle cx="0" cy="-15" r="3.4" fill="#F4EFE6"/>
+      </g>
+      <g transform="translate(720,150)">
+        <path d="M0,0 C-3.3,-6 -9,-9 -9,-15 a9,9 0 1,1 18,0 C9,-9 3.3,-6 0,0 Z"/>
+        <circle cx="0" cy="-15" r="3.4" fill="#F4EFE6"/>
+      </g>
+      <g transform="translate(540,360)">
+        <path d="M0,0 C-3.3,-6 -9,-9 -9,-15 a9,9 0 1,1 18,0 C9,-9 3.3,-6 0,0 Z"/>
+        <circle cx="0" cy="-15" r="3.4" fill="#F4EFE6"/>
+      </g>
+      <g transform="translate(1040,300)">
+        <path d="M0,0 C-3.3,-6 -9,-9 -9,-15 a9,9 0 1,1 18,0 C9,-9 3.3,-6 0,0 Z"/>
+        <circle cx="0" cy="-15" r="3.4" fill="#F4EFE6"/>
+      </g>
+    </g>
+  </g>
+</svg>

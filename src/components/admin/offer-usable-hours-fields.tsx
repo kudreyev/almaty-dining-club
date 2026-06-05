@@ -60,14 +60,21 @@ export function OfferUsableHoursFields({ initialHours = [] }: Props) {
   }
 
   return (
-    <div className="rounded-xl border border-gray-200 p-4">
-      <p className="text-base font-semibold text-gray-900">Расписание использования</p>
+    <div>
+      <p className="text-sm font-medium text-gray-900">Расписание по дням</p>
       <p className="mt-1 text-sm text-gray-500">
-        Только для Kudafest. Укажите часы по дням или оставьте пустым — тогда сет доступен весь день.
-        Для выходного включите «недоступен».
+        Укажите часы для каждого дня. Пустые поля — сет доступен весь день в этот день.
+        Для выходного отметьте «недоступен».
       </p>
 
-      <div className="mt-4 space-y-3">
+      <div className="mt-3 hidden gap-3 px-3 text-xs font-medium uppercase tracking-wide text-gray-400 sm:grid sm:grid-cols-[56px_1fr_1fr_auto]">
+        <span>День</span>
+        <span>С</span>
+        <span>До</span>
+        <span />
+      </div>
+
+      <div className="mt-2 space-y-3">
         {DAY_ROWS.map(({ day, label }) => {
           const row = hoursByDay.get(day)
           if (!row) return null

@@ -46,8 +46,8 @@ create policy "offer_usable_hours_admin_all"
   on public.offer_usable_hours
   for all
   to authenticated
-  using (public.is_profile_admin())
-  with check (public.is_profile_admin());
+  using (public.is_profile_admin(auth.uid()))
+  with check (public.is_profile_admin(auth.uid()));
 
 -- Перенос из одного окна (если миграция 20260605120000 уже применена).
 do $$

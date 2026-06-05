@@ -4,8 +4,8 @@ import { updateOffer } from '../../../actions'
 import { FormSubmitGuard } from '@/components/form-submit-guard'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Input, Select, Textarea } from '@/components/ui/input'
-import { OfferUsableHoursFields } from '@/components/admin/offer-usable-hours-fields'
+import { Input, Textarea } from '@/components/ui/input'
+import { OfferAdminTypeAndSchedule } from '@/components/admin/offer-admin-type-and-schedule'
 import { DEFAULT_OFFER_COOLDOWN_DAYS, type OfferUsableHour } from '@/lib/offers'
 
 type PageProps = { params: Promise<{ restaurantId: string; offerId: string }> }
@@ -52,11 +52,11 @@ export default async function AdminOfferEditPage({ params }: PageProps) {
           <input type="hidden" name="id" value={offer.id} />
           <input type="hidden" name="restaurant_id" value={restaurantId} />
 
-          <Select name="offer_type" label="Тип оффера" defaultValue={offer.offer_type}>
-            <option value="2for1">2за1</option>
-            <option value="compliment">в подарок</option>
-            <option value="kudafest_set">Сеты Kudafest</option>
-          </Select>
+          <OfferAdminTypeAndSchedule
+            defaultOfferType={offer.offer_type}
+            defaultEndDate={offer.end_date ?? ''}
+            initialHours={usableHours ?? []}
+          />
 
           <Input name="offer_title" label="Название предложения" defaultValue={offer.offer_title ?? ''} required />
           <Textarea
@@ -67,15 +67,6 @@ export default async function AdminOfferEditPage({ params }: PageProps) {
             hint="Можно несколько строк — каждая строка отобразится отдельно в карточке оффера."
             required
           />
-          <Input
-            name="end_date"
-            type="date"
-            label="Дата окончания"
-            defaultValue={offer.end_date ?? ''}
-            hint="Обязательно для Kudafest. Для обычных офферов — необязательно."
-          />
-
-          <OfferUsableHoursFields initialHours={usableHours ?? []} />
           <Input
             name="dish_photo_url"
             label="Фото блюда (URL)"

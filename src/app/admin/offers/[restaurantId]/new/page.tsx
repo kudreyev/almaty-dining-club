@@ -3,8 +3,8 @@ import { createOffer } from '../../actions'
 import { FormSubmitGuard } from '@/components/form-submit-guard'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Input, Select, Textarea } from '@/components/ui/input'
-import { OfferUsableHoursFields } from '@/components/admin/offer-usable-hours-fields'
+import { Input, Textarea } from '@/components/ui/input'
+import { OfferAdminTypeAndSchedule } from '@/components/admin/offer-admin-type-and-schedule'
 import { DEFAULT_OFFER_COOLDOWN_DAYS } from '@/lib/offers'
 
 type PageProps = { params: Promise<{ restaurantId: string }> }
@@ -33,11 +33,7 @@ export default async function AdminOfferNewPage({ params }: PageProps) {
         <form action={createOffer} className="space-y-4">
           <input type="hidden" name="restaurant_id" value={restaurantId} />
 
-          <Select name="offer_type" label="Тип оффера" defaultValue="2for1">
-            <option value="2for1">2за1</option>
-            <option value="compliment">в подарок</option>
-            <option value="kudafest_set">Сеты Kudafest</option>
-          </Select>
+          <OfferAdminTypeAndSchedule />
 
           <Input name="offer_title" label="Название предложения" placeholder="Например: Паста" required />
           <Textarea
@@ -48,14 +44,6 @@ export default async function AdminOfferNewPage({ params }: PageProps) {
             hint="Можно несколько строк — каждая строка отобразится отдельно в карточке оффера."
             required
           />
-          <Input
-            name="end_date"
-            type="date"
-            label="Дата окончания"
-            hint="Обязательно для Kudafest. Для обычных офферов — необязательно."
-          />
-
-          <OfferUsableHoursFields />
           <Input
             name="dish_photo_url"
             label="Фото блюда (URL)"

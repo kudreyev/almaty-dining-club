@@ -13,6 +13,7 @@ function schedule(partial: Partial<OfferUsableHour> & Pick<OfferUsableHour, 'day
     is_unavailable: false,
     from_time: '12:00',
     to_time: '15:00',
+    to_next_day: false,
     ...partial,
   }
 }
@@ -24,8 +25,8 @@ describe('offer usable hours by day', () => {
     schedule({ day_of_week: 3 }),
     schedule({ day_of_week: 4 }),
     schedule({ day_of_week: 5 }),
-    { day_of_week: 6, is_unavailable: true, from_time: null, to_time: null },
-    { day_of_week: 7, is_unavailable: true, from_time: null, to_time: null },
+    { day_of_week: 6, is_unavailable: true, from_time: null, to_time: null, to_next_day: false },
+    { day_of_week: 7, is_unavailable: true, from_time: null, to_time: null, to_next_day: false },
   ]
 
   const weekendHours: OfferUsableHour[] = [
@@ -80,5 +81,25 @@ describe('offer usable hours by day', () => {
     expect(formatOfferUsableScheduleSummary(weekdayHours)).toBe(
       'пн 12:00–15:00, вт 12:00–15:00, ср 12:00–15:00, чт 12:00–15:00, пт 12:00–15:00',
     )
+  })
+
+  it('allows usage after midnight for overnight window', () => {
+    const fridayNight: OfferUsableHour[] = [
+      { day_of_week: 1, is_unavailable: true, from_time: null, to_time: null, to_next_day: false },
+      { day_of_week: 2, is_unavailable: true, from_time: null, to_time: null, to_next_day: false },
+      { day_of_week: 3, is_unavailable: true, from_time: null, to_time: null, to_next_day: false },
+      { day_of_week: 4, is_unavailable: true, from_time: null, to_time: null, to_next_day: false },
+      schedule({ day_of_week: 5, from_time: '22:00', to_time: '01:00', to_next_day: true }),
+      { day_of_week: 6, is_unavailable: true, from_time: null, to_time: null, to_next_day: false },
+      { day_of_week: 7, is_unavailable: true, from_time: null, to_time: null, to_next_day: false },
+    ]
+
+    const fridayEvening = new Date('2026-06-05T17:30:00.000Z') // пт 22:30
+    const saturdayAfterMidnight = new Date('2026-06-05T19:30:00.000Z') // сб 00:30
+    const saturdayMorning = new Date('2026-06-05T22:30:00.000Z') // сб 03:30
+
+    expect(isOfferUsableNow(fridayNight, fridayEvening, 'Asia/Almaty')).toBe(true)
+    expect(isOfferUsableNow(fridayNight, saturdayAfterMidnight, 'Asia/Almaty')).toBe(true)
+    expect(isOfferUsableNow(fridayNight, saturdayMorning, 'Asia/Almaty')).toBe(false)
   })
 })

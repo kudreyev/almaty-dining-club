@@ -94,7 +94,7 @@ export default async function RedeemPage({ params, searchParams }: PageProps) {
     .from('offers')
     .select(`
       id, offer_title, offer_terms_short, offer_type, estimated_value, cooldown_days,
-      offer_usable_hours ( day_of_week, is_unavailable, from_time, to_time )
+      offer_usable_hours ( day_of_week, is_unavailable, from_time, to_time, to_next_day )
     `)
     .eq('id', offerId)
     .eq('restaurant_id', restaurantId)

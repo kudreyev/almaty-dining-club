@@ -59,19 +59,35 @@ function parseOfferUsableHoursFromFormData(
 
   for (let day = 1; day <= 7; day += 1) {
     const isUnavailable = formData.get(`offer_hours_${day}_is_unavailable`) === 'on'
+    const toNextDayChecked = formData.get(`offer_hours_${day}_to_next_day`) === 'on'
     const from = sanitizeTime(formData.get(`offer_hours_${day}_from_time`))
     const to = sanitizeTime(formData.get(`offer_hours_${day}_to_time`))
 
     if (!isUnavailable && from && to) {
-      if (from >= to) {
-        throw new Error(`День ${day}: время окончания должно быть позже начала`)
+      const inferredToNextDay = to < from
+      const toNextDay = toNextDayChecked || inferredToNextDay
+
+      if (!toNextDay && to <= from) {
+        throw new Error(
+          `День ${day}: время окончания должно быть позже начала или включите «До следующего дня»`,
+        )
       }
+      if (toNextDay && to >= from) {
+        throw new Error(
+          `День ${day}: при закрытии на следующий день окончание должно быть раньше начала (например 22:00–01:00)`,
+        )
+      }
+      if (from === to) {
+        throw new Error(`День ${day}: время начала и окончания не может совпадать`)
+      }
+
       anyConfigured = true
       hours.push({
         day_of_week: day,
         is_unavailable: false,
         from_time: from,
         to_time: to,
+        to_next_day: toNextDay,
       })
       continue
     }
@@ -85,6 +101,7 @@ function parseOfferUsableHoursFromFormData(
       is_unavailable: true,
       from_time: null,
       to_time: null,
+      to_next_day: false,
     })
   }
 
@@ -110,6 +127,7 @@ async function replaceOfferUsableHours(
     is_unavailable: item.is_unavailable,
     from_time: item.from_time,
     to_time: item.to_time,
+    to_next_day: item.to_next_day ?? false,
   }))
 
   const { error: insertError } = await supabase.from('offer_usable_hours').insert(payload)

@@ -145,7 +145,7 @@ export async function generateRedeemToken(formData: FormData) {
     .from('offers')
     .select(`
       cooldown_days,
-      offer_usable_hours ( day_of_week, is_unavailable, from_time, to_time )
+      offer_usable_hours ( day_of_week, is_unavailable, from_time, to_time, to_next_day )
     `)
     .eq('id', offerId)
     .eq('restaurant_id', restaurantId)
@@ -157,6 +157,7 @@ export async function generateRedeemToken(formData: FormData) {
         is_unavailable: boolean
         from_time: string | null
         to_time: string | null
+        to_next_day: boolean
       }> | null
     }>()
 

@@ -29,7 +29,7 @@ export default async function AdminOfferEditPage({ params }: PageProps) {
       .single(),
     supabase
       .from('offer_usable_hours')
-      .select('day_of_week, is_unavailable, from_time, to_time')
+      .select('day_of_week, is_unavailable, from_time, to_time, to_next_day')
       .eq('offer_id', offerId)
       .order('day_of_week', { ascending: true })
       .returns<OfferUsableHour[]>(),

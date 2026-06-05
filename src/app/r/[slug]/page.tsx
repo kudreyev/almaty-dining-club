@@ -201,7 +201,7 @@ export default async function RestaurantPage({ params }: PageProps) {
       .select(`
         id, offer_type, offer_title, offer_terms_short,
         estimated_value, cooldown_days, dish_photo_url, end_date, is_active,
-        offer_usable_hours ( day_of_week, is_unavailable, from_time, to_time )
+        offer_usable_hours ( day_of_week, is_unavailable, from_time, to_time, to_next_day )
       `)
       .eq('restaurant_id', restaurant.id)
       .eq('is_active', true)

@@ -22,6 +22,7 @@ export type OfferUsableHour = {
   is_unavailable: boolean
   from_time: string | null
   to_time: string | null
+  to_next_day?: boolean
 }
 
 export function getOfferUsableHours(
@@ -49,6 +50,11 @@ function isWithinHourRow(row: OfferUsableHour, nowMinutes: number): boolean {
   const fromMinutes = timeToMinutes(row.from_time)
   const toMinutes = timeToMinutes(row.to_time)
   if (fromMinutes == null || toMinutes == null) return false
+
+  if (row.to_next_day) {
+    return nowMinutes >= fromMinutes
+  }
+
   return nowMinutes >= fromMinutes && nowMinutes < toMinutes
 }
 
@@ -60,10 +66,22 @@ export function isOfferUsableNow(
 ): boolean {
   if (!hasOfferUsableSchedule(hours)) return true
 
-  const todayRow = findUsableHourRow(hours, getTodayDow(now, tz))
+  const todayDow = getTodayDow(now, tz)
+  const yesterdayDow = ((todayDow + 5) % 7) + 1
+  const nowMinutes = nowMinutesInTimezone(now, tz)
+
+  const yesterdayRow = findUsableHourRow(hours, yesterdayDow)
+  if (yesterdayRow?.to_next_day) {
+    const toMinutes = timeToMinutes(yesterdayRow.to_time)
+    if (toMinutes != null && nowMinutes < toMinutes) {
+      return true
+    }
+  }
+
+  const todayRow = findUsableHourRow(hours, todayDow)
   if (!todayRow) return false
 
-  return isWithinHourRow(todayRow, nowMinutesInTimezone(now, tz))
+  return isWithinHourRow(todayRow, nowMinutes)
 }
 
 function findNextUsableDay(

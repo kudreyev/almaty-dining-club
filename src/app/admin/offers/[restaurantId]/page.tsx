@@ -22,7 +22,7 @@ export default async function AdminOffersForRestaurantPage({ params }: PageProps
     .from('offers')
     .select(`
       id, offer_type, offer_title, is_active, end_date,
-      offer_usable_hours ( day_of_week, is_unavailable, from_time, to_time )
+      offer_usable_hours ( day_of_week, is_unavailable, from_time, to_time, to_next_day )
     `)
     .eq('restaurant_id', restaurantId)
     .order('created_at', { ascending: true })

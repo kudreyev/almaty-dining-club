@@ -269,7 +269,7 @@ async function loadYandexMapsV3(apiKey: string): Promise<YMaps3Api> {
 
   if (getYmaps3()) {
     const ymaps3 = getYmaps3() as YMaps3Api
-    await ymaps3.ready
+    await waitForYmaps3Ready(ymaps3)
     return ymaps3
   }
 
@@ -292,14 +292,28 @@ async function loadYandexMapsV3(apiKey: string): Promise<YMaps3Api> {
 
   const ymaps3 = await waitForYmaps3()
 
-  try {
-    await ymaps3.ready
-  } catch (readyError: unknown) {
-    const message = readyError instanceof Error ? readyError.message : String(readyError)
-    throw new Error(`Яндекс.Карты v3 отклонили инициализацию: ${message}`)
-  }
-
+  await waitForYmaps3Ready(ymaps3)
   return ymaps3
+}
+
+function waitForYmaps3Ready(ymaps3: YMaps3Api, timeoutMs = 20_000): Promise<void> {
+  const host = typeof window !== 'undefined' ? window.location.hostname : 'unknown'
+
+  return Promise.race([
+    ymaps3.ready,
+    new Promise<void>((_, reject) => {
+      window.setTimeout(() => {
+        reject(
+          new Error(
+            `Таймаут ymaps3.ready. Добавьте «${host}» в HTTP Referer ключа Яндекс.Карт и подождите ~15 мин.`
+          )
+        )
+      }, timeoutMs)
+    }),
+  ]).catch((readyError: unknown) => {
+    const message = readyError instanceof Error ? readyError.message : String(readyError)
+    throw new Error(`Яндекс.Карты v3: ${message}`)
+  })
 }
 
 function waitForYmapsV21(timeoutMs = 20_000): Promise<YMapsV21Api> {
@@ -445,7 +459,6 @@ async function initMapV3(
     },
     margin: [FIT_PADDING, FIT_PADDING, FIT_PADDING, FIT_PADDING],
     zoomRange: { min: 3, max: MAX_ZOOM },
-    mode: 'vector',
   })
 
   map.addChild(
@@ -528,6 +541,8 @@ export function YandexRestaurantsMap({ places }: { places: MapPlace[] }) {
   const apiKey = process.env.NEXT_PUBLIC_YANDEX_MAPS_API_KEY
   const containerRef = useRef<HTMLDivElement | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [mapEngine, setMapEngine] = useState<'v3' | 'v21' | null>(null)
+  const [v3FallbackReason, setV3FallbackReason] = useState<string | null>(null)
 
   const safePlaces = useMemo(
     () =>
@@ -573,17 +588,22 @@ export function YandexRestaurantsMap({ places }: { places: MapPlace[] }) {
     const init = async () => {
       if (disposed || !containerRef.current) return
 
+      setMapEngine(null)
+      setV3FallbackReason(null)
+
       try {
         const ymaps3 = await loadYandexMapsV3(apiKey)
         if (disposed || !containerRef.current) return
 
         map = await initMapV3(containerRef.current, ymaps3, safePlaces, handleOpenBalloon)
+        setMapEngine('v3')
         document.addEventListener('click', handleDocumentClick)
         return
       } catch (v3Error: unknown) {
-        safeLog.warn('[map] v3 init failed, falling back to 2.1', {
-          message: v3Error instanceof Error ? v3Error.message : String(v3Error),
-        })
+        const reason = v3Error instanceof Error ? v3Error.message : String(v3Error)
+        safeLog.warn('[map] v3 init failed, falling back to 2.1', { message: reason })
+        setV3FallbackReason(reason)
+        removeMapScripts()
       }
 
       if (disposed || !containerRef.current) return
@@ -593,6 +613,7 @@ export function YandexRestaurantsMap({ places }: { places: MapPlace[] }) {
       if (disposed || !containerRef.current) return
 
       map = initMapV21(containerRef.current, ymaps, safePlaces)
+      setMapEngine('v21')
     }
 
     init().catch((loadError: unknown) => {
@@ -636,8 +657,24 @@ export function YandexRestaurantsMap({ places }: { places: MapPlace[] }) {
         </div>
       ) : null}
       {process.env.NODE_ENV !== 'production' ? (
-        <div className="pointer-events-none absolute bottom-20 left-4 z-10 rounded-xl border border-gray-200 bg-white/90 px-3 py-2 text-xs text-gray-600 shadow-sm backdrop-blur sm:bottom-4">
-          Всего: {places.length} · с координатами: {safePlaces.length}
+        <div className="pointer-events-none absolute bottom-20 left-4 z-10 max-w-xs space-y-2 sm:bottom-4">
+          <div className="rounded-xl border border-gray-200 bg-white/90 px-3 py-2 text-xs text-gray-600 shadow-sm backdrop-blur">
+            Всего: {places.length} · с координатами: {safePlaces.length}
+          </div>
+          {mapEngine ? (
+            <div
+              className={`rounded-xl border px-3 py-2 text-xs shadow-sm backdrop-blur ${
+                mapEngine === 'v3'
+                  ? 'border-emerald-200 bg-emerald-50/95 text-emerald-800'
+                  : 'border-amber-200 bg-amber-50/95 text-amber-900'
+              }`}
+            >
+              API: {mapEngine === 'v3' ? 'v3 (POI скрыты)' : '2.1 (fallback, POI видны)'}
+              {mapEngine === 'v21' && v3FallbackReason ? (
+                <div className="mt-1 leading-snug opacity-90">{v3FallbackReason}</div>
+              ) : null}
+            </div>
+          ) : null}
         </div>
       ) : null}
     </div>

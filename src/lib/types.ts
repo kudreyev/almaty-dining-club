@@ -10,6 +10,8 @@ export type Offer = {
   estimated_value?: number | null
   cooldown_days?: number | null
   end_date?: string | null
+  usable_from_time?: string | null
+  usable_to_time?: string | null
   is_active: boolean
 }
 

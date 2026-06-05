@@ -10,7 +10,14 @@ import { RedeemTokenCard } from '@/components/redeem-token-card'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { formatOfferCooldownText, formatOfferHeadline, resolveOfferCooldownDays } from '@/lib/offers'
+import { DEFAULT_TZ } from '@/lib/opening-hours'
+import {
+  formatOfferCooldownText,
+  formatOfferHeadline,
+  formatOfferUsableHoursStatus,
+  resolveOfferCooldownDays,
+  type OfferType,
+} from '@/lib/offers'
 import { ruDayWordAfterNumber } from '@/lib/ru-plural'
 
 type PageProps = {
@@ -29,9 +36,11 @@ type Offer = {
   id: string
   offer_title: string
   offer_terms_short: string
-  offer_type: '2for1' | 'compliment'
+  offer_type: OfferType
   estimated_value: number | null
   cooldown_days?: number | null
+  usable_from_time?: string | null
+  usable_to_time?: string | null
 }
 type RedeemToken = {
   id: string
@@ -43,13 +52,21 @@ type RedeemToken = {
   extended_once: boolean
 }
 
-function getRedeemErrorMessage(code: string | undefined, cooldownDays: number) {
+function getRedeemErrorMessage(
+  code: string | undefined,
+  cooldownDays: number,
+  usableHoursLabel: string | null,
+) {
   switch (code) {
     case 'active_token': return 'У вас уже есть активный код.'
     case 'cooldown_offer':
       return cooldownDays === 1
         ? 'Этот оффер доступен не чаще одного раза в день.'
         : `Этот оффер доступен не чаще одного раза в ${cooldownDays} ${ruDayWordAfterNumber(cooldownDays)}.`
+    case 'usable_hours':
+      return usableHoursLabel
+        ? `Сейчас вне окна использования. ${usableHoursLabel}.`
+        : 'Сейчас вне окна использования этого оффера.'
     case 'server_error': return 'Ошибка. Попробуйте снова.'
     default: return null
   }
@@ -74,15 +91,21 @@ export default async function RedeemPage({ params, searchParams }: PageProps) {
 
   const { data: offer } = await supabase
     .from('offers')
-    .select('id, offer_title, offer_terms_short, offer_type, estimated_value, cooldown_days')
+    .select(`
+      id, offer_title, offer_terms_short, offer_type, estimated_value, cooldown_days,
+      usable_from_time, usable_to_time
+    `)
     .eq('id', offerId)
     .eq('restaurant_id', restaurantId)
     .eq('is_active', true)
     .maybeSingle<Offer>()
 
   if (!restaurant || !offer) notFound()
+  const now = new Date()
   const offerCooldownDays = resolveOfferCooldownDays(offer.cooldown_days)
-  const errorMessage = getRedeemErrorMessage(error, offerCooldownDays)
+  const usableStatus = formatOfferUsableHoursStatus(offer, now, DEFAULT_TZ)
+  const errorMessage = getRedeemErrorMessage(error, offerCooldownDays, usableStatus.label)
+  const canGenerateCode = usableStatus.isUsable
 
   const { data: activeTokens } = await supabase
     .from('redeem_tokens')
@@ -105,7 +128,11 @@ export default async function RedeemPage({ params, searchParams }: PageProps) {
       <Card padding="lg">
         <div className="flex flex-wrap items-center gap-2">
           <Badge color="dark">
-            {offer.offer_type === '2for1' ? '2за1' : 'в подарок'}
+            {offer.offer_type === '2for1'
+              ? '2за1'
+              : offer.offer_type === 'kudafest_set'
+                ? 'Kudafest'
+                : 'в подарок'}
           </Badge>
           <Badge color="green">Подписка активна</Badge>
         </div>
@@ -152,15 +179,22 @@ export default async function RedeemPage({ params, searchParams }: PageProps) {
               <li>Код действует 10 минут</li>
               <li>Одновременно — 1 активный код</li>
               <li>{formatOfferCooldownText(offerCooldownDays)}</li>
+              {usableStatus.label ? <li>{usableStatus.label}</li> : null}
             </ul>
 
-            <form action={generateRedeemToken} className="mt-4">
-              <input type="hidden" name="restaurantId" value={restaurant.id} />
-              <input type="hidden" name="offerId" value={offer.id} />
-              <Button type="submit" className="w-full">
-                Сгенерировать код
+            {canGenerateCode ? (
+              <form action={generateRedeemToken} className="mt-4">
+                <input type="hidden" name="restaurantId" value={restaurant.id} />
+                <input type="hidden" name="offerId" value={offer.id} />
+                <Button type="submit" className="w-full">
+                  Сгенерировать код
+                </Button>
+              </form>
+            ) : (
+              <Button type="button" className="mt-4 w-full" disabled>
+                {usableStatus.label ?? 'Сейчас недоступно'}
               </Button>
-            </form>
+            )}
           </div>
         )}
 

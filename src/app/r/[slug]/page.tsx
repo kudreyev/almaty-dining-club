@@ -10,6 +10,7 @@ import {
   resolveOfferCooldownDays,
   filterCatalogActiveOffers,
   getTodayDateStringInTz,
+  formatOfferUsableHoursStatus,
   type OfferType,
 } from '@/lib/offers'
 import { DEFAULT_TZ } from '@/lib/opening-hours'
@@ -53,6 +54,8 @@ type Offer = {
   cooldown_days: number | null
   dish_photo_url: string | null
   end_date: string | null
+  usable_from_time: string | null
+  usable_to_time: string | null
   is_active: boolean
 }
 
@@ -196,7 +199,8 @@ export default async function RestaurantPage({ params }: PageProps) {
       .from('offers')
       .select(`
         id, offer_type, offer_title, offer_terms_short,
-        estimated_value, cooldown_days, dish_photo_url, end_date, is_active
+        estimated_value, cooldown_days, dish_photo_url, end_date,
+        usable_from_time, usable_to_time, is_active
       `)
       .eq('restaurant_id', restaurant.id)
       .eq('is_active', true)
@@ -220,7 +224,8 @@ export default async function RestaurantPage({ params }: PageProps) {
     getCurrentUserSubscription(),
   ])
 
-  const today = getTodayDateStringInTz(new Date(), DEFAULT_TZ)
+  const now = new Date()
+  const today = getTodayDateStringInTz(now, DEFAULT_TZ)
   const offers = filterCatalogActiveOffers(offersResult.data ?? [], today)
   const offersError = offersResult.error
   const primaryLocation = primaryLocationResult.data
@@ -335,15 +340,20 @@ export default async function RestaurantPage({ params }: PageProps) {
           </h2>
 
           <RestaurantOffersList
-            offers={offers.map((offer) => ({
-              id: offer.id,
-              offer_type: offer.offer_type,
-              offer_title: offer.offer_title,
-              offer_terms_short: offer.offer_terms_short,
-              estimated_value: offer.estimated_value,
-              cooldown_days: offer.cooldown_days,
-              dish_photo_url: offer.dish_photo_url,
-            }))}
+            offers={offers.map((offer) => {
+              const usableStatus = formatOfferUsableHoursStatus(offer, now, DEFAULT_TZ)
+              return {
+                id: offer.id,
+                offer_type: offer.offer_type,
+                offer_title: offer.offer_title,
+                offer_terms_short: offer.offer_terms_short,
+                estimated_value: offer.estimated_value,
+                cooldown_days: offer.cooldown_days,
+                dish_photo_url: offer.dish_photo_url,
+                usableHoursLabel: usableStatus.label,
+                isOutsideUsableHours: !usableStatus.isUsable,
+              }
+            })}
             restaurantId={restaurant.id}
             restaurantSlug={restaurant.slug}
             restaurantName={restaurant.restaurant_name}

@@ -36,6 +36,42 @@ function sanitizeEndDate(value: FormDataEntryValue | null): string | null {
   return stringValue
 }
 
+function sanitizeTime(value: FormDataEntryValue | null): string | null {
+  if (value == null) return null
+  const stringValue = String(value).trim()
+  if (!stringValue) return null
+  const match = stringValue.match(/^(\d{1,2}):(\d{2})$/)
+  if (!match) return null
+  const hours = Number(match[1])
+  const minutes = Number(match[2])
+  if (hours < 0 || hours > 23 || minutes < 0 || minutes > 59) return null
+  return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`
+}
+
+function sanitizeUsableHours(
+  offerType: string,
+  fromRaw: FormDataEntryValue | null,
+  toRaw: FormDataEntryValue | null,
+): { usable_from_time: string | null; usable_to_time: string | null } {
+  if (offerType !== 'kudafest_set') {
+    return { usable_from_time: null, usable_to_time: null }
+  }
+
+  const from = sanitizeTime(fromRaw)
+  const to = sanitizeTime(toRaw)
+  if (!from && !to) {
+    return { usable_from_time: null, usable_to_time: null }
+  }
+  if (!from || !to) {
+    throw new Error('Для Kudafest укажите время начала и окончания окна использования')
+  }
+  if (from >= to) {
+    throw new Error('Время окончания окна использования должно быть позже начала')
+  }
+
+  return { usable_from_time: from, usable_to_time: to }
+}
+
 async function generateUniqueOfferKey(
   supabase: Awaited<ReturnType<typeof requireAdmin>>['supabase'],
   restaurantId: string,
@@ -78,6 +114,12 @@ export async function createOffer(formData: FormData) {
   const providedOfferKey = String(formData.get('offer_key') || '').trim()
   const offerKey = providedOfferKey || await generateUniqueOfferKey(supabase, restaurantId, offerTitle, offerType)
 
+  const usableHours = sanitizeUsableHours(
+    offerType,
+    formData.get('usable_from_time'),
+    formData.get('usable_to_time'),
+  )
+
   const payload = {
     restaurant_id: restaurantId,
     offer_type: offerType,
@@ -88,6 +130,7 @@ export async function createOffer(formData: FormData) {
     estimated_value: sanitizeEstimatedValue(formData.get('estimated_value')),
     cooldown_days: sanitizeCooldownDays(formData.get('cooldown_days')),
     end_date: endDate,
+    ...usableHours,
     dish_photo_url: String(formData.get('dish_photo_url') || '').trim() || null,
     is_active: formData.get('is_active') === 'on',
   }
@@ -128,6 +171,12 @@ export async function updateOffer(formData: FormData) {
       || incomingOfferKey
       || await generateUniqueOfferKey(supabase, restaurantId, offerTitle, offerType)
 
+  const usableHours = sanitizeUsableHours(
+    offerType,
+    formData.get('usable_from_time'),
+    formData.get('usable_to_time'),
+  )
+
   const payload = {
     offer_type: offerType,
     offer_key: offerKey,
@@ -137,6 +186,7 @@ export async function updateOffer(formData: FormData) {
     estimated_value: sanitizeEstimatedValue(formData.get('estimated_value')),
     cooldown_days: sanitizeCooldownDays(formData.get('cooldown_days')),
     end_date: endDate,
+    ...usableHours,
     dish_photo_url: String(formData.get('dish_photo_url') || '').trim() || null,
     is_active: formData.get('is_active') === 'on',
   }

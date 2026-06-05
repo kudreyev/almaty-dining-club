@@ -65,6 +65,23 @@ export default async function AdminOfferEditPage({ params }: PageProps) {
             defaultValue={offer.end_date ?? ''}
             hint="Обязательно для Kudafest. Для обычных офферов — необязательно."
           />
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Input
+              name="usable_from_time"
+              type="time"
+              label="Окно использования — с"
+              defaultValue={offer.usable_from_time?.slice(0, 5) ?? ''}
+              hint="Только для Kudafest. Если не указано — доступен весь день."
+            />
+            <Input
+              name="usable_to_time"
+              type="time"
+              label="Окно использования — до"
+              defaultValue={offer.usable_to_time?.slice(0, 5) ?? ''}
+              hint="Например: 12:00–15:00 для ланч-сета."
+            />
+          </div>
           <Input
             name="dish_photo_url"
             label="Фото блюда (URL)"

@@ -1,4 +1,9 @@
-import { DEFAULT_TZ } from '@/lib/opening-hours'
+import {
+  DEFAULT_TZ,
+  normalizeTime,
+  nowMinutesInTimezone,
+  timeToMinutes,
+} from '@/lib/opening-hours'
 import { ruDayWordAfterNumber } from '@/lib/ru-plural'
 
 export const DEFAULT_OFFER_COOLDOWN_DAYS = 7
@@ -8,6 +13,51 @@ export type OfferType = '2for1' | 'compliment' | 'kudafest_set'
 export type CatalogOfferLike = {
   is_active: boolean
   end_date?: string | null
+}
+
+export type OfferUsableHours = {
+  usable_from_time?: string | null
+  usable_to_time?: string | null
+}
+
+export function hasOfferUsableHours(offer: OfferUsableHours): boolean {
+  return Boolean(offer.usable_from_time?.trim() && offer.usable_to_time?.trim())
+}
+
+/** Оффер с окном использования доступен в текущий момент (таймзона каталога). */
+export function isOfferUsableNow(
+  offer: OfferUsableHours,
+  now: Date = new Date(),
+  tz: string = DEFAULT_TZ,
+): boolean {
+  if (!hasOfferUsableHours(offer)) return true
+
+  const fromMinutes = timeToMinutes(offer.usable_from_time!)
+  const toMinutes = timeToMinutes(offer.usable_to_time!)
+  if (fromMinutes == null || toMinutes == null) return true
+
+  const nowMinutes = nowMinutesInTimezone(now, tz)
+  return nowMinutes >= fromMinutes && nowMinutes < toMinutes
+}
+
+/** «Доступно с 12:00 до 15:00» */
+export function formatOfferUsableHoursLabel(fromTime: string, toTime: string): string {
+  const from = normalizeTime(fromTime) ?? fromTime
+  const to = normalizeTime(toTime) ?? toTime
+  return `Доступно с ${from} до ${to}`
+}
+
+export function formatOfferUsableHoursStatus(
+  offer: OfferUsableHours,
+  now: Date = new Date(),
+  tz: string = DEFAULT_TZ,
+): { isUsable: boolean; label: string | null } {
+  if (!hasOfferUsableHours(offer)) {
+    return { isUsable: true, label: null }
+  }
+
+  const label = formatOfferUsableHoursLabel(offer.usable_from_time!, offer.usable_to_time!)
+  return { isUsable: isOfferUsableNow(offer, now, tz), label }
 }
 
 /** Сегодняшняя дата YYYY-MM-DD в заданной таймзоне (как для часов работы каталога). */

@@ -53,6 +53,21 @@ export default async function AdminOfferNewPage({ params }: PageProps) {
             label="Дата окончания"
             hint="Обязательно для Kudafest. Для обычных офферов — необязательно."
           />
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Input
+              name="usable_from_time"
+              type="time"
+              label="Окно использования — с"
+              hint="Только для Kudafest. Если не указано — доступен весь день."
+            />
+            <Input
+              name="usable_to_time"
+              type="time"
+              label="Окно использования — до"
+              hint="Например: 12:00–15:00 для ланч-сета."
+            />
+          </div>
           <Input
             name="dish_photo_url"
             label="Фото блюда (URL)"

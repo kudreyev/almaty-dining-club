@@ -44,14 +44,14 @@ const WEEKDAY_TO_DOW: Record<string, number> = {
   Sun: 7,
 }
 
-function normalizeTime(value: string | null): string | null {
+export function normalizeTime(value: string | null): string | null {
   if (!value) return null
   const [hh, mm] = value.split(':')
   if (!hh || !mm) return null
   return `${hh.padStart(2, '0')}:${mm.padStart(2, '0')}`
 }
 
-function timeToMinutes(value: string | null): number | null {
+export function timeToMinutes(value: string | null): number | null {
   if (!value) return null
   const normalized = normalizeTime(value)
   if (!normalized) return null
@@ -60,7 +60,7 @@ function timeToMinutes(value: string | null): number | null {
   return hh * 60 + mm
 }
 
-function nowMinutesInTimezone(date: Date, tz: string): number {
+export function nowMinutesInTimezone(date: Date, tz: string): number {
   const parts = new Intl.DateTimeFormat('en-GB', {
     timeZone: tz,
     hour: '2-digit',

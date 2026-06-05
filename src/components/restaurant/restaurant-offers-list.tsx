@@ -25,6 +25,8 @@ export type RestaurantOffer = {
   estimated_value: number | null
   cooldown_days: number | null
   dish_photo_url: string | null
+  usableHoursLabel: string | null
+  isOutsideUsableHours: boolean
 }
 
 type RestaurantOffersListProps = {
@@ -94,6 +96,7 @@ export function RestaurantOffersList({
         {offers.map((offer) => {
           const daysLeft = cooldownDaysLeftByOfferId[offer.id]
           const isOnCooldown = hasSubscription && typeof daysLeft === 'number' && daysLeft > 0
+          const isOutsideUsableHours = hasSubscription && offer.isOutsideUsableHours
           return (
             <OfferCard
               key={offer.id}
@@ -103,6 +106,7 @@ export function RestaurantOffersList({
               restaurantName={restaurantName}
               hasSubscription={hasSubscription}
               isOnCooldown={isOnCooldown}
+              isOutsideUsableHours={isOutsideUsableHours}
               daysLeft={daysLeft ?? 0}
               onPaywallOpen={handlePaywallOpen}
             />
@@ -120,6 +124,7 @@ type OfferCardProps = {
   restaurantName: string
   hasSubscription: boolean
   isOnCooldown: boolean
+  isOutsideUsableHours: boolean
   daysLeft: number
   onPaywallOpen: (e: React.MouseEvent, offer: RestaurantOffer) => void
 }
@@ -131,6 +136,7 @@ function OfferCard({
   restaurantName,
   hasSubscription,
   isOnCooldown,
+  isOutsideUsableHours,
   daysLeft,
   onPaywallOpen,
 }: OfferCardProps) {
@@ -210,11 +216,19 @@ function OfferCard({
         ) : null}
 
         <div
-          className="flex items-center text-neutral-500"
+          className="flex flex-col text-neutral-500"
           style={{ fontSize: '11px', gap: '4px', marginBottom: '10px' }}
         >
-          <Clock size={11} style={{ opacity: 0.7 }} aria-hidden="true" />
-          <span>{cooldownLabel}</span>
+          <div className="flex items-center" style={{ gap: '4px' }}>
+            <Clock size={11} style={{ opacity: 0.7 }} aria-hidden="true" />
+            <span>{cooldownLabel}</span>
+          </div>
+          {offer.usableHoursLabel ? (
+            <div className="flex items-center" style={{ gap: '4px' }}>
+              <Clock size={11} style={{ opacity: 0.7 }} aria-hidden="true" />
+              <span>{offer.usableHoursLabel}</span>
+            </div>
+          ) : null}
         </div>
 
         {renderCta({
@@ -224,6 +238,7 @@ function OfferCard({
           restaurantName,
           hasSubscription,
           isOnCooldown,
+          isOutsideUsableHours,
           daysLeft,
           onPaywallOpen,
         })}
@@ -239,6 +254,7 @@ function renderCta({
   restaurantName,
   hasSubscription,
   isOnCooldown,
+  isOutsideUsableHours,
   daysLeft,
   onPaywallOpen,
 }: OfferCardProps) {
@@ -258,6 +274,19 @@ function renderCta({
         style={{ ...baseStyle, background: '#f5f5f5' }}
       >
         Доступно через {daysLeft} {ruDayWordAfterNumber(daysLeft)}
+      </button>
+    )
+  }
+
+  if (hasSubscription && isOutsideUsableHours && offer.usableHoursLabel) {
+    return (
+      <button
+        type="button"
+        disabled
+        className="w-full cursor-not-allowed text-neutral-500"
+        style={{ ...baseStyle, background: '#f5f5f5' }}
+      >
+        {offer.usableHoursLabel}
       </button>
     )
   }

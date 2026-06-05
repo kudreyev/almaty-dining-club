@@ -10,6 +10,7 @@ import {
 import { getAppSiteOrigin } from '@/lib/site-url'
 import { Button } from '@/components/ui/button'
 import { trackGoal } from '@/lib/analytics-client'
+import type { OfferType } from '@/lib/offers'
 
 type RedeemTokenCardProps = {
   tokenId: string
@@ -21,7 +22,7 @@ type RedeemTokenCardProps = {
   offerId: string
   metricaOffer?: {
     restaurantSlug: string
-    offerType: '2for1' | 'compliment'
+    offerType: OfferType
     estimatedSavingsTenge: number | null
   }
 }

@@ -15,44 +15,70 @@ type MapPlace = {
   statusLine: string
 }
 
-type YMapGeoObjects = {
-  add: (item: unknown) => void
+type LngLat = [number, number]
+type LngLatBounds = [LngLat, LngLat]
+
+type MapFeature = {
+  type: 'Feature'
+  id: string
+  geometry: { coordinates: LngLat }
+  properties: { place: MapPlace }
 }
 
-type YMapInstance = {
-  geoObjects: YMapGeoObjects
-  setBounds: (bounds: unknown, options?: unknown) => void
-  setCenter?: (center: [number, number], zoom?: number, options?: unknown) => void
-  setZoom?: (zoom: number, options?: unknown) => void
-  getZoom?: () => number
+type YMapEntity = {
+  addChild: (child: YMapEntity) => YMapEntity
+}
+
+type YMapInstance = YMapEntity & {
+  setLocation: (location: {
+    center?: LngLat
+    zoom?: number
+    bounds?: LngLatBounds
+    duration?: number
+    margin?: number | [number, number] | [number, number, number, number]
+  }) => void
   destroy: () => void
 }
 
-type YClustererInstance = {
-  add: (items: unknown[]) => void
-  getBounds?: () => unknown
-}
-
-type YMapsApi = {
-  ready: (callback: () => void) => void
-  Map: new (container: HTMLElement, state: unknown, options?: unknown) => YMapInstance
-  Placemark: new (coords: [number, number], properties?: unknown, options?: unknown) => unknown
-  Clusterer: new (options?: unknown) => YClustererInstance
+type YMaps3Api = {
+  ready: Promise<void>
+  import: {
+    (module: string): Promise<Record<string, unknown>>
+    registerCdn: (template: string, packageName: string) => void
+  }
+  YMap: new (container: HTMLElement, props: unknown) => YMapInstance
+  YMapDefaultSchemeLayer: new (props?: unknown) => YMapEntity
+  YMapFeatureDataSource: new (props: { id: string }) => YMapEntity
+  YMapLayer: new (props: { source: string; type: string; zIndex?: number }) => YMapEntity
+  YMapControls: new (props?: { position?: string; orientation?: string }) => YMapEntity
+  YMapMarker: new (props: { coordinates: LngLat; source?: string }, element: HTMLElement) => YMapEntity
 }
 
 declare global {
   interface Window {
-    ymaps?: YMapsApi
+    ymaps3?: YMaps3Api
+    ymaps?: unknown
   }
 }
 
-const SCRIPT_ID = 'yandex-maps-script'
+const SCRIPT_ID = 'yandex-maps-v3-script'
+const LEGACY_SCRIPT_ID = 'yandex-maps-script'
+const CLUSTERER_SOURCE = 'restaurants-clusterer'
 
-// Важно: Яндекс.Карты (JS API 2.1) используют порядок координат [lat, lng].
-const ALMATY_CENTER_LAT_LNG: [number, number] = [43.238949, 76.889709]
+// JS API v3: порядок координат [lng, lat].
+const ALMATY_CENTER_LNG_LAT: LngLat = [76.889709, 43.238949]
 const DEFAULT_ZOOM = 12
 const FIT_PADDING = 40
 const MAX_ZOOM = 15
+
+const MAP_SCHEME_CUSTOMIZATION = [
+  {
+    tags: {
+      any: ['poi', 'business', 'food', 'shopping', 'medical', 'culture', 'gas_station'],
+    },
+    stylers: [{ visibility: 'off' }],
+  },
+]
 
 function warnIfSuspiciousCoords(lat: number, lng: number, context: string) {
   if (process.env.NODE_ENV === 'production') return
@@ -65,7 +91,6 @@ function warnIfSuspiciousCoords(lat: number, lng: number, context: string) {
     return
   }
 
-  // Алматы: грубая проверка диапазона, чтобы отлавливать swap lat/lng.
   const looksLikeAlmaty = lat >= 41 && lat <= 46 && lng >= 72 && lng <= 82
   if (!looksLikeAlmaty) {
     safeLog.warn(`[map] coords out of Almaty range ${context}`, {
@@ -110,19 +135,105 @@ function buildBalloonHtml(place: MapPlace): string {
   `
 }
 
-function waitForYmaps(): Promise<YMapsApi> {
+function getLngLatBounds(coordinates: LngLat[]): LngLatBounds | null {
+  if (coordinates.length === 0) return null
+
+  let minLat = Infinity
+  let minLng = Infinity
+  let maxLat = -Infinity
+  let maxLng = -Infinity
+
+  for (const [lng, lat] of coordinates) {
+    if (lat < minLat) minLat = lat
+    if (lat > maxLat) maxLat = lat
+    if (lng < minLng) minLng = lng
+    if (lng > maxLng) maxLng = lng
+  }
+
+  return [
+    [minLng, minLat],
+    [maxLng, maxLat],
+  ]
+}
+
+function createRestaurantMarkerElement(
+  place: MapPlace,
+  onOpen: (balloon: HTMLDivElement) => void
+): HTMLElement {
+  const wrapper = document.createElement('div')
+  wrapper.style.position = 'relative'
+  wrapper.style.display = 'flex'
+  wrapper.style.alignItems = 'center'
+  wrapper.style.justifyContent = 'center'
+  wrapper.title = place.name
+
+  const balloon = document.createElement('div')
+  balloon.style.display = 'none'
+  balloon.style.position = 'absolute'
+  balloon.style.bottom = 'calc(100% + 8px)'
+  balloon.style.left = '50%'
+  balloon.style.transform = 'translateX(-50%)'
+  balloon.style.zIndex = '2'
+  balloon.style.borderRadius = '12px'
+  balloon.style.border = '1px solid #e5e5e5'
+  balloon.style.background = '#ffffff'
+  balloon.style.boxShadow = '0 4px 16px rgba(0,0,0,0.12)'
+  balloon.innerHTML = buildBalloonHtml(place)
+
+  const dot = document.createElement('button')
+  dot.type = 'button'
+  dot.setAttribute('aria-label', place.name)
+  dot.style.width = '14px'
+  dot.style.height = '14px'
+  dot.style.borderRadius = '9999px'
+  dot.style.border = '2px solid #ffffff'
+  dot.style.background = '#D85A30'
+  dot.style.boxShadow = '0 1px 4px rgba(0,0,0,0.28)'
+  dot.style.cursor = 'pointer'
+  dot.style.padding = '0'
+
+  dot.addEventListener('click', (event) => {
+    event.stopPropagation()
+    const isHidden = balloon.style.display === 'none'
+    onOpen(balloon)
+    balloon.style.display = isHidden ? 'block' : 'none'
+  })
+
+  wrapper.appendChild(balloon)
+  wrapper.appendChild(dot)
+  return wrapper
+}
+
+function createClusterElement(count: number): HTMLElement {
+  const circle = document.createElement('div')
+  circle.style.width = '36px'
+  circle.style.height = '36px'
+  circle.style.borderRadius = '9999px'
+  circle.style.background = '#3f3f46'
+  circle.style.color = '#ffffff'
+  circle.style.display = 'flex'
+  circle.style.alignItems = 'center'
+  circle.style.justifyContent = 'center'
+  circle.style.fontSize = '13px'
+  circle.style.fontWeight = '600'
+  circle.style.boxShadow = '0 2px 8px rgba(0,0,0,0.24)'
+  circle.textContent = String(count)
+  return circle
+}
+
+function waitForYmaps3(): Promise<YMaps3Api> {
   return new Promise((resolve, reject) => {
     const startedAt = Date.now()
     const timeoutMs = 15_000
 
     const tick = () => {
-      if (window.ymaps) {
-        resolve(window.ymaps)
+      if (window.ymaps3) {
+        resolve(window.ymaps3)
         return
       }
 
       if (Date.now() - startedAt > timeoutMs) {
-        reject(new Error('API Яндекс.Карт не инициализировано.'))
+        reject(new Error('API Яндекс.Карт v3 не инициализировано.'))
         return
       }
 
@@ -133,35 +244,37 @@ function waitForYmaps(): Promise<YMapsApi> {
   })
 }
 
-async function loadYandexMaps(apiKey: string): Promise<YMapsApi> {
-  if (window.ymaps) return window.ymaps
+function removeLegacyMapScript() {
+  const legacyScript = document.getElementById(LEGACY_SCRIPT_ID)
+  if (legacyScript) legacyScript.remove()
+  delete window.ymaps
+}
+
+async function loadYandexMapsV3(apiKey: string): Promise<YMaps3Api> {
+  removeLegacyMapScript()
 
   const existingScript = document.getElementById(SCRIPT_ID) as HTMLScriptElement | null
   if (!existingScript) {
     const script = document.createElement('script')
     script.id = SCRIPT_ID
-    script.src = `https://api-maps.yandex.ru/2.1/?lang=ru_RU&apikey=${encodeURIComponent(apiKey)}`
+    script.src = `https://api-maps.yandex.ru/v3/?lang=ru_RU&apikey=${encodeURIComponent(apiKey)}`
     script.async = true
 
     await new Promise<void>((resolve, reject) => {
       script.addEventListener('load', () => resolve(), { once: true })
-      script.addEventListener('error', () => reject(new Error('Не удалось загрузить скрипт Яндекс.Карт.')), { once: true })
+      script.addEventListener('error', () => reject(new Error('Не удалось загрузить скрипт Яндекс.Карт v3.')), { once: true })
       document.head.appendChild(script)
     })
-  } else if (!window.ymaps) {
+  } else if (!window.ymaps3) {
     await new Promise<void>((resolve, reject) => {
       existingScript.addEventListener('load', () => resolve(), { once: true })
-      existingScript.addEventListener('error', () => reject(new Error('Не удалось загрузить скрипт Яндекс.Карт.')), { once: true })
+      existingScript.addEventListener('error', () => reject(new Error('Не удалось загрузить скрипт Яндекс.Карт v3.')), { once: true })
     })
   }
 
-  const ymaps = await waitForYmaps()
-
-  await new Promise<void>((resolve) => {
-    ymaps.ready(() => resolve())
-  })
-
-  return ymaps
+  const ymaps3 = await waitForYmaps3()
+  await ymaps3.ready
+  return ymaps3
 }
 
 export function YandexRestaurantsMap({ places }: { places: MapPlace[] }) {
@@ -190,61 +303,158 @@ export function YandexRestaurantsMap({ places }: { places: MapPlace[] }) {
 
     let map: YMapInstance | null = null
     let disposed = false
+    let openBalloon: HTMLDivElement | null = null
 
-    loadYandexMaps(apiKey)
-      .then((ymaps) => {
+    const closeOpenBalloon = () => {
+      if (openBalloon) {
+        openBalloon.style.display = 'none'
+        openBalloon = null
+      }
+    }
+
+    const handleDocumentClick = () => {
+      closeOpenBalloon()
+    }
+
+    loadYandexMapsV3(apiKey)
+      .then(async (ymaps3) => {
         if (disposed || !containerRef.current) return
 
-        map = new ymaps.Map(
-          containerRef.current,
-          {
-            // Важно: порядок [lat, lng]
-            center: ALMATY_CENTER_LAT_LNG,
-            zoom: DEFAULT_ZOOM,
-            controls: ['zoomControl', 'geolocationControl'],
-          },
-          {
-            suppressMapOpenBlock: true,
-            yandexMapDisablePoiInteractivity: true,
-          }
+        ymaps3.import.registerCdn(
+          'https://cdn.jsdelivr.net/npm/{package}',
+          '@yandex/ymaps3-clusterer@0.0.12'
         )
 
-        if (safePlaces.length > 0) {
-          const clusterer = new ymaps.Clusterer({
-            preset: 'islands#darkOrangeClusterIcons',
-            groupByCoordinates: false,
-          })
+        const { YMapClusterer, clusterByGrid } = await ymaps3.import(
+          '@yandex/ymaps3-clusterer'
+        ) as {
+          YMapClusterer: new (props: unknown) => YMapEntity
+          clusterByGrid: (options: { gridSize: number }) => unknown
+        }
 
-          const placemarks = safePlaces.map((place) => {
+        if (disposed || !containerRef.current) return
+
+        const {
+          YMap,
+          YMapDefaultSchemeLayer,
+          YMapFeatureDataSource,
+          YMapLayer,
+          YMapControls,
+          YMapMarker,
+        } = ymaps3
+
+        map = new YMap(containerRef.current, {
+          location: {
+            center: ALMATY_CENTER_LNG_LAT,
+            zoom: DEFAULT_ZOOM,
+          },
+          margin: [FIT_PADDING, FIT_PADDING, FIT_PADDING, FIT_PADDING],
+          zoomRange: { min: 3, max: MAX_ZOOM },
+        })
+
+        map.addChild(
+          new YMapDefaultSchemeLayer({
+            theme: 'light',
+            customization: MAP_SCHEME_CUSTOMIZATION,
+          })
+        )
+        map.addChild(new YMapFeatureDataSource({ id: CLUSTERER_SOURCE }))
+        map.addChild(
+          new YMapLayer({
+            source: CLUSTERER_SOURCE,
+            type: 'markers',
+            zIndex: 1800,
+          })
+        )
+
+        try {
+          ymaps3.import.registerCdn(
+            'https://cdn.jsdelivr.net/npm/{package}',
+            '@yandex/ymaps3-default-ui-theme@0.0.24'
+          )
+          const { YMapZoomControl, YMapGeolocationControl } = await ymaps3.import(
+            '@yandex/ymaps3-default-ui-theme'
+          ) as {
+            YMapZoomControl: new (props?: unknown) => YMapEntity
+            YMapGeolocationControl: new (props?: unknown) => YMapEntity
+          }
+
+          const controls = new YMapControls({ position: 'right', orientation: 'vertical' })
+          controls.addChild(new YMapZoomControl({}))
+          controls.addChild(new YMapGeolocationControl({}))
+          map.addChild(controls)
+        } catch (controlsError: unknown) {
+          safeLog.warn('[map] failed to load map controls', {
+            message: controlsError instanceof Error ? controlsError.message : String(controlsError),
+          })
+        }
+
+        if (safePlaces.length > 0) {
+          const coordinates = safePlaces.map((place) => {
             const lat = place.lat as number
             const lng = place.lng as number
             warnIfSuspiciousCoords(lat, lng, `place=${place.slug}`)
-            return new ymaps.Placemark(
-              [lat, lng],
-              {
-                balloonContentBody: buildBalloonHtml(place as MapPlace),
-                hintContent: place.name,
-              },
-              {
-                preset: 'islands#darkOrangeCircleDotIcon',
-              }
-            )
+            return [lng, lat] as LngLat
           })
 
-          clusterer.add(placemarks)
-          map.geoObjects.add(clusterer)
+          const features: MapFeature[] = safePlaces.map((place, index) => ({
+            type: 'Feature',
+            id: place.slug || String(index),
+            geometry: {
+              coordinates: [place.lng as number, place.lat as number],
+            },
+            properties: { place: place as MapPlace },
+          }))
 
-          const bounds = (clusterer as unknown as YClustererInstance).getBounds?.()
+          const marker = (feature: MapFeature) =>
+            new YMapMarker(
+              {
+                coordinates: feature.geometry.coordinates,
+                source: CLUSTERER_SOURCE,
+              },
+              createRestaurantMarkerElement(feature.properties.place, (balloon) => {
+                if (openBalloon && openBalloon !== balloon) {
+                  openBalloon.style.display = 'none'
+                }
+                openBalloon = balloon
+              })
+            )
+
+          const cluster = (clusterCoordinates: LngLat, clusterFeatures: MapFeature[]) =>
+            new YMapMarker(
+              {
+                coordinates: clusterCoordinates,
+                source: CLUSTERER_SOURCE,
+              },
+              createClusterElement(clusterFeatures.length)
+            )
+
+          map.addChild(
+            new YMapClusterer({
+              method: clusterByGrid({ gridSize: 64 }),
+              features,
+              marker,
+              cluster,
+            })
+          )
+
+          const bounds = getLngLatBounds(coordinates)
           if (bounds) {
-            map.setBounds(bounds, { checkZoomRange: true, zoomMargin: FIT_PADDING })
-            const currentZoom = map.getZoom?.()
-            if (typeof currentZoom === 'number' && currentZoom > MAX_ZOOM) {
-              map.setZoom?.(MAX_ZOOM)
-            }
+            map.setLocation({
+              bounds,
+              duration: 0,
+              margin: [FIT_PADDING, FIT_PADDING, FIT_PADDING, FIT_PADDING],
+            })
           }
         } else {
-          map.setCenter?.(ALMATY_CENTER_LAT_LNG, DEFAULT_ZOOM)
+          map.setLocation({
+            center: ALMATY_CENTER_LNG_LAT,
+            zoom: DEFAULT_ZOOM,
+            duration: 0,
+          })
         }
+
+        document.addEventListener('click', handleDocumentClick)
       })
       .catch((loadError: unknown) => {
         setError(getUserFacingError(loadError, getFallbackByContext('map')))
@@ -252,6 +462,8 @@ export function YandexRestaurantsMap({ places }: { places: MapPlace[] }) {
 
     return () => {
       disposed = true
+      document.removeEventListener('click', handleDocumentClick)
+      closeOpenBalloon()
       if (map) map.destroy()
     }
   }, [apiKey, safePlaces])
@@ -274,10 +486,6 @@ export function YandexRestaurantsMap({ places }: { places: MapPlace[] }) {
 
   return (
     <div className="relative h-full w-full overflow-hidden">
-      {/* 
-        На мобилке слегка "вытягиваем" сам canvas карты вниз и прячем лишнее через overflow-hidden,
-        чтобы встроенный нижний брендинг Яндекс.Карт уходил за пределы viewport карты.
-      */}
       <div
         ref={containerRef}
         className="absolute inset-x-0 top-0 bottom-[-56px] rounded-2xl sm:bottom-0"

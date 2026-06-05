@@ -3,7 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { requireAdmin } from '@/lib/admin'
-import { DEFAULT_OFFER_COOLDOWN_DAYS } from '@/lib/offers'
+import { DEFAULT_OFFER_COOLDOWN_DAYS, type OfferUsableHour } from '@/lib/offers'
 import { buildOfferKeyBase } from '@/lib/offer-key'
 
 function parseOptionalInteger(value: FormDataEntryValue | null): number | null {
@@ -40,7 +40,7 @@ function sanitizeTime(value: FormDataEntryValue | null): string | null {
   if (value == null) return null
   const stringValue = String(value).trim()
   if (!stringValue) return null
-  const match = stringValue.match(/^(\d{1,2}):(\d{2})$/)
+  const match = stringValue.match(/^(\d{1,2}):(\d{2})(?::\d{2})?$/)
   if (!match) return null
   const hours = Number(match[1])
   const minutes = Number(match[2])
@@ -48,28 +48,72 @@ function sanitizeTime(value: FormDataEntryValue | null): string | null {
   return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`
 }
 
-function sanitizeUsableHours(
+function parseOfferUsableHoursFromFormData(
   offerType: string,
-  fromRaw: FormDataEntryValue | null,
-  toRaw: FormDataEntryValue | null,
-): { usable_from_time: string | null; usable_to_time: string | null } {
-  if (offerType !== 'kudafest_set') {
-    return { usable_from_time: null, usable_to_time: null }
+  formData: FormData,
+): OfferUsableHour[] | null {
+  if (offerType !== 'kudafest_set') return null
+
+  const hours: OfferUsableHour[] = []
+  let anyConfigured = false
+
+  for (let day = 1; day <= 7; day += 1) {
+    const isUnavailable = formData.get(`offer_hours_${day}_is_unavailable`) === 'on'
+    const from = sanitizeTime(formData.get(`offer_hours_${day}_from_time`))
+    const to = sanitizeTime(formData.get(`offer_hours_${day}_to_time`))
+
+    if (!isUnavailable && from && to) {
+      if (from >= to) {
+        throw new Error(`День ${day}: время окончания должно быть позже начала`)
+      }
+      anyConfigured = true
+      hours.push({
+        day_of_week: day,
+        is_unavailable: false,
+        from_time: from,
+        to_time: to,
+      })
+      continue
+    }
+
+    if (!isUnavailable && (from || to)) {
+      throw new Error(`День ${day}: укажите время начала и окончания или отметьте «недоступен»`)
+    }
+
+    hours.push({
+      day_of_week: day,
+      is_unavailable: true,
+      from_time: null,
+      to_time: null,
+    })
   }
 
-  const from = sanitizeTime(fromRaw)
-  const to = sanitizeTime(toRaw)
-  if (!from && !to) {
-    return { usable_from_time: null, usable_to_time: null }
-  }
-  if (!from || !to) {
-    throw new Error('Для Kudafest укажите время начала и окончания окна использования')
-  }
-  if (from >= to) {
-    throw new Error('Время окончания окна использования должно быть позже начала')
-  }
+  return anyConfigured ? hours : null
+}
 
-  return { usable_from_time: from, usable_to_time: to }
+async function replaceOfferUsableHours(
+  supabase: Awaited<ReturnType<typeof requireAdmin>>['supabase'],
+  offerId: string,
+  hours: OfferUsableHour[] | null,
+) {
+  const { error: deleteError } = await supabase
+    .from('offer_usable_hours')
+    .delete()
+    .eq('offer_id', offerId)
+
+  if (deleteError) throw new Error(deleteError.message)
+  if (!hours?.length) return
+
+  const payload = hours.map((item) => ({
+    offer_id: offerId,
+    day_of_week: item.day_of_week,
+    is_unavailable: item.is_unavailable,
+    from_time: item.from_time,
+    to_time: item.to_time,
+  }))
+
+  const { error: insertError } = await supabase.from('offer_usable_hours').insert(payload)
+  if (insertError) throw new Error(insertError.message)
 }
 
 async function generateUniqueOfferKey(
@@ -113,12 +157,7 @@ export async function createOffer(formData: FormData) {
   }
   const providedOfferKey = String(formData.get('offer_key') || '').trim()
   const offerKey = providedOfferKey || await generateUniqueOfferKey(supabase, restaurantId, offerTitle, offerType)
-
-  const usableHours = sanitizeUsableHours(
-    offerType,
-    formData.get('usable_from_time'),
-    formData.get('usable_to_time'),
-  )
+  const usableHours = parseOfferUsableHoursFromFormData(offerType, formData)
 
   const payload = {
     restaurant_id: restaurantId,
@@ -130,13 +169,19 @@ export async function createOffer(formData: FormData) {
     estimated_value: sanitizeEstimatedValue(formData.get('estimated_value')),
     cooldown_days: sanitizeCooldownDays(formData.get('cooldown_days')),
     end_date: endDate,
-    ...usableHours,
     dish_photo_url: String(formData.get('dish_photo_url') || '').trim() || null,
     is_active: formData.get('is_active') === 'on',
   }
 
-  const { error } = await supabase.from('offers').insert(payload)
+  const { data: inserted, error } = await supabase
+    .from('offers')
+    .insert(payload)
+    .select('id')
+    .single<{ id: string }>()
+
   if (error) throw new Error(error.message)
+
+  await replaceOfferUsableHours(supabase, inserted.id, usableHours)
 
   revalidatePath(`/admin/offers/${restaurantId}`)
   redirect(`/admin/offers/${restaurantId}`)
@@ -171,11 +216,7 @@ export async function updateOffer(formData: FormData) {
       || incomingOfferKey
       || await generateUniqueOfferKey(supabase, restaurantId, offerTitle, offerType)
 
-  const usableHours = sanitizeUsableHours(
-    offerType,
-    formData.get('usable_from_time'),
-    formData.get('usable_to_time'),
-  )
+  const usableHours = parseOfferUsableHoursFromFormData(offerType, formData)
 
   const payload = {
     offer_type: offerType,
@@ -186,13 +227,14 @@ export async function updateOffer(formData: FormData) {
     estimated_value: sanitizeEstimatedValue(formData.get('estimated_value')),
     cooldown_days: sanitizeCooldownDays(formData.get('cooldown_days')),
     end_date: endDate,
-    ...usableHours,
     dish_photo_url: String(formData.get('dish_photo_url') || '').trim() || null,
     is_active: formData.get('is_active') === 'on',
   }
 
   const { error } = await supabase.from('offers').update(payload).eq('id', id)
   if (error) throw new Error(error.message)
+
+  await replaceOfferUsableHours(supabase, id, usableHours)
 
   revalidatePath(`/admin/offers/${restaurantId}`)
   redirect(`/admin/offers/${restaurantId}`)

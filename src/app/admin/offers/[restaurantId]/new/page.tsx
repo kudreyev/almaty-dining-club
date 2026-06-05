@@ -4,6 +4,7 @@ import { FormSubmitGuard } from '@/components/form-submit-guard'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input, Select, Textarea } from '@/components/ui/input'
+import { OfferUsableHoursFields } from '@/components/admin/offer-usable-hours-fields'
 import { DEFAULT_OFFER_COOLDOWN_DAYS } from '@/lib/offers'
 
 type PageProps = { params: Promise<{ restaurantId: string }> }
@@ -54,20 +55,7 @@ export default async function AdminOfferNewPage({ params }: PageProps) {
             hint="Обязательно для Kudafest. Для обычных офферов — необязательно."
           />
 
-          <div className="grid gap-4 sm:grid-cols-2">
-            <Input
-              name="usable_from_time"
-              type="time"
-              label="Окно использования — с"
-              hint="Только для Kudafest. Если не указано — доступен весь день."
-            />
-            <Input
-              name="usable_to_time"
-              type="time"
-              label="Окно использования — до"
-              hint="Например: 12:00–15:00 для ланч-сета."
-            />
-          </div>
+          <OfferUsableHoursFields />
           <Input
             name="dish_photo_url"
             label="Фото блюда (URL)"

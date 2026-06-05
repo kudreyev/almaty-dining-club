@@ -11,7 +11,9 @@ import {
   filterCatalogActiveOffers,
   getTodayDateStringInTz,
   formatOfferUsableHoursStatus,
+  getOfferUsableHours,
   type OfferType,
+  type OfferUsableHour,
 } from '@/lib/offers'
 import { DEFAULT_TZ } from '@/lib/opening-hours'
 import { RestaurantNavBar } from '@/components/restaurant/restaurant-nav-bar'
@@ -54,8 +56,7 @@ type Offer = {
   cooldown_days: number | null
   dish_photo_url: string | null
   end_date: string | null
-  usable_from_time: string | null
-  usable_to_time: string | null
+  offer_usable_hours?: OfferUsableHour[]
   is_active: boolean
 }
 
@@ -199,8 +200,8 @@ export default async function RestaurantPage({ params }: PageProps) {
       .from('offers')
       .select(`
         id, offer_type, offer_title, offer_terms_short,
-        estimated_value, cooldown_days, dish_photo_url, end_date,
-        usable_from_time, usable_to_time, is_active
+        estimated_value, cooldown_days, dish_photo_url, end_date, is_active,
+        offer_usable_hours ( day_of_week, is_unavailable, from_time, to_time )
       `)
       .eq('restaurant_id', restaurant.id)
       .eq('is_active', true)
@@ -341,7 +342,11 @@ export default async function RestaurantPage({ params }: PageProps) {
 
           <RestaurantOffersList
             offers={offers.map((offer) => {
-              const usableStatus = formatOfferUsableHoursStatus(offer, now, DEFAULT_TZ)
+              const usableStatus = formatOfferUsableHoursStatus(
+                getOfferUsableHours(offer),
+                now,
+                DEFAULT_TZ,
+              )
               return {
                 id: offer.id,
                 offer_type: offer.offer_type,

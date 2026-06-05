@@ -5,7 +5,8 @@ import { FormSubmitGuard } from '@/components/form-submit-guard'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input, Select, Textarea } from '@/components/ui/input'
-import { DEFAULT_OFFER_COOLDOWN_DAYS } from '@/lib/offers'
+import { OfferUsableHoursFields } from '@/components/admin/offer-usable-hours-fields'
+import { DEFAULT_OFFER_COOLDOWN_DAYS, type OfferUsableHour } from '@/lib/offers'
 
 type PageProps = { params: Promise<{ restaurantId: string; offerId: string }> }
 
@@ -19,12 +20,20 @@ export default async function AdminOfferEditPage({ params }: PageProps) {
     .eq('id', restaurantId)
     .single()
 
-  const { data: offer } = await supabase
-    .from('offers')
-    .select('*')
-    .eq('id', offerId)
-    .eq('restaurant_id', restaurantId)
-    .single()
+  const [{ data: offer }, { data: usableHours }] = await Promise.all([
+    supabase
+      .from('offers')
+      .select('*')
+      .eq('id', offerId)
+      .eq('restaurant_id', restaurantId)
+      .single(),
+    supabase
+      .from('offer_usable_hours')
+      .select('day_of_week, is_unavailable, from_time, to_time')
+      .eq('offer_id', offerId)
+      .order('day_of_week', { ascending: true })
+      .returns<OfferUsableHour[]>(),
+  ])
 
   if (!offer) notFound()
 
@@ -66,22 +75,7 @@ export default async function AdminOfferEditPage({ params }: PageProps) {
             hint="Обязательно для Kudafest. Для обычных офферов — необязательно."
           />
 
-          <div className="grid gap-4 sm:grid-cols-2">
-            <Input
-              name="usable_from_time"
-              type="time"
-              label="Окно использования — с"
-              defaultValue={offer.usable_from_time?.slice(0, 5) ?? ''}
-              hint="Только для Kudafest. Если не указано — доступен весь день."
-            />
-            <Input
-              name="usable_to_time"
-              type="time"
-              label="Окно использования — до"
-              defaultValue={offer.usable_to_time?.slice(0, 5) ?? ''}
-              hint="Например: 12:00–15:00 для ланч-сета."
-            />
-          </div>
+          <OfferUsableHoursFields initialHours={usableHours ?? []} />
           <Input
             name="dish_photo_url"
             label="Фото блюда (URL)"

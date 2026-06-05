@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { requireAdmin } from '@/lib/admin'
 import { listingVisibilityLabel, offerTypeLabel } from '@/lib/labels'
+import { formatOfferUsableScheduleSummary, getOfferUsableHours } from '@/lib/offers'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -19,7 +20,10 @@ export default async function AdminOffersForRestaurantPage({ params }: PageProps
 
   const { data: offers } = await supabase
     .from('offers')
-    .select('id, offer_type, offer_title, is_active, end_date, usable_from_time, usable_to_time')
+    .select(`
+      id, offer_type, offer_title, is_active, end_date,
+      offer_usable_hours ( day_of_week, is_unavailable, from_time, to_time )
+    `)
     .eq('restaurant_id', restaurantId)
     .order('created_at', { ascending: true })
 
@@ -39,7 +43,9 @@ export default async function AdminOffersForRestaurantPage({ params }: PageProps
       </div>
 
       <div className="space-y-3">
-        {offers?.map((o) => (
+        {offers?.map((o) => {
+          const scheduleSummary = formatOfferUsableScheduleSummary(getOfferUsableHours(o))
+          return (
           <Card key={o.id} padding="sm" hover>
             <div className="flex items-center justify-between gap-3">
               <div className="min-w-0">
@@ -59,10 +65,8 @@ export default async function AdminOffersForRestaurantPage({ params }: PageProps
                   {o.end_date ? (
                     <Badge color="default">до {o.end_date}</Badge>
                   ) : null}
-                  {o.usable_from_time && o.usable_to_time ? (
-                    <Badge color="default">
-                      {o.usable_from_time.slice(0, 5)}–{o.usable_to_time.slice(0, 5)}
-                    </Badge>
+                  {scheduleSummary ? (
+                    <Badge color="default">{scheduleSummary}</Badge>
                   ) : null}
                   <Badge color={o.is_active ? 'green' : 'default'}>
                     {listingVisibilityLabel(!!o.is_active)}
@@ -74,7 +78,8 @@ export default async function AdminOffersForRestaurantPage({ params }: PageProps
               </Button>
             </div>
           </Card>
-        ))}
+          )
+        })}
       </div>
     </div>
   )

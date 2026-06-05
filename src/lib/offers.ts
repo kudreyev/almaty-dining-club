@@ -1,5 +1,7 @@
 import {
   DEFAULT_TZ,
+  WEEKDAY_LABELS_RU,
+  getTodayDow,
   normalizeTime,
   nowMinutesInTimezone,
   timeToMinutes,
@@ -15,49 +17,122 @@ export type CatalogOfferLike = {
   end_date?: string | null
 }
 
-export type OfferUsableHours = {
-  usable_from_time?: string | null
-  usable_to_time?: string | null
+export type OfferUsableHour = {
+  day_of_week: number
+  is_unavailable: boolean
+  from_time: string | null
+  to_time: string | null
 }
 
-export function hasOfferUsableHours(offer: OfferUsableHours): boolean {
-  return Boolean(offer.usable_from_time?.trim() && offer.usable_to_time?.trim())
+export function getOfferUsableHours(
+  source: { offer_usable_hours?: OfferUsableHour[] | null },
+): OfferUsableHour[] {
+  return source.offer_usable_hours ?? []
 }
 
-/** Оффер с окном использования доступен в текущий момент (таймзона каталога). */
-export function isOfferUsableNow(
-  offer: OfferUsableHours,
-  now: Date = new Date(),
-  tz: string = DEFAULT_TZ,
-): boolean {
-  if (!hasOfferUsableHours(offer)) return true
+export function hasOfferUsableSchedule(hours: OfferUsableHour[]): boolean {
+  return hours.some(
+    (row) => !row.is_unavailable && Boolean(row.from_time) && Boolean(row.to_time),
+  )
+}
 
-  const fromMinutes = timeToMinutes(offer.usable_from_time!)
-  const toMinutes = timeToMinutes(offer.usable_to_time!)
-  if (fromMinutes == null || toMinutes == null) return true
+function findUsableHourRow(
+  hours: OfferUsableHour[],
+  dayOfWeek: number,
+): OfferUsableHour | null {
+  const row = hours.find((item) => item.day_of_week === dayOfWeek)
+  if (!row || row.is_unavailable || !row.from_time || !row.to_time) return null
+  return row
+}
 
-  const nowMinutes = nowMinutesInTimezone(now, tz)
+function isWithinHourRow(row: OfferUsableHour, nowMinutes: number): boolean {
+  const fromMinutes = timeToMinutes(row.from_time)
+  const toMinutes = timeToMinutes(row.to_time)
+  if (fromMinutes == null || toMinutes == null) return false
   return nowMinutes >= fromMinutes && nowMinutes < toMinutes
 }
 
-/** «Доступно с 12:00 до 15:00» */
-export function formatOfferUsableHoursLabel(fromTime: string, toTime: string): string {
+/** Оффер с расписанием доступен в текущий момент (таймзона каталога). */
+export function isOfferUsableNow(
+  hours: OfferUsableHour[],
+  now: Date = new Date(),
+  tz: string = DEFAULT_TZ,
+): boolean {
+  if (!hasOfferUsableSchedule(hours)) return true
+
+  const todayRow = findUsableHourRow(hours, getTodayDow(now, tz))
+  if (!todayRow) return false
+
+  return isWithinHourRow(todayRow, nowMinutesInTimezone(now, tz))
+}
+
+function findNextUsableDay(
+  hours: OfferUsableHour[],
+  todayDow: number,
+): { day: number; from: string; to: string } | null {
+  for (let offset = 1; offset <= 7; offset += 1) {
+    const nextDow = ((todayDow - 1 + offset) % 7) + 1
+    const row = findUsableHourRow(hours, nextDow)
+    if (!row?.from_time || !row.to_time) continue
+    const from = normalizeTime(row.from_time)
+    const to = normalizeTime(row.to_time)
+    if (!from || !to) continue
+    return { day: nextDow, from, to }
+  }
+  return null
+}
+
+/** «Сегодня с 12:00 до 15:00» */
+export function formatOfferUsableDayLabel(fromTime: string, toTime: string): string {
   const from = normalizeTime(fromTime) ?? fromTime
   const to = normalizeTime(toTime) ?? toTime
-  return `Доступно с ${from} до ${to}`
+  return `Сегодня с ${from} до ${to}`
 }
 
 export function formatOfferUsableHoursStatus(
-  offer: OfferUsableHours,
+  hours: OfferUsableHour[],
   now: Date = new Date(),
   tz: string = DEFAULT_TZ,
 ): { isUsable: boolean; label: string | null } {
-  if (!hasOfferUsableHours(offer)) {
+  if (!hasOfferUsableSchedule(hours)) {
     return { isUsable: true, label: null }
   }
 
-  const label = formatOfferUsableHoursLabel(offer.usable_from_time!, offer.usable_to_time!)
-  return { isUsable: isOfferUsableNow(offer, now, tz), label }
+  const todayDow = getTodayDow(now, tz)
+  const todayRow = findUsableHourRow(hours, todayDow)
+
+  if (!todayRow?.from_time || !todayRow.to_time) {
+    const next = findNextUsableDay(hours, todayDow)
+    if (next) {
+      const dayLabel = WEEKDAY_LABELS_RU[next.day].toLowerCase()
+      return {
+        isUsable: false,
+        label: `Доступно в ${dayLabel} с ${next.from} до ${next.to}`,
+      }
+    }
+    return { isUsable: false, label: 'Сегодня недоступен' }
+  }
+
+  const label = formatOfferUsableDayLabel(todayRow.from_time, todayRow.to_time)
+  return { isUsable: isOfferUsableNow(hours, now, tz), label }
+}
+
+/** Краткое расписание для админки: «пн 12:00–15:00, сб 18:00–21:00». */
+export function formatOfferUsableScheduleSummary(hours: OfferUsableHour[]): string | null {
+  const active = hours
+    .filter((row) => !row.is_unavailable && row.from_time && row.to_time)
+    .sort((a, b) => a.day_of_week - b.day_of_week)
+
+  if (active.length === 0) return null
+
+  return active
+    .map((row) => {
+      const day = WEEKDAY_LABELS_RU[row.day_of_week].toLowerCase()
+      const from = normalizeTime(row.from_time) ?? row.from_time
+      const to = normalizeTime(row.to_time) ?? row.to_time
+      return `${day} ${from}–${to}`
+    })
+    .join(', ')
 }
 
 /** Сегодняшняя дата YYYY-MM-DD в заданной таймзоне (как для часов работы каталога). */

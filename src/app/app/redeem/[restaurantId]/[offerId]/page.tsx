@@ -15,8 +15,10 @@ import {
   formatOfferCooldownText,
   formatOfferHeadline,
   formatOfferUsableHoursStatus,
+  getOfferUsableHours,
   resolveOfferCooldownDays,
   type OfferType,
+  type OfferUsableHour,
 } from '@/lib/offers'
 import { ruDayWordAfterNumber } from '@/lib/ru-plural'
 
@@ -39,8 +41,7 @@ type Offer = {
   offer_type: OfferType
   estimated_value: number | null
   cooldown_days?: number | null
-  usable_from_time?: string | null
-  usable_to_time?: string | null
+  offer_usable_hours?: OfferUsableHour[]
 }
 type RedeemToken = {
   id: string
@@ -93,7 +94,7 @@ export default async function RedeemPage({ params, searchParams }: PageProps) {
     .from('offers')
     .select(`
       id, offer_title, offer_terms_short, offer_type, estimated_value, cooldown_days,
-      usable_from_time, usable_to_time
+      offer_usable_hours ( day_of_week, is_unavailable, from_time, to_time )
     `)
     .eq('id', offerId)
     .eq('restaurant_id', restaurantId)
@@ -103,7 +104,11 @@ export default async function RedeemPage({ params, searchParams }: PageProps) {
   if (!restaurant || !offer) notFound()
   const now = new Date()
   const offerCooldownDays = resolveOfferCooldownDays(offer.cooldown_days)
-  const usableStatus = formatOfferUsableHoursStatus(offer, now, DEFAULT_TZ)
+  const usableStatus = formatOfferUsableHoursStatus(
+    getOfferUsableHours(offer),
+    now,
+    DEFAULT_TZ,
+  )
   const errorMessage = getRedeemErrorMessage(error, offerCooldownDays, usableStatus.label)
   const canGenerateCode = usableStatus.isUsable
 

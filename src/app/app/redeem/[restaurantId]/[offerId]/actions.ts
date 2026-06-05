@@ -8,7 +8,7 @@ import {
   isSubscriptionCurrentlyActive,
 } from '@/lib/subscription'
 import { DEFAULT_TZ } from '@/lib/opening-hours'
-import { isOfferUsableNow, resolveOfferCooldownDays } from '@/lib/offers'
+import { getOfferUsableHours, isOfferUsableNow, resolveOfferCooldownDays } from '@/lib/offers'
 import { generateRedeemCode } from '@/lib/crypto-random'
 
 export type ExtendRedeemState =
@@ -143,21 +143,28 @@ export async function generateRedeemToken(formData: FormData) {
 
   const { data: offerForRedeem, error: offerRedeemError } = await supabase
     .from('offers')
-    .select('cooldown_days, usable_from_time, usable_to_time')
+    .select(`
+      cooldown_days,
+      offer_usable_hours ( day_of_week, is_unavailable, from_time, to_time )
+    `)
     .eq('id', offerId)
     .eq('restaurant_id', restaurantId)
     .eq('is_active', true)
     .maybeSingle<{
       cooldown_days: number | null
-      usable_from_time: string | null
-      usable_to_time: string | null
+      offer_usable_hours: Array<{
+        day_of_week: number
+        is_unavailable: boolean
+        from_time: string | null
+        to_time: string | null
+      }> | null
     }>()
 
   if (offerRedeemError || !offerForRedeem) {
     redirect(`${backUrl}?error=server_error`)
   }
 
-  if (!isOfferUsableNow(offerForRedeem, new Date(), DEFAULT_TZ)) {
+  if (!isOfferUsableNow(getOfferUsableHours(offerForRedeem), new Date(), DEFAULT_TZ)) {
     redirect(`${backUrl}?error=usable_hours`)
   }
 

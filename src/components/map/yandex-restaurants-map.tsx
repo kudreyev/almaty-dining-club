@@ -81,6 +81,7 @@ declare global {
 
 const SCRIPT_ID = 'yandex-maps-v3-script'
 const LEGACY_SCRIPT_ID = 'yandex-maps-script'
+const SCHEME_SOURCE = 'yandex-scheme'
 const MARKERS_SOURCE = 'restaurants-markers'
 
 // JS API v3: [lng, lat]. JS API 2.1: [lat, lng].
@@ -90,13 +91,18 @@ const DEFAULT_ZOOM = 12
 const FIT_PADDING = 40
 const MAX_ZOOM = 15
 
+// Только валидные теги из документации Яндекса.
+// Неизвестный тег в блоке → весь блок игнорируется (business/food/shopping не существуют).
 const MAP_SCHEME_CUSTOMIZATION = [
-  {
-    tags: {
-      any: ['poi', 'business', 'food', 'shopping', 'medical', 'culture', 'gas_station'],
-    },
-    stylers: [{ visibility: 'off' }],
-  },
+  { tags: { any: ['poi'] }, stylers: [{ visibility: 'off' }] },
+  { tags: { any: ['commercial_services'] }, stylers: [{ visibility: 'off' }] },
+  { tags: { any: ['fuel_station'] }, stylers: [{ visibility: 'off' }] },
+  { tags: { any: ['hotel'] }, stylers: [{ visibility: 'off' }] },
+  { tags: { any: ['transit_location'] }, stylers: [{ visibility: 'off' }] },
+  { tags: { any: ['transit_stop'] }, stylers: [{ visibility: 'off' }] },
+  { tags: { any: ['medical'] }, stylers: [{ visibility: 'off' }] },
+  { types: 'point', tags: { any: ['poi'] }, elements: 'label.icon', stylers: [{ visibility: 'off' }] },
+  { types: 'point', tags: { any: ['poi'] }, elements: 'label.text', stylers: [{ visibility: 'off' }] },
 ]
 
 function getYmaps3(): YMaps3Api | undefined {
@@ -459,14 +465,21 @@ async function initMapV3(
     },
     margin: [FIT_PADDING, FIT_PADDING, FIT_PADDING, FIT_PADDING],
     zoomRange: { min: 3, max: MAX_ZOOM },
+    mode: 'vector',
   })
 
+  // Загружаем схему, но не показываем слой icons (оранжевые POI-иконки).
   map.addChild(
     new YMapDefaultSchemeLayer({
       theme: 'light',
+      visible: false,
+      source: SCHEME_SOURCE,
       customization: MAP_SCHEME_CUSTOMIZATION,
     })
   )
+  map.addChild(new YMapLayer({ source: SCHEME_SOURCE, type: 'ground', zIndex: 100 }))
+  map.addChild(new YMapLayer({ source: SCHEME_SOURCE, type: 'buildings', zIndex: 200 }))
+  map.addChild(new YMapLayer({ source: SCHEME_SOURCE, type: 'labels', zIndex: 300 }))
   map.addChild(new YMapFeatureDataSource({ id: MARKERS_SOURCE }))
   map.addChild(
     new YMapLayer({
@@ -669,7 +682,7 @@ export function YandexRestaurantsMap({ places }: { places: MapPlace[] }) {
                   : 'border-amber-200 bg-amber-50/95 text-amber-900'
               }`}
             >
-              API: {mapEngine === 'v3' ? 'v3 (POI скрыты)' : '2.1 (fallback, POI видны)'}
+              API: {mapEngine === 'v3' ? 'v3 (POI скрыты)' : '2.1 — чужие заведения видны, нужен v3'}
               {mapEngine === 'v21' && v3FallbackReason ? (
                 <div className="mt-1 leading-snug opacity-90">{v3FallbackReason}</div>
               ) : null}

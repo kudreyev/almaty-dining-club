@@ -3,20 +3,36 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { WhatsappSupportLink } from '@/components/analytics/whatsapp-support-link'
+import {
+  formatLegalEntityFooterLines,
+  hasLegalEntityDetails,
+  LEGAL_ENTITY,
+} from '@/lib/legal-entity'
 
 export function Footer() {
   const pathname = usePathname()
   const hideOnMobile = pathname === '/map'
   const isHidden = pathname?.startsWith('/r/') ?? false
   const year = new Date().getFullYear()
+  const legalLines = formatLegalEntityFooterLines(LEGAL_ENTITY)
+  const showLegalDetails = hasLegalEntityDetails(LEGAL_ENTITY)
 
   if (isHidden) return null
 
   return (
     <footer className={hideOnMobile ? 'hidden sm:block' : ''}>
       <div className="mx-auto max-w-6xl px-5">
-        <div className="flex flex-col-reverse gap-3 border-t border-neutral-200/60 py-6 md:flex-row md:items-center md:justify-between md:gap-0 md:py-8">
-          <p className="text-xs text-neutral-500">© {year} Kudaclub</p>
+        <div className="flex flex-col-reverse gap-4 border-t border-neutral-200/60 py-6 md:flex-row md:items-end md:justify-between md:gap-6 md:py-8">
+          <div className="space-y-2">
+            {showLegalDetails ? (
+              <div className="space-y-0.5 text-xs leading-relaxed text-neutral-500">
+                {legalLines.map((line) => (
+                  <p key={line}>{line}</p>
+                ))}
+              </div>
+            ) : null}
+            <p className="text-xs text-neutral-500">© {year} Kudaclub</p>
+          </div>
 
           <nav
             aria-label="Дополнительные ссылки"

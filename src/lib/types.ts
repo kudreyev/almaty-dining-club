@@ -11,6 +11,7 @@ export type Offer = {
   cooldown_days?: number | null
   end_date?: string | null
   offer_usable_hours?: OfferUsableHour[]
+  takeaway_only?: boolean
   is_active: boolean
 }
 

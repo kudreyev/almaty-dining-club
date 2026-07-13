@@ -204,6 +204,7 @@ export async function importCsvText(formData: FormData) {
       })(),
       dish_photo_url: (row.dish_photo_url || '').trim() || null,
       is_active: parseBoolean(row.is_active, true),
+      takeaway_only: parseBoolean(row.takeaway_only, false),
     }
 
     if (offerPayload.offer_title && offerPayload.offer_terms_short) {

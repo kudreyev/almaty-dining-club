@@ -66,6 +66,11 @@ export function paymentStatusLabel(status: 'pending' | 'approved' | 'rejected') 
     return isActive ? 'Активно' : 'Скрыто'
   }
 
+  /** Оффер действует только на вынос */
+  export function takeawayOnlyLabel(): string {
+    return 'Только на вынос'
+  }
+
   /** Учётная запись PIN персонала */
   export function staffPinStatusLabel(isActive: boolean): string {
     return isActive ? 'Активен' : 'Неактивен'

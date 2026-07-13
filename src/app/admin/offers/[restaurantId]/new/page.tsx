@@ -69,6 +69,11 @@ export default async function AdminOfferNewPage({ params }: PageProps) {
             Активен
           </label>
 
+          <label className="flex items-center gap-2 text-base text-gray-600">
+            <input type="checkbox" name="takeaway_only" className="rounded" />
+            Только на вынос
+          </label>
+
           <FormSubmitGuard />
 
           <Button type="submit" className="w-full">

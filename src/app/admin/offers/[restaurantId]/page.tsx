@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import { requireAdmin } from '@/lib/admin'
-import { listingVisibilityLabel, offerTypeLabel } from '@/lib/labels'
+import { listingVisibilityLabel, offerTypeLabel, takeawayOnlyLabel } from '@/lib/labels'
 import { formatOfferUsableScheduleSummary, getOfferUsableHours } from '@/lib/offers'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -21,7 +21,7 @@ export default async function AdminOffersForRestaurantPage({ params }: PageProps
   const { data: offers } = await supabase
     .from('offers')
     .select(`
-      id, offer_type, offer_title, is_active, end_date,
+      id, offer_type, offer_title, is_active, end_date, takeaway_only,
       offer_usable_hours ( day_of_week, is_unavailable, from_time, to_time, to_next_day )
     `)
     .eq('restaurant_id', restaurantId)
@@ -67,6 +67,9 @@ export default async function AdminOffersForRestaurantPage({ params }: PageProps
                   ) : null}
                   {scheduleSummary ? (
                     <Badge color="default">{scheduleSummary}</Badge>
+                  ) : null}
+                  {o.takeaway_only ? (
+                    <Badge color="accent">{takeawayOnlyLabel()}</Badge>
                   ) : null}
                   <Badge color={o.is_active ? 'green' : 'default'}>
                     {listingVisibilityLabel(!!o.is_active)}

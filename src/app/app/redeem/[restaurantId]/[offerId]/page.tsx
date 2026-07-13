@@ -41,6 +41,7 @@ type Offer = {
   offer_type: OfferType
   estimated_value: number | null
   cooldown_days?: number | null
+  takeaway_only?: boolean
   offer_usable_hours?: OfferUsableHour[]
 }
 type RedeemToken = {
@@ -93,7 +94,7 @@ export default async function RedeemPage({ params, searchParams }: PageProps) {
   const { data: offer } = await supabase
     .from('offers')
     .select(`
-      id, offer_title, offer_terms_short, offer_type, estimated_value, cooldown_days,
+      id, offer_title, offer_terms_short, offer_type, estimated_value, cooldown_days, takeaway_only,
       offer_usable_hours ( day_of_week, is_unavailable, from_time, to_time, to_next_day )
     `)
     .eq('id', offerId)
@@ -139,6 +140,7 @@ export default async function RedeemPage({ params, searchParams }: PageProps) {
                 ? 'Kudafest'
                 : 'в подарок'}
           </Badge>
+          {offer.takeaway_only ? <Badge color="accent">Только на вынос</Badge> : null}
           <Badge color="green">Подписка активна</Badge>
         </div>
 
@@ -184,6 +186,7 @@ export default async function RedeemPage({ params, searchParams }: PageProps) {
               <li>Код действует 10 минут</li>
               <li>Одновременно — 1 активный код</li>
               <li>{formatOfferCooldownText(offerCooldownDays)}</li>
+              {offer.takeaway_only ? <li>Действует только на вынос</li> : null}
               {usableStatus.label ? <li>{usableStatus.label}</li> : null}
             </ul>
 

@@ -189,6 +189,7 @@ export async function createOffer(formData: FormData) {
     end_date: endDate,
     dish_photo_url: String(formData.get('dish_photo_url') || '').trim() || null,
     is_active: formData.get('is_active') === 'on',
+    takeaway_only: formData.get('takeaway_only') === 'on',
   }
 
   const { data: inserted, error } = await supabase
@@ -247,6 +248,7 @@ export async function updateOffer(formData: FormData) {
     end_date: endDate,
     dish_photo_url: String(formData.get('dish_photo_url') || '').trim() || null,
     is_active: formData.get('is_active') === 'on',
+    takeaway_only: formData.get('takeaway_only') === 'on',
   }
 
   const { error } = await supabase.from('offers').update(payload).eq('id', id)

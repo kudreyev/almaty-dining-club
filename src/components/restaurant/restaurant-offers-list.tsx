@@ -25,6 +25,7 @@ export type RestaurantOffer = {
   estimated_value: number | null
   cooldown_days: number | null
   dish_photo_url: string | null
+  takeaway_only: boolean
   usableHoursLabel: string | null
   isOutsideUsableHours: boolean
 }
@@ -199,20 +200,40 @@ function OfferCard({
           </p>
         ) : null}
 
-        {benefitLabel ? (
-          <span
-            className="inline-block font-medium"
-            style={{
-              fontSize: '12px',
-              padding: '4px 10px',
-              borderRadius: '4px',
-              background: '#FAECE7',
-              color: '#993C1D',
-              marginBottom: '10px',
-            }}
+        {benefitLabel || offer.takeaway_only ? (
+          <div
+            className="flex flex-wrap items-center"
+            style={{ gap: '6px', marginBottom: '10px' }}
           >
-            {benefitLabel}
-          </span>
+            {benefitLabel ? (
+              <span
+                className="inline-block font-medium"
+                style={{
+                  fontSize: '12px',
+                  padding: '4px 10px',
+                  borderRadius: '4px',
+                  background: '#FAECE7',
+                  color: '#993C1D',
+                }}
+              >
+                {benefitLabel}
+              </span>
+            ) : null}
+            {offer.takeaway_only ? (
+              <span
+                className="inline-block font-medium"
+                style={{
+                  fontSize: '12px',
+                  padding: '4px 10px',
+                  borderRadius: '4px',
+                  background: '#F4F4F5',
+                  color: '#525252',
+                }}
+              >
+                Только на вынос
+              </span>
+            ) : null}
+          </div>
         ) : null}
 
         <div

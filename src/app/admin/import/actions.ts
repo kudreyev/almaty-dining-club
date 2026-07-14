@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation'
 import { requireAdmin } from '@/lib/admin'
 import { DEFAULT_OFFER_COOLDOWN_DAYS } from '@/lib/offers'
 import { logServerError } from '@/lib/safe-errors'
+import { isCity } from '@/lib/cities'
 
 type Row = Record<string, string>
 
@@ -144,7 +145,7 @@ export async function importCsvText(formData: FormData) {
     const restaurantPayload: any = {
       restaurant_name: name,
       slug,
-      city: row.city || 'almaty',
+      city: isCity(row.city) ? row.city : 'almaty',
       district: row.district || '',
       address: row.address || '',
       phone: row.phone || null,

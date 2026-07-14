@@ -5,7 +5,12 @@ import { redirect } from 'next/navigation'
 import { requireAdmin } from '@/lib/admin'
 import { revalidateCatalogPaths } from '@/lib/revalidate-catalog'
 import { normalizeKZPhone, normalizeWhatsAppPhone } from '@/lib/kz-phone'
+import { DEFAULT_CITY, isCity } from '@/lib/cities'
 import type { RestaurantHour } from '@/lib/opening-hours'
+
+function parseCity(value: FormDataEntryValue | null): 'almaty' | 'astana' {
+  return isCity(value) ? value : DEFAULT_CITY
+}
 
 function minutesFromTime(value: string): number {
   const [hh, mm] = value.split(':').map((part) => Number(part))
@@ -185,7 +190,7 @@ export async function createRestaurant(formData: FormData) {
   const payload = {
     restaurant_name: String(formData.get('restaurant_name') || ''),
     slug: String(formData.get('slug') || ''),
-    city: 'almaty',
+    city: parseCity(formData.get('city')),
     address: String(formData.get('address') || ''),
     brand: String(formData.get('brand') || '').trim() || null,
     phone: phoneNormalized,
@@ -246,6 +251,7 @@ export async function updateRestaurant(formData: FormData) {
   const payload = {
     restaurant_name: String(formData.get('restaurant_name') || ''),
     slug: String(formData.get('slug') || ''),
+    city: parseCity(formData.get('city')),
     address: String(formData.get('address') || ''),
     brand: String(formData.get('brand') || '').trim() || null,
     phone: phoneNormalized,

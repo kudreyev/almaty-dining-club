@@ -9,8 +9,10 @@ import { Input } from '@/components/ui/input'
 import { EmptyState } from '@/components/ui/empty-state'
 import { RestaurantPhotoUpload } from '@/components/admin/restaurant-photo-upload'
 import { RestaurantHoursFields } from '@/components/admin/restaurant-hours-fields'
+import { RestaurantCityField } from '@/components/admin/restaurant-city-field'
 import type { RestaurantHour } from '@/lib/opening-hours'
 import { getFallbackByContext } from '@/lib/safe-errors'
+import { DEFAULT_CITY, isCity } from '@/lib/cities'
 
 type PageProps = {
   params: Promise<{ id: string }>
@@ -33,6 +35,7 @@ type RestaurantRecord = {
   id: string
   restaurant_name: string
   slug: string
+  city: string
   address: string
   cuisine: string
   cuisine_2: string | null
@@ -60,6 +63,7 @@ export default async function AdminRestaurantEditPage({ params, searchParams }: 
         id,
         restaurant_name,
         slug,
+        city,
         address,
         cuisine,
         cuisine_2,
@@ -122,6 +126,7 @@ export default async function AdminRestaurantEditPage({ params, searchParams }: 
             placeholder="Например, Coffee Shake (для группировки филиалов)"
           />
           <Input name="address" label="Адрес" defaultValue={r.address} required data-ym-disable-keys />
+          <RestaurantCityField defaultCity={isCity(r.city) ? r.city : DEFAULT_CITY} />
           <div className="grid gap-4 sm:grid-cols-3">
             <Input name="cuisine" label="Кухня" defaultValue={r.cuisine} required />
             <Input name="cuisine_2" label="Кухня 2" defaultValue={r.cuisine_2 ?? ''} placeholder="Опционально" />

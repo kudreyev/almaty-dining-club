@@ -5,6 +5,7 @@ import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { RestaurantHoursFields } from '@/components/admin/restaurant-hours-fields'
+import { RestaurantCityField } from '@/components/admin/restaurant-city-field'
 
 export default async function AdminRestaurantNewPage() {
   await requireAdmin()
@@ -26,6 +27,7 @@ export default async function AdminRestaurantNewPage() {
             placeholder="Например, Coffee Shake (для группировки филиалов)"
           />
           <Input name="address" label="Адрес" placeholder="Адрес" required data-ym-disable-keys />
+          <RestaurantCityField />
           <div className="grid gap-4 sm:grid-cols-3">
             <Input name="cuisine" label="Кухня" placeholder="Кухня" required />
             <Input name="cuisine_2" label="Кухня 2" placeholder="Опционально" />

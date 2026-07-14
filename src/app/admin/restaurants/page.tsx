@@ -1,18 +1,19 @@
-import Link from 'next/link'
 import { requireAdmin } from '@/lib/admin'
-import { listingVisibilityLabel } from '@/lib/labels'
 import { logServerError } from '@/lib/safe-errors'
-import { Card } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import {
+  AdminRestaurantsList,
+  type AdminRestaurantRow,
+} from '@/components/admin/restaurants-list'
 
 export default async function AdminRestaurantsPage() {
   const { supabase, user } = await requireAdmin()
 
   const { data: restaurants, error: restaurantsError } = await supabase
     .from('restaurants')
-    .select('id, restaurant_name, slug, address, is_active')
+    .select('id, restaurant_name, slug, address, is_active, city')
     .order('restaurant_name', { ascending: true })
+    .returns<AdminRestaurantRow[]>()
 
   if (restaurantsError) {
     logServerError('admin/restaurants', restaurantsError)
@@ -54,28 +55,9 @@ export default async function AdminRestaurantsPage() {
         </div>
       ) : null}
 
-      <div className="space-y-3">
-        {restaurants?.map((r) => (
-          <Card key={r.id} padding="sm" hover>
-            <div className="flex items-center justify-between gap-3">
-              <div className="min-w-0">
-                <div className="flex items-center gap-2">
-                  <p className="truncate font-semibold">{r.restaurant_name}</p>
-                  <Badge color={r.is_active ? 'green' : 'default'}>
-                    {listingVisibilityLabel(!!r.is_active)}
-                  </Badge>
-                </div>
-                <p className="mt-0.5 truncate text-sm text-gray-400">
-                  {(r.address ?? 'Адрес не указан')} · /{r.slug}
-                </p>
-              </div>
-              <Button href={`/admin/restaurants/${r.id}/edit`} variant="secondary" size="sm">
-                Изменить
-              </Button>
-            </div>
-          </Card>
-        ))}
-      </div>
+      {!restaurantsError && restaurants && restaurants.length > 0 ? (
+        <AdminRestaurantsList restaurants={restaurants} />
+      ) : null}
     </div>
   )
 }

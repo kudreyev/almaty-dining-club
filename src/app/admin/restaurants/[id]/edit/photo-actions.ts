@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { requireAdmin } from '@/lib/admin'
+import { revalidateCatalogPaths } from '@/lib/revalidate-catalog'
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 import { logServerError } from '@/lib/safe-errors'
 
@@ -43,9 +44,7 @@ async function getRestaurantOrThrow(admin: ReturnType<typeof createSupabaseAdmin
 }
 
 async function revalidateRestaurantPhotoPages(restaurant: RestaurantLite) {
-  revalidatePath('/')
-  revalidatePath('/almaty')
-  revalidatePath('/map')
+  revalidateCatalogPaths()
   revalidatePath(`/r/${restaurant.slug}`)
   revalidatePath(`/admin/restaurants/${restaurant.id}/edit`)
 }

@@ -1,13 +1,20 @@
 import type { User } from '@supabase/supabase-js'
 import Link from 'next/link'
+import { cookies } from 'next/headers'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { LogoutButton } from '@/components/logout-button'
 import { MobileMenu } from '@/components/mobile-menu'
 import { WhatsappGoalLink } from '@/components/analytics/whatsapp-goal-link'
+import { CitySelector } from '@/components/city-selector'
+import { CITY_COOKIE, DEFAULT_CITY, isCity } from '@/lib/cities'
 
 export async function Header() {
   let user: User | null = null
   let role: 'user' | 'admin' | null = null
+
+  const cookieStore = await cookies()
+  const cityCookie = cookieStore.get(CITY_COOKIE)?.value
+  const city = isCity(cityCookie) ? cityCookie : DEFAULT_CITY
 
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL
   const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
@@ -30,8 +37,8 @@ export async function Header() {
   }
 
   const navLinks = [
-    { href: '/', label: 'Заведения' },
-    { href: '/map', label: 'Карта' },
+    { href: `/${city}`, label: 'Заведения' },
+    { href: `/${city}/map`, label: 'Карта' },
     { href: '/pricing', label: 'Подписка' },
   ]
 
@@ -52,7 +59,7 @@ export async function Header() {
     <header className="sticky top-0 z-50 border-b border-gray-200/80 bg-white/90 backdrop-blur-lg">
       <div className="mx-auto flex h-14 max-w-6xl items-center justify-between gap-4 px-5">
         <Link
-          href="/"
+          href={`/${city}`}
           className="font-semibold text-neutral-900"
           style={{ fontSize: '18px', letterSpacing: '-0.4px' }}
         >
@@ -86,6 +93,7 @@ export async function Header() {
         </nav>
 
         <div className="flex items-center gap-3">
+          <CitySelector current={city} />
           {!user ? (
             <>
               <Link

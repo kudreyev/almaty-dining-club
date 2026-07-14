@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { requireAdmin } from '@/lib/admin'
+import { revalidateCatalogPaths } from '@/lib/revalidate-catalog'
 import { normalizeKZPhone, normalizeWhatsAppPhone } from '@/lib/kz-phone'
 import type { RestaurantHour } from '@/lib/opening-hours'
 
@@ -212,8 +213,7 @@ export async function createRestaurant(formData: FormData) {
 
   await replaceRestaurantHours(supabase, createdRestaurant.id, restaurantHours)
 
-  revalidatePath('/')
-  revalidatePath('/almaty')
+  revalidateCatalogPaths()
   revalidatePath('/admin/restaurants')
   redirect('/admin/restaurants')
 }
@@ -268,9 +268,7 @@ export async function updateRestaurant(formData: FormData) {
   await replaceRestaurantHours(supabase, id, restaurantHours)
   await syncPrimaryLocationCoords(supabase, id, payload.address, lat, lng)
 
-  revalidatePath('/')
-  revalidatePath('/almaty')
-  revalidatePath('/map')
+  revalidateCatalogPaths()
   revalidatePath(`/r/${payload.slug}`)
   revalidatePath('/admin/restaurants')
   revalidatePath(`/r/`)

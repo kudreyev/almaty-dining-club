@@ -11,7 +11,7 @@ import {
 
 export function Footer() {
   const pathname = usePathname()
-  const hideOnMobile = pathname === '/map'
+  const hideOnMobile = pathname?.endsWith('/map') ?? false
   const isHidden = pathname?.startsWith('/r/') ?? false
   const year = new Date().getFullYear()
   const legalLines = formatLegalEntityFooterLines(LEGAL_ENTITY)

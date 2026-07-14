@@ -5,13 +5,16 @@ import { FloatingMapSwitch } from '@/components/map/floating-map-switch'
 import { RestaurantFiltersSheet } from '@/components/restaurant-filters-sheet'
 import { useUrlRestaurantFilters } from '@/components/map/use-url-filters'
 import { useHomeSort } from '@/components/home/use-home-sort'
+import type { City } from '@/lib/cities'
 
 export function HomeMobileControls({
   cuisineOptions,
   applyCount,
+  city,
 }: {
   cuisineOptions: string[]
   applyCount: number
+  city: City
 }) {
   const [open, setOpen] = useState(false)
   const { filters, setFilters, buildHrefWithSameFilters } = useUrlRestaurantFilters()
@@ -30,7 +33,7 @@ export function HomeMobileControls({
         leftLabel="Фильтр"
         onLeftClick={() => setOpen(true)}
         rightLabel="Карта"
-        rightHref={buildHrefWithSameFilters('/map')}
+        rightHref={buildHrefWithSameFilters(`/${city}/map`)}
       />
 
       <RestaurantFiltersSheet

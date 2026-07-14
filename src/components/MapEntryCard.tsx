@@ -4,7 +4,7 @@ type Props = {
   href?: string
 }
 
-export default function MapEntryCard({ href = '/map' }: Props) {
+export default function MapEntryCard({ href = '/' }: Props) {
   return (
     <Link
       href={href}

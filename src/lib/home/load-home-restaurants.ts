@@ -8,6 +8,7 @@ import {
   filterCatalogActiveOffers,
   getTodayDateStringInTz,
 } from '@/lib/offers'
+import type { City } from '@/lib/cities'
 import type { Offer, RestaurantWithStatus } from '@/lib/types'
 
 type SupabaseRow = {
@@ -35,11 +36,11 @@ export type HomeRestaurantsResult = {
 }
 
 /**
- * Загружает каталог активных ресторанов Алматы с фото, часами, оффером
- * и предвычисленным openStatus. Используется на главной (/) и в кабинете
- * для бывших/неактивных подписчиков (/app/me) — экран реактивации.
+ * Загружает каталог активных ресторанов заданного города с фото, часами,
+ * оффером и предвычисленным openStatus. Используется в каталоге (/[city]) и
+ * в кабинете для бывших/неактивных подписчиков (/app/me) — экран реактивации.
  */
-export async function loadHomeRestaurants(): Promise<HomeRestaurantsResult> {
+export async function loadHomeRestaurants(city: City): Promise<HomeRestaurantsResult> {
   const supabase = createSupabasePublicClient()
   const now = new Date()
   const today = getTodayDateStringInTz(now, DEFAULT_TZ)
@@ -78,7 +79,7 @@ export async function loadHomeRestaurants(): Promise<HomeRestaurantsResult> {
         sort_order
       )
     `)
-    .eq('city', 'almaty')
+    .eq('city', city)
     .eq('is_active', true)
     .order('restaurant_name', { ascending: true })
     .returns<SupabaseRow[]>()

@@ -9,6 +9,7 @@ const ALLOWED_ROOTS = [
   { base: '/pricing' },
   { base: '/map' },
   { base: '/almaty' },
+  { base: '/astana' },
   { base: '/support' },
   { base: '/how-it-works' },
   { base: '/privacy' },

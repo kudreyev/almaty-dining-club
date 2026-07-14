@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation'
 import { Suspense } from 'react'
+import { cookies } from 'next/headers'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { LogoutButton } from '@/components/logout-button'
 import { offerTypeLabel, subscriptionStatusLabel } from '@/lib/labels'
@@ -14,6 +15,7 @@ import { WhatsappGoalLink } from '@/components/analytics/whatsapp-goal-link'
 import { loadHomeRestaurants } from '@/lib/home/load-home-restaurants'
 import { isSubscriptionCurrentlyActive } from '@/lib/subscription'
 import { pluralizeRu } from '@/lib/ru-plural'
+import { CITY_COOKIE, CITY_LABELS_GENITIVE, DEFAULT_CITY, isCity } from '@/lib/cities'
 
 type Profile = {
   id: string
@@ -86,15 +88,18 @@ export default async function MePage({ searchParams }: PageProps) {
   // показываем экран реактивации + каталог. Историю redemptions скрываем —
   // фокус на возврате к подписке. completeActivation/activate RPC не трогаем.
   if (!isActive) {
-    const { restaurantsWithStatus, cuisineOptions } = await loadHomeRestaurants()
+    const cityCookie = (await cookies()).get(CITY_COOKIE)?.value
+    const city = isCity(cityCookie) ? cityCookie : DEFAULT_CITY
+    const { restaurantsWithStatus, cuisineOptions } = await loadHomeRestaurants(city)
     const totalVenues = restaurantsWithStatus.length
     const venuesWord = pluralizeRu(totalVenues, [
       'заведение',
       'заведения',
       'заведений',
     ])
+    const cityName = CITY_LABELS_GENITIVE[city]
     const venuesSectionTitle =
-      totalVenues > 0 ? `${totalVenues} ${venuesWord} Алматы` : 'Заведения Алматы'
+      totalVenues > 0 ? `${totalVenues} ${venuesWord} ${cityName}` : `Заведения ${cityName}`
 
     const title = hasAnySubscription ? 'Подписка закончилась' : 'Подписка неактивна'
     const description = hasAnySubscription
@@ -151,11 +156,13 @@ export default async function MePage({ searchParams }: PageProps) {
           <VenuesSection
             restaurants={restaurantsWithStatus}
             cuisineOptions={cuisineOptions}
+            city={city}
             title={venuesSectionTitle}
           />
           <HomeMobileControls
             cuisineOptions={cuisineOptions}
             applyCount={restaurantsWithStatus.length}
+            city={city}
           />
         </div>
       </>

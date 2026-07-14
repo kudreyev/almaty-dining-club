@@ -1,6 +1,7 @@
 import { revalidatePath } from 'next/cache'
 import { NextResponse } from 'next/server'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
+import { revalidateCatalogPaths } from '@/lib/revalidate-catalog'
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 import {
   getFallbackByContext,
@@ -188,9 +189,7 @@ export async function POST(request: Request, { params }: RouteParams) {
       nextSortOrder += 1
     }
 
-    revalidatePath('/')
-    revalidatePath('/almaty')
-    revalidatePath('/map')
+    revalidateCatalogPaths()
     revalidatePath(`/r/${restaurant.slug}`)
     revalidatePath(`/admin/restaurants/${restaurant.id}/edit`)
 

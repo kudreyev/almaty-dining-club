@@ -20,10 +20,12 @@ import {
   type OfferType,
   type RestaurantWithStatus,
 } from '@/lib/types'
+import type { City } from '@/lib/cities'
 
 type Props = {
   restaurants: RestaurantWithStatus[]
   cuisineOptions: string[]
+  city: City
   title?: string
 }
 
@@ -79,6 +81,7 @@ function getRestaurantPrimaryCoords(restaurant: RestaurantWithStatus): { lat: nu
 export function VenuesSection({
   restaurants,
   cuisineOptions,
+  city,
   title = 'Заведения',
 }: Props) {
   const router = useRouter()
@@ -196,8 +199,9 @@ export function VenuesSection({
 
   const mapHref = useMemo(() => {
     const qs = new URLSearchParams(searchParams.toString()).toString()
-    return qs ? `/map?${qs}` : '/map'
-  }, [searchParams])
+    const base = `/${city}/map`
+    return qs ? `${base}?${qs}` : base
+  }, [searchParams, city])
 
   const orderKey = useMemo(() => displayed.map((d) => d.id).join('|'), [displayed])
 

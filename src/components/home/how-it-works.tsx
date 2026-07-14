@@ -1,10 +1,12 @@
 import { pluralizeRu } from '@/lib/ru-plural'
+import { CITY_LABELS_GENITIVE, type City } from '@/lib/cities'
 
 type HowItWorksProps = {
   venuesCount: number
+  city: City
 }
 
-function buildSteps(venuesCount: number): ReadonlyArray<{
+function buildSteps(venuesCount: number, city: City): ReadonlyArray<{
   n: number
   title: string
   description: string
@@ -24,7 +26,7 @@ function buildSteps(venuesCount: number): ReadonlyArray<{
     {
       n: 2,
       title: 'Выберите заведение',
-      description: `${venuesCount} ${restaurantWord} Алматы — стейки, кофе, азиатская кухня.`,
+      description: `${venuesCount} ${restaurantWord} ${CITY_LABELS_GENITIVE[city]} — стейки, кофе, азиатская кухня.`,
     },
     {
       n: 3,
@@ -34,8 +36,8 @@ function buildSteps(venuesCount: number): ReadonlyArray<{
   ]
 }
 
-export function HowItWorks({ venuesCount }: HowItWorksProps) {
-  const steps = buildSteps(venuesCount)
+export function HowItWorks({ venuesCount, city }: HowItWorksProps) {
+  const steps = buildSteps(venuesCount, city)
 
   return (
     <section className="px-5 py-10 md:py-14">

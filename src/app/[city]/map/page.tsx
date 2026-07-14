@@ -162,7 +162,7 @@ export default async function MapPage({ params }: PageProps) {
 
       {/* Mobile-first full-screen map below site header (h-14) */}
       <div className="h-[calc(100dvh-3.5rem)] min-h-[420px] overflow-hidden sm:h-[calc(100dvh-10rem)] sm:rounded-2xl sm:border sm:border-gray-200 sm:bg-gray-50">
-        <MapScreen places={places} allCuisineOptions={allCuisineOptions} listHref={`/${city}`} />
+        <MapScreen places={places} allCuisineOptions={allCuisineOptions} listHref={`/${city}`} city={city} />
       </div>
     </div>
   )

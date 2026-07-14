@@ -1,20 +1,22 @@
 import { WhatsappGoalLink } from '@/components/analytics/whatsapp-goal-link'
+import { CITY_LABELS, CITY_LABELS_GENITIVE, type City } from '@/lib/cities'
 
 type HeroGuestProps = {
   venuesCount: number
+  city: City
 }
 
-export function HeroGuest({ venuesCount }: HeroGuestProps) {
+export function HeroGuest({ venuesCount, city }: HeroGuestProps) {
   return (
     <section className="px-5">
       <div className="mx-auto max-w-3xl py-8 text-center md:py-12">
         <span className="inline-block rounded-full bg-primary-light px-3 py-1 text-xs text-primary-dark">
-          От создателей Kudafest · Алматы
+          От создателей Kudafest · {CITY_LABELS[city]}
         </span>
 
         <h1 className="mt-5 text-3xl font-semibold leading-[1.15] tracking-[-0.02em] text-neutral-900 md:text-5xl">
           Подписка на скидки в ресторанах{' '}
-          <span style={{ color: '#D85A30' }}>Алматы</span>
+          <span style={{ color: '#D85A30' }}>{CITY_LABELS_GENITIVE[city]}</span>
         </h1>
 
         <p className="mx-auto mt-4 max-w-[520px] text-sm text-neutral-700 md:text-base">

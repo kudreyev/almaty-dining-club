@@ -1,3 +1,4 @@
+import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import { VenuesSection } from '@/components/home/venues-section'
 import { HomeMobileControls } from '@/components/home/home-mobile-controls'
@@ -9,12 +10,27 @@ import { FinalCta } from '@/components/sections/final-cta'
 import { getHomePageUserState, getUserSavings } from '@/lib/subscription'
 import { loadHomeRestaurants } from '@/lib/home/load-home-restaurants'
 import { pluralizeRu } from '@/lib/ru-plural'
-import { CITY_LABELS_GENITIVE, isCity } from '@/lib/cities'
+import {
+  CITY_LABELS_GENITIVE,
+  CITY_LABELS_PREPOSITIONAL,
+  isCity,
+} from '@/lib/cities'
 
 export const dynamic = 'force-dynamic'
 
 type PageProps = {
   params: Promise<{ city: string }>
+}
+
+export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+  const { city } = await params
+  if (!isCity(city)) return {}
+
+  const prepositional = CITY_LABELS_PREPOSITIONAL[city]
+  return {
+    title: `Kudaclub — подписка на рестораны в ${prepositional}`,
+    description: `Подписка с офферами 2 за 1 и в подарок в ресторанах в ${prepositional}.`,
+  }
 }
 
 export default async function CityCatalogPage({ params }: PageProps) {
@@ -72,9 +88,9 @@ export default async function CityCatalogPage({ params }: PageProps) {
 
   return (
     <>
-      <HeroGuest venuesCount={totalVenues} />
+      <HeroGuest venuesCount={totalVenues} city={city} />
 
-      <HowItWorks venuesCount={totalVenues} />
+      <HowItWorks venuesCount={totalVenues} city={city} />
 
       <div
         id="venues"

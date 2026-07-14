@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { safeLog } from '@/lib/safe-logger'
 import { getFallbackByContext, getUserFacingError } from '@/lib/safe-errors'
+import { DEFAULT_CITY, type City } from '@/lib/cities'
 
 type MapPlace = {
   slug: string
@@ -85,8 +86,14 @@ const SCHEME_SOURCE = 'yandex-scheme'
 const MARKERS_SOURCE = 'restaurants-markers'
 
 // JS API v3: [lng, lat]. JS API 2.1: [lat, lng].
-const ALMATY_CENTER_LNG_LAT: LngLat = [76.889709, 43.238949]
-const ALMATY_CENTER_LAT_LNG: [number, number] = [43.238949, 76.889709]
+const CITY_CENTERS_LNG_LAT: Record<City, LngLat> = {
+  almaty: [76.889709, 43.238949],
+  astana: [71.470356, 51.160523],
+}
+const CITY_CENTERS_LAT_LNG: Record<City, [number, number]> = {
+  almaty: [43.238949, 76.889709],
+  astana: [51.160523, 71.470356],
+}
 const DEFAULT_ZOOM = 12
 const FIT_PADDING = 40
 const MAX_ZOOM = 15
@@ -388,12 +395,14 @@ async function loadYandexMapsV21(apiKey: string): Promise<YMapsV21Api> {
 function initMapV21(
   container: HTMLDivElement,
   ymaps: YMapsV21Api,
-  safePlaces: MapPlace[]
+  safePlaces: MapPlace[],
+  city: City
 ): YMapV21Instance {
+  const cityCenter = CITY_CENTERS_LAT_LNG[city]
   const map = new ymaps.Map(
     container,
     {
-      center: ALMATY_CENTER_LAT_LNG,
+      center: cityCenter,
       zoom: DEFAULT_ZOOM,
       controls: ['zoomControl', 'geolocationControl'],
     },
@@ -437,7 +446,7 @@ function initMapV21(
       }
     }
   } else {
-    map.setCenter?.(ALMATY_CENTER_LAT_LNG, DEFAULT_ZOOM)
+    map.setCenter?.(cityCenter, DEFAULT_ZOOM)
   }
 
   return map
@@ -447,7 +456,8 @@ async function initMapV3(
   container: HTMLDivElement,
   ymaps3: YMaps3Api,
   safePlaces: MapPlace[],
-  onOpenBalloon: (balloon: HTMLDivElement) => void
+  onOpenBalloon: (balloon: HTMLDivElement) => void,
+  city: City
 ): Promise<YMapInstance> {
   const {
     YMap,
@@ -458,9 +468,10 @@ async function initMapV3(
     YMapMarker,
   } = ymaps3
 
+  const cityCenter = CITY_CENTERS_LNG_LAT[city]
   const map = new YMap(container, {
     location: {
-      center: ALMATY_CENTER_LNG_LAT,
+      center: cityCenter,
       zoom: DEFAULT_ZOOM,
     },
     margin: [FIT_PADDING, FIT_PADDING, FIT_PADDING, FIT_PADDING],
@@ -541,7 +552,7 @@ async function initMapV3(
     }
   } else {
     map.setLocation({
-      center: ALMATY_CENTER_LNG_LAT,
+      center: cityCenter,
       zoom: DEFAULT_ZOOM,
       duration: 0,
     })
@@ -550,7 +561,13 @@ async function initMapV3(
   return map
 }
 
-export function YandexRestaurantsMap({ places }: { places: MapPlace[] }) {
+export function YandexRestaurantsMap({
+  places,
+  city = DEFAULT_CITY,
+}: {
+  places: MapPlace[]
+  city?: City
+}) {
   const apiKey = process.env.NEXT_PUBLIC_YANDEX_MAPS_API_KEY
   const containerRef = useRef<HTMLDivElement | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -608,7 +625,7 @@ export function YandexRestaurantsMap({ places }: { places: MapPlace[] }) {
         const ymaps3 = await loadYandexMapsV3(apiKey)
         if (disposed || !containerRef.current) return
 
-        map = await initMapV3(containerRef.current, ymaps3, safePlaces, handleOpenBalloon)
+        map = await initMapV3(containerRef.current, ymaps3, safePlaces, handleOpenBalloon, city)
         setMapEngine('v3')
         document.addEventListener('click', handleDocumentClick)
         return
@@ -625,7 +642,7 @@ export function YandexRestaurantsMap({ places }: { places: MapPlace[] }) {
       const ymaps = await loadYandexMapsV21(apiKey)
       if (disposed || !containerRef.current) return
 
-      map = initMapV21(containerRef.current, ymaps, safePlaces)
+      map = initMapV21(containerRef.current, ymaps, safePlaces, city)
       setMapEngine('v21')
     }
 
@@ -640,7 +657,7 @@ export function YandexRestaurantsMap({ places }: { places: MapPlace[] }) {
       closeOpenBalloon()
       if (map) map.destroy()
     }
-  }, [apiKey, safePlaces])
+  }, [apiKey, safePlaces, city])
 
   if (!apiKey) {
     return (
@@ -666,7 +683,7 @@ export function YandexRestaurantsMap({ places }: { places: MapPlace[] }) {
       />
       {safePlaces.length === 0 ? (
         <div className="pointer-events-none absolute left-4 top-4 z-10 rounded-xl border border-gray-200 bg-white/95 px-3 py-2 text-sm text-gray-700 shadow-sm backdrop-blur">
-          Нет координат у заведений — добавьте lat/lng в админке, пока карта центрируется на Алматы.
+          Нет координат у заведений — добавьте lat/lng в админке, пока карта центрируется на центр города.
         </div>
       ) : null}
       {process.env.NODE_ENV !== 'production' ? (

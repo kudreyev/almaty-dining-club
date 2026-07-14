@@ -8,7 +8,7 @@ import { WhatsappGoalLink } from '@/components/analytics/whatsapp-goal-link'
 import type { WhatsAppMessageKind } from '@/lib/whatsapp'
 
 const BULLETS = [
-  'Доступ ко всем предложениям в Алматы',
+  'Доступ ко всем предложениям Kudaclub',
   'Активация занимает 5 минут через WhatsApp',
   'Использование: 1 раз в 7 дней на заведение',
 ]

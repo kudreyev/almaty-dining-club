@@ -16,6 +16,12 @@ import {
   type OfferUsableHour,
 } from '@/lib/offers'
 import { DEFAULT_TZ } from '@/lib/opening-hours'
+import {
+  CITY_LABELS,
+  CITY_LABELS_PREPOSITIONAL,
+  DEFAULT_CITY,
+  isCity,
+} from '@/lib/cities'
 import { RestaurantNavBar } from '@/components/restaurant/restaurant-nav-bar'
 import { RestaurantHeroGallery } from '@/components/restaurant/restaurant-hero-gallery'
 import { RestaurantHero } from '@/components/restaurant/restaurant-hero'
@@ -139,12 +145,13 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
   const { data: restaurant } = await supabase
     .from('restaurants')
-    .select('restaurant_name, address, cuisine, cuisine_2, cuisine_3')
+    .select('restaurant_name, address, city, cuisine, cuisine_2, cuisine_3')
     .eq('slug', slug)
     .eq('is_active', true)
     .single<{
       restaurant_name: string
       address: string
+      city: string
       cuisine: string
       cuisine_2: string | null
       cuisine_3: string | null
@@ -158,7 +165,10 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     .filter(Boolean)
     .join(', ')
 
-  const title = `${restaurant.restaurant_name} в Алматы — офферы Kudaclub`
+  const cityPrepositional = isCity(restaurant.city)
+    ? CITY_LABELS_PREPOSITIONAL[restaurant.city]
+    : CITY_LABELS_PREPOSITIONAL[DEFAULT_CITY]
+  const title = `${restaurant.restaurant_name} в ${cityPrepositional} — офферы Kudaclub`
   const descriptionParts = [
     `${restaurant.restaurant_name} — 2 за 1 и подарки по подписке Kudaclub`,
     cuisines ? `Кухня: ${cuisines}.` : null,
@@ -259,7 +269,10 @@ export default async function RestaurantPage({ params }: PageProps) {
   ) as string[]
   const tags = restaurant.tags ?? []
   const hoursForWeek = restaurant.restaurant_hours ?? []
-  const addressLine = restaurant.address?.trim() || `${restaurant.restaurant_name}, Алматы`
+  const cityName = isCity(restaurant.city)
+    ? CITY_LABELS[restaurant.city]
+    : CITY_LABELS[DEFAULT_CITY]
+  const addressLine = restaurant.address?.trim() || `${restaurant.restaurant_name}, ${cityName}`
   const hasCoordinates =
     primaryLocation?.lat != null && primaryLocation?.lng != null
   const lat = primaryLocation?.lat ?? null

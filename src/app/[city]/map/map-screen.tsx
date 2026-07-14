@@ -12,6 +12,7 @@ import {
 } from '@/lib/user-location'
 import type { OfferType } from '@/lib/offers'
 import type { RestaurantFilters } from '@/lib/restaurant-filters'
+import type { City } from '@/lib/cities'
 
 type Place = {
   slug: string
@@ -29,10 +30,12 @@ export function MapScreen({
   places,
   allCuisineOptions,
   listHref = '/',
+  city,
 }: {
   places: Place[]
   allCuisineOptions: string[]
   listHref?: string
+  city: City
 }) {
   const [sheetOpen, setSheetOpen] = useState(false)
   const [geoHint, setGeoHint] = useState<string | null>(null)
@@ -105,7 +108,7 @@ export function MapScreen({
       {/* CONTENT */}
       <div className="absolute inset-0">
         <div className="h-full w-full">
-          <YandexRestaurantsMap places={filteredPlaces} />
+          <YandexRestaurantsMap places={filteredPlaces} city={city} />
         </div>
       </div>
 

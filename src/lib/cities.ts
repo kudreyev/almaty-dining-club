@@ -25,6 +25,12 @@ export const CITY_LABELS_GENITIVE: Record<City, string> = {
   astana: 'Астаны',
 }
 
+/** Предложный падеж для фраз вида «в {городе}». */
+export const CITY_LABELS_PREPOSITIONAL: Record<City, string> = {
+  almaty: 'Алматы',
+  astana: 'Астане',
+}
+
 export function isCity(value: unknown): value is City {
   return typeof value === 'string' && (CITIES as readonly string[]).includes(value)
 }

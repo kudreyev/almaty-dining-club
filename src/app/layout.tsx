@@ -15,8 +15,8 @@ const inter = Inter({
 })
 
 export const metadata: Metadata = {
-  title: 'Kudaclub — подписка на рестораны Алматы',
-  description: 'Подписка с офферами 2 за 1 и в подарок в ресторанах Алматы.',
+  title: 'Kudaclub — подписка на рестораны',
+  description: 'Подписка с офферами 2 за 1 и в подарок в ресторанах Казахстана.',
 }
 
 export default function RootLayout({

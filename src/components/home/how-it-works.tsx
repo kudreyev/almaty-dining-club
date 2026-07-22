@@ -21,7 +21,7 @@ function buildSteps(venuesCount: number, city: City): ReadonlyArray<{
     {
       n: 1,
       title: 'Оформите подписку',
-      description: '1 990 ₸ через WhatsApp. Занимает 5 минут.',
+      description: '1 990 ₸ картой онлайн. Доступ открывается сразу.',
     },
     {
       n: 2,

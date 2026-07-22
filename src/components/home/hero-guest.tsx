@@ -45,7 +45,7 @@ export function HeroGuest({ venuesCount, city }: HeroGuestProps) {
         </div>
 
         <p className="mt-2 text-center text-[11px] text-neutral-500">
-          Вернём деньги, если не подойдёт
+          Оплата картой онлайн — доступ открывается сразу
         </p>
 
         <ul className="mt-5 flex flex-col items-center gap-2 text-xs text-neutral-500 sm:flex-row sm:flex-wrap sm:justify-center sm:gap-x-6 sm:gap-y-2">
@@ -55,7 +55,7 @@ export function HeroGuest({ venuesCount, city }: HeroGuestProps) {
           </li>
           <li className="inline-flex items-center gap-1.5">
             <CheckIcon />
-            Возврат денег за 7 дней
+            Оплата картой онлайн
           </li>
           <li className="inline-flex items-center gap-1.5">
             <CheckIcon />

@@ -20,11 +20,11 @@ export const metadata: Metadata = {
 const FAQ_ITEMS = [
   {
     q: 'Как отменить подписку?',
-    a: 'Никак — она отменяется сама. Через 30 дней доступ просто закончится. Чтобы продолжить, напишешь нам в WhatsApp. Мы НЕ списываем деньги автоматически.',
+    a: 'В личном кабинете в один клик — в любой момент. После отмены доступ сохранится до конца оплаченного месяца, а следующее списание не пройдёт.',
   },
   {
     q: 'Что если мне не подойдёт?',
-    a: 'Если в первые 7 дней после активации вы решите, что Kudaclub вам не подходит — напишите нам в WhatsApp, и мы вернём полную стоимость подписки. Без объяснений и условий. Деньги вернём на ваш Kaspi.',
+    a: 'Список заведений открыт до оплаты — посмотри, подходит ли он тебе. Если передумаешь после оплаты, отмени подписку в личном кабинете, чтобы не платить дальше. Возврата за уже оплаченный период нет.',
   },
   {
     q: 'Как работает 2 за 1?',
@@ -47,9 +47,9 @@ const FAQ_ITEMS = [
 const GUARANTEES = [
   {
     Icon: ArrowLeftRight,
-    title: 'Нет автосписаний',
+    title: 'Отмена в один клик',
     description:
-      'Через 30 дней подписка просто закончится. Хочешь продолжить — пишешь нам.',
+      'Отмени подписку в личном кабинете в любой момент — следующее списание не пройдёт.',
   },
   {
     Icon: Clock,
@@ -124,7 +124,7 @@ export default function PricingPage() {
                   className="mt-[3px] shrink-0 text-success"
                   aria-hidden="true"
                 />
-                Быстрая активация через WhatsApp
+                Мгновенная активация после оплаты картой
               </li>
               <li className="flex items-start gap-2.5 py-1.5 text-[13px] leading-[1.5] text-neutral-600">
                 <CheckCircle
@@ -147,26 +147,6 @@ export default function PricingPage() {
             <p className="mt-2.5 text-center text-[11px] text-neutral-500">
               Оплата картой · списание 1 990 ₸/мес, отмена в любой момент
             </p>
-          </div>
-
-          {/* Money-back guarantee */}
-          <div className="mt-4 flex items-start gap-3 rounded-xl bg-primary-light px-4 py-3.5 text-left">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white">
-              <ShieldCheck
-                size={16}
-                className="text-primary-dark"
-                aria-hidden="true"
-              />
-            </div>
-            <div>
-              <h3 className="text-[13px] font-medium text-neutral-900">
-                Гарантия возврата
-              </h3>
-              <p className="mt-0.5 text-[12px] leading-[1.55] text-neutral-700">
-                Если Kudaclub не подойдёт — напишите нам в первые 7 дней, и мы
-                вернём полную стоимость подписки. Без вопросов и условий.
-              </p>
-            </div>
           </div>
         </div>
       </section>

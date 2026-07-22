@@ -79,9 +79,9 @@ export default async function ActivatePage({
         <div className="rounded-3xl border border-gray-200 bg-white p-8 shadow-sm">
           <h1 className="text-xl font-semibold">Ссылка недействительна</h1>
           <p className="mt-3 text-sm text-gray-600">
-            Проверьте ссылку или запросите новую у менеджера Kudaclub.
+            Проверьте ссылку или оформите подписку картой на странице тарифа.
           </p>
-          <CtaRow primaryHref="/" primaryText="Перейти к заведениям" />
+          <CtaRow primaryHref="/pricing" primaryText="Оформить подписку" />
         </div>
       </main>
     )
@@ -101,9 +101,10 @@ export default async function ActivatePage({
         <div className="rounded-3xl border border-gray-200 bg-white p-8 shadow-sm">
           <h1 className="text-xl font-semibold">Ссылка отменена</h1>
           <p className="mt-3 text-sm text-gray-600">
-            Эта ссылка была отменена. Напишите в WhatsApp — поможем оформить новую.
+            Эта ссылка больше недействительна. Оформить подписку можно картой на
+            странице тарифа.
           </p>
-          <CtaRow primaryHref="/" primaryText="Перейти к заведениям" />
+          <CtaRow primaryHref="/pricing" primaryText="Оформить подписку" />
         </div>
       </main>
     )
@@ -133,9 +134,10 @@ export default async function ActivatePage({
         <div className="rounded-3xl border border-gray-200 bg-white p-8 shadow-sm">
           <h1 className="text-xl font-semibold">Ссылка истекла</h1>
           <p className="mt-3 text-sm text-gray-600">
-            Срок действия ссылки истёк. Напишите в WhatsApp — мы пришлём новую ссылку для активации.
+            Срок действия ссылки истёк. Оформить подписку можно картой на странице
+            тарифа.
           </p>
-          <CtaRow primaryHref="/" primaryText="Перейти к заведениям" />
+          <CtaRow primaryHref="/pricing" primaryText="Оформить подписку" />
         </div>
       </main>
     )
@@ -152,7 +154,8 @@ export default async function ActivatePage({
         <div className="rounded-3xl border border-gray-200 bg-white p-8 shadow-sm">
           <h1 className="text-xl font-semibold">Ссылка уже использована ✅</h1>
           <p className="mt-3 text-sm text-gray-600">
-            Подписка уже активирована. Если вы хотите продлить — напишите в WhatsApp.
+            Подписка уже активирована. Продлить подписку можно картой на странице
+            тарифа.
           </p>
           <div className="mt-6 flex flex-wrap gap-3">
             <Link

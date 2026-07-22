@@ -4,7 +4,7 @@ import { cookies } from 'next/headers'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { LogoutButton } from '@/components/logout-button'
 import { MobileMenu } from '@/components/mobile-menu'
-import { WhatsappGoalLink } from '@/components/analytics/whatsapp-goal-link'
+import SubscribeCTA from '@/components/checkout/subscribe-cta'
 import { CitySelector } from '@/components/city-selector'
 import { CITY_COOKIE, DEFAULT_CITY, isCity } from '@/lib/cities'
 
@@ -103,21 +103,12 @@ export async function Header() {
               >
                 Войти
               </Link>
-              <WhatsappGoalLink
-                source="header-cta"
-                messageKind="header-cta"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center justify-center font-medium text-white transition-opacity hover:opacity-95"
-                style={{
-                  background: '#D85A30',
-                  borderRadius: '8px',
-                  padding: '7px 14px',
-                  fontSize: '13px',
-                }}
+              <SubscribeCTA
+                source="header"
+                className="inline-flex items-center justify-center rounded-lg bg-[#D85A30] px-3.5 py-[7px] text-[13px] font-medium text-white transition-opacity hover:opacity-95"
               >
                 Попробовать за 1 990 ₸
-              </WhatsappGoalLink>
+              </SubscribeCTA>
             </>
           ) : (
             <>

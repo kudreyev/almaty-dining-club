@@ -4,27 +4,27 @@ import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 import Link from 'next/link'
 import { Check, X } from 'lucide-react'
-import { WhatsappGoalLink } from '@/components/analytics/whatsapp-goal-link'
+import SubscribeCTA from '@/components/checkout/subscribe-cta'
 import type { WhatsAppMessageKind } from '@/lib/whatsapp'
 
 const BULLETS = [
   'Доступ ко всем предложениям Kudaclub',
-  'Активация занимает 5 минут через WhatsApp',
+  'Оплата картой — доступ открывается сразу',
   'Использование: 1 раз в 7 дней на заведение',
 ]
 
 type PaywallModalProps = {
   onClose: () => void
+  /** Источник для аналитики (например offer-card-<slug>-<offerId>). */
   whatsappSource: string
-  messageKind: WhatsAppMessageKind
+  /** Оставлено для обратной совместимости с вызывающими; в чекауте не используется. */
+  messageKind?: WhatsAppMessageKind
   restaurantName?: string
 }
 
 export function PaywallModal({
   onClose,
   whatsappSource,
-  messageKind,
-  restaurantName,
 }: PaywallModalProps) {
   const [mounted, setMounted] = useState(false)
 
@@ -43,7 +43,8 @@ export function PaywallModal({
       document.body.style.overflow = prev
       document.removeEventListener('keydown', onKey)
     }
-  }, [onClose])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   if (!mounted || typeof document === 'undefined') return null
 
@@ -116,22 +117,12 @@ export function PaywallModal({
 
         {/* Actions */}
         <div className="flex flex-col" style={{ marginTop: '24px', gap: '8px' }}>
-          <WhatsappGoalLink
+          <SubscribeCTA
             source={whatsappSource}
-            messageKind={messageKind}
-            restaurantName={restaurantName}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex w-full items-center justify-center font-medium text-white transition-opacity hover:opacity-95"
-            style={{
-              background: '#D85A30',
-              borderRadius: '8px',
-              padding: '11px 20px',
-              fontSize: '14px',
-            }}
+            className="flex w-full items-center justify-center rounded-lg bg-[#D85A30] px-5 py-[11px] text-[14px] font-medium text-white transition-opacity hover:opacity-95"
           >
-            Оформить в WhatsApp
-          </WhatsappGoalLink>
+            Оформить за 1 990 ₸
+          </SubscribeCTA>
           <Link
             href="/pricing"
             onClick={onClose}

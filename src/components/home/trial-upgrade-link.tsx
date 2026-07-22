@@ -1,42 +1,40 @@
 'use client'
 
-import type { ComponentProps, ReactNode } from 'react'
+import type { ReactNode } from 'react'
+import SubscribeCTA from '@/components/checkout/subscribe-cta'
 import { trackGoal } from '@/lib/analytics-client'
 import {
   META_SUBSCRIPTION_PRICE_KZT,
   trackMetaPixelInitiateCheckout,
 } from '@/lib/meta-pixel-client'
 import { buildInitiateCheckoutEventId } from '@/lib/meta-purchase'
-import { buildKudaclubSubscribeWhatsAppUrl } from '@/lib/whatsapp'
 
 const SOURCE = 'home-trial-upgrade'
 
-type TrialUpgradeLinkProps = Omit<ComponentProps<'a'>, 'href' | 'onClick'> & {
+type TrialUpgradeLinkProps = {
   children: ReactNode
+  className?: string
 }
 
-export function TrialUpgradeLink({ children, ...rest }: TrialUpgradeLinkProps) {
+// Апгрейд триал-подписки в полную. Триал считается «active», поэтому
+// forceCheckout=true — иначе SubscribeCTA показал бы «Подписка активна».
+export function TrialUpgradeLink({ children, className }: TrialUpgradeLinkProps) {
   return (
-    <a
-      {...rest}
-      href={buildKudaclubSubscribeWhatsAppUrl('home-trial-upgrade')}
-      target="_blank"
-      rel="noopener noreferrer"
+    <SubscribeCTA
+      source={SOURCE}
+      className={className}
+      forceCheckout
       onClick={() => {
         const eventTime = Math.floor(Date.now() / 1000)
         const eventId = buildInitiateCheckoutEventId(SOURCE, eventTime)
         trackMetaPixelInitiateCheckout(
-          {
-            value: META_SUBSCRIPTION_PRICE_KZT,
-            currency: 'KZT',
-          },
+          { value: META_SUBSCRIPTION_PRICE_KZT, currency: 'KZT' },
           eventId,
         )
-        trackGoal('whatsapp_click', { source: SOURCE })
         trackGoal('trial_to_paid_click', { source: SOURCE })
       }}
     >
       {children}
-    </a>
+    </SubscribeCTA>
   )
 }

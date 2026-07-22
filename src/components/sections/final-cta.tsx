@@ -1,7 +1,7 @@
 'use client'
 
 import { CheckCircle2 } from 'lucide-react'
-import { WhatsappGoalLink } from '@/components/analytics/whatsapp-goal-link'
+import SubscribeCTA from '@/components/checkout/subscribe-cta'
 
 export function FinalCta() {
   return (
@@ -15,16 +15,12 @@ export function FinalCta() {
           1 990 ₸ в месяц. Окупается с первого визита. Отменить можно в любой момент.
         </p>
 
-        <WhatsappGoalLink
-          source="home-pricing"
-          messageKind="home-pricing"
-          target="_blank"
-          rel="noopener noreferrer"
-          aria-label="Оформить подписку Kudaclub за 1 990 ₸"
+        <SubscribeCTA
+          source="home-final"
           className="inline-flex items-center rounded-md bg-[#D85A30] px-7 py-3.5 text-[15px] font-medium text-white transition-all duration-150 hover:bg-[#BA4A26] focus-visible:outline focus-visible:outline-2 focus-visible:outline-white focus-visible:outline-offset-2"
         >
           Попробовать за 1 990 ₸
-        </WhatsappGoalLink>
+        </SubscribeCTA>
 
         <ul className="mt-5 flex flex-col items-center justify-center gap-2 text-xs text-white/50 sm:flex-row sm:gap-4">
           <li className="inline-flex items-center gap-1.5">

@@ -7,7 +7,7 @@ import { PhoneInput, normalizeToE164Like } from '@/components/phone-input'
 import { formatPhoneForDisplay } from '@/lib/kz-phone'
 import { sendWhatsAppLogin, verifyWhatsAppLoginCode } from './actions'
 import { setUserId } from '@/lib/analytics-client'
-import { WhatsappGoalLink } from '@/components/analytics/whatsapp-goal-link'
+import SubscribeCTA from '@/components/checkout/subscribe-cta'
 
 export function LoginForm({
   safeNext,
@@ -155,25 +155,16 @@ export function LoginForm({
             style={{ fontSize: '13px', lineHeight: 1.5, marginTop: '8px' }}
           >
             На номер {formatPhoneForDisplay(subscriber) || subscriber} аккаунт не найден.
-            Чтобы получить доступ к 2-за-1, оформите подписку — мы пришлём ссылку
-            активации в WhatsApp.
+            Чтобы получить доступ к 2-за-1, оформите подписку прямо здесь — оплата
+            картой, доступ откроется сразу.
           </p>
 
-          <WhatsappGoalLink
+          <SubscribeCTA
             source="login-no-account"
-            messageKind="login-no-account"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="mt-5 flex w-full items-center justify-center font-medium text-white transition-opacity hover:opacity-95"
-            style={{
-              background: '#D85A30',
-              borderRadius: '8px',
-              padding: '11px 20px',
-              fontSize: '14px',
-            }}
+            className="mt-5 flex w-full items-center justify-center rounded-lg bg-[#D85A30] px-5 py-[11px] text-[14px] font-medium text-white transition-opacity hover:opacity-95"
           >
             Оформить за 1 990 ₸
-          </WhatsappGoalLink>
+          </SubscribeCTA>
 
           <button
             type="button"

@@ -7,6 +7,16 @@ export const CLIENT_ANALYTICS_EVENTS = [
   'offer_redeemed',
   'subscription_activated',
   'sort_mode_switch',
+  // Воронка чекаута TipTop Pay (SubscribeCTA → CheckoutModal).
+  'cta_click',
+  'checkout_opened',
+  'phone_submitted',
+  'otp_verified',
+  'widget_opened',
+  'payment_success',
+  'payment_fail',
+  'payment_abandoned',
+  'first_offer_view',
 ] as const
 
 export type ClientAnalyticsEventName = (typeof CLIENT_ANALYTICS_EVENTS)[number]

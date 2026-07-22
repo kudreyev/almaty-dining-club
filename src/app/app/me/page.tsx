@@ -12,7 +12,7 @@ import { MeMetrica } from './me-metrica'
 import { CancelSubscriptionButton } from './cancel-subscription-button'
 import { VenuesSection } from '@/components/home/venues-section'
 import { HomeMobileControls } from '@/components/home/home-mobile-controls'
-import { WhatsappGoalLink } from '@/components/analytics/whatsapp-goal-link'
+import SubscribeCTA from '@/components/checkout/subscribe-cta'
 import { loadHomeRestaurants } from '@/lib/home/load-home-restaurants'
 import { isSubscriptionCurrentlyActive } from '@/lib/subscription'
 import { pluralizeRu } from '@/lib/ru-plural'
@@ -128,21 +128,12 @@ export default async function MePage({ searchParams }: PageProps) {
             <h2 className="text-lg font-semibold tracking-tight sm:text-xl">{title}</h2>
             <p className="mt-2 text-sm leading-[1.55] text-gray-700">{description}</p>
 
-            <WhatsappGoalLink
+            <SubscribeCTA
               source={hasAnySubscription ? 'me-expired' : 'me-no-sub'}
-              messageKind={hasAnySubscription ? 'me-expired' : 'me-no-sub'}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="mt-4 inline-flex items-center justify-center font-medium text-white transition-opacity hover:opacity-95"
-              style={{
-                background: '#D85A30',
-                borderRadius: '8px',
-                padding: '11px 20px',
-                fontSize: '14px',
-              }}
+              className="mt-4 inline-flex items-center justify-center rounded-lg bg-[#D85A30] px-5 py-[11px] text-[14px] font-medium text-white transition-opacity hover:opacity-95"
             >
               {hasAnySubscription ? 'Продлить за 1 990 ₸' : 'Оформить за 1 990 ₸'}
-            </WhatsappGoalLink>
+            </SubscribeCTA>
           </div>
 
           {profile?.role === 'admin' ? (

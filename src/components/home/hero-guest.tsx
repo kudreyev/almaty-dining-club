@@ -1,4 +1,4 @@
-import { WhatsappGoalLink } from '@/components/analytics/whatsapp-goal-link'
+import SubscribeCTA from '@/components/checkout/subscribe-cta'
 import { CITY_LABELS, CITY_LABELS_GENITIVE, type City } from '@/lib/cities'
 
 type HeroGuestProps = {
@@ -30,16 +30,12 @@ export function HeroGuest({ venuesCount, city }: HeroGuestProps) {
         </p>
 
         <div className="mt-7 flex flex-col items-stretch gap-3 sm:flex-row sm:items-center sm:justify-center">
-          <WhatsappGoalLink
+          <SubscribeCTA
             source="home-hero"
-            messageKind="home-hero"
-            extraGoal="subscribe_click_home"
-            target="_blank"
-            rel="noopener noreferrer"
             className="inline-flex items-center justify-center rounded-lg bg-primary px-6 py-3.5 text-base font-medium text-white transition-colors hover:bg-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2"
           >
             Попробовать за 1 990 ₸
-          </WhatsappGoalLink>
+          </SubscribeCTA>
           <a
             href="#venues"
             className="inline-flex items-center justify-center rounded-lg border border-neutral-300 bg-white px-6 py-3.5 text-base font-medium text-neutral-900 transition-colors hover:border-neutral-400 hover:bg-neutral-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-300 focus-visible:ring-offset-2"

@@ -5,6 +5,7 @@ import { Header } from '@/components/header'
 import { HeaderShell } from '@/components/header-shell'
 import { Footer } from '@/components/footer'
 import { YandexMetrica } from '@/components/yandex-metrica'
+import { UserProvider } from '@/lib/auth/use-user'
 import {
   buildMetaPixelBootstrapScript,
   sanitizeMetaPixelId,
@@ -51,13 +52,15 @@ export default function RootLayout({
             />
           </noscript>
         ) : null}
-        <div className="flex min-h-screen flex-col bg-[#fafaf9] text-gray-900">
-          <HeaderShell>
-            <Header />
-          </HeaderShell>
-          <main className="flex-1">{children}</main>
-          <Footer />
-        </div>
+        <UserProvider>
+          <div className="flex min-h-screen flex-col bg-[#fafaf9] text-gray-900">
+            <HeaderShell>
+              <Header />
+            </HeaderShell>
+            <main className="flex-1">{children}</main>
+            <Footer />
+          </div>
+        </UserProvider>
         <YandexMetrica />
       </body>
     </html>

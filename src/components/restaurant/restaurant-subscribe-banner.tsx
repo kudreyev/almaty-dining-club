@@ -1,6 +1,6 @@
 'use client'
 
-import { WhatsappGoalLink } from '@/components/analytics/whatsapp-goal-link'
+import SubscribeCTA from '@/components/checkout/subscribe-cta'
 import { venueCtaSource } from '@/lib/whatsapp'
 
 type RestaurantSubscribeBannerProps = {
@@ -43,27 +43,12 @@ export function RestaurantSubscribeBanner({
           {subtitle}
         </p>
 
-        <WhatsappGoalLink
+        <SubscribeCTA
           source={venueCtaSource(restaurantSlug)}
-          messageKind="venue-cta"
-          restaurantName={restaurantName}
-          target="_blank"
-          rel="noopener noreferrer"
-          style={{
-            display: 'inline-block',
-            background: '#ffffff',
-            color: '#1a1a1a',
-            fontSize: '14px',
-            fontWeight: 500,
-            padding: '11px 24px',
-            borderRadius: '8px',
-            border: 'none',
-            transition: 'opacity 150ms ease',
-            textDecoration: 'none',
-          }}
+          className="inline-block rounded-lg bg-white px-6 py-[11px] text-[14px] font-medium text-[#1a1a1a] transition-opacity hover:opacity-90"
         >
           Попробовать за 1 990 ₸
-        </WhatsappGoalLink>
+        </SubscribeCTA>
       </div>
     </section>
   )

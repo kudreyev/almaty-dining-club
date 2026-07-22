@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { WhatsappGoalLink } from '@/components/analytics/whatsapp-goal-link'
+import SubscribeCTA from '@/components/checkout/subscribe-cta'
 
 type NavLink = { href: string; label: string }
 
@@ -68,16 +68,13 @@ export function MobileMenu({
             {!isLoggedIn ? (
               <>
                 <div className="my-2 h-px bg-gray-100" />
-                <WhatsappGoalLink
-                  source="mobile-menu-cta"
-                  messageKind="mobile-menu-cta"
-                  target="_blank"
-                  rel="noopener noreferrer"
+                <SubscribeCTA
+                  source="mobile-menu"
                   onClick={() => setOpen(false)}
                   className="rounded-lg bg-accent px-3 py-2.5 text-center text-sm font-medium text-white"
                 >
                   Попробовать за 1 990 ₸
-                </WhatsappGoalLink>
+                </SubscribeCTA>
                 <Link
                   href="/login"
                   onClick={() => setOpen(false)}

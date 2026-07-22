@@ -1,6 +1,5 @@
 'use server'
 
-import { createHash, randomInt } from 'node:crypto'
 import { cookies } from 'next/headers'
 import {
   createWhatsAppLoginChallenge,
@@ -8,6 +7,17 @@ import {
   normalizePhoneToE164,
   sendWhatsAppVerificationCode,
 } from '@/lib/auth/whatsapp-login'
+import {
+  WA_CHALLENGE_CODE_HASH_COOKIE,
+  WA_CHALLENGE_TOKEN_HASH_COOKIE,
+  WA_CHALLENGE_VERIFY_TYPE_COOKIE,
+  WA_CHALLENGE_PHONE_COOKIE,
+  clearWhatsAppChallengeCookies,
+  generateSixDigitCode,
+  hashCode,
+  isEmailOtpType,
+  setWhatsAppChallengeCookies,
+} from '@/lib/auth/whatsapp-otp-challenge'
 import { normalizeToE164Like } from '@/lib/kz-phone'
 import { ensureProfilePhone } from '@/lib/profile-sync'
 import {
@@ -17,12 +27,6 @@ import {
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { safeLog } from '@/lib/safe-logger'
 import { getFallbackByContext, getUserFacingError, logServerError } from '@/lib/safe-errors'
-import type { EmailOtpType } from '@supabase/supabase-js'
-
-const WA_CHALLENGE_CODE_HASH_COOKIE = 'wa_challenge_code_hash'
-const WA_CHALLENGE_TOKEN_HASH_COOKIE = 'wa_challenge_token_hash'
-const WA_CHALLENGE_VERIFY_TYPE_COOKIE = 'wa_challenge_verify_type'
-const WA_CHALLENGE_PHONE_COOKIE = 'wa_challenge_phone'
 
 type VerifyWhatsAppCodeResult = {
   ok: boolean
@@ -69,73 +73,6 @@ async function isActivationSignupAllowed(args: {
 
   return targetE164 === args.phoneE164
 }
-
-function getRequiredEnv(name: string) {
-  const value = process.env[name]
-  if (!value) {
-    throw new Error(`Missing environment variable: ${name}`)
-  }
-  return value
-}
-
-function hashCode(code: string) {
-  const secret = getRequiredEnv('WHATSAPP_LOGIN_CODE_SECRET')
-  return createHash('sha256')
-    .update(`${code}:${secret}`)
-    .digest('hex')
-}
-
-function generateSixDigitCode() {
-  return String(randomInt(0, 1_000_000)).padStart(6, '0')
-}
-
-function isEmailOtpType(value: string): value is EmailOtpType {
-  return [
-    'signup',
-    'invite',
-    'magiclink',
-    'recovery',
-    'email_change',
-    'email',
-  ].includes(value)
-}
-
-async function setWhatsAppChallengeCookies({
-  codeHash,
-  tokenHash,
-  verifyType,
-  phoneE164,
-}: {
-  codeHash: string
-  tokenHash: string
-  verifyType: EmailOtpType
-  phoneE164: string
-}) {
-  const cookieStore = await cookies()
-  const commonOptions = {
-    httpOnly: true,
-    sameSite: 'lax' as const,
-    secure: process.env.NODE_ENV === 'production',
-    path: '/',
-    maxAge: 60 * 10, // 10 minutes
-  }
-
-  cookieStore.set(WA_CHALLENGE_CODE_HASH_COOKIE, codeHash, commonOptions)
-  cookieStore.set(WA_CHALLENGE_TOKEN_HASH_COOKIE, tokenHash, commonOptions)
-  cookieStore.set(WA_CHALLENGE_VERIFY_TYPE_COOKIE, verifyType, commonOptions)
-  // Store phone so verifyWhatsAppLoginCode can save it to profiles reliably,
-  // regardless of what verifyOtp returns in user_metadata.
-  cookieStore.set(WA_CHALLENGE_PHONE_COOKIE, phoneE164, commonOptions)
-}
-
-async function clearWhatsAppChallengeCookies() {
-  const cookieStore = await cookies()
-  cookieStore.delete(WA_CHALLENGE_CODE_HASH_COOKIE)
-  cookieStore.delete(WA_CHALLENGE_TOKEN_HASH_COOKIE)
-  cookieStore.delete(WA_CHALLENGE_VERIFY_TYPE_COOKIE)
-  cookieStore.delete(WA_CHALLENGE_PHONE_COOKIE)
-}
-
 
 export async function sendWhatsAppLogin(
   formData: FormData

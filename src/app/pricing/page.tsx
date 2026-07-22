@@ -8,8 +8,9 @@ import {
 import { PricingFaq } from './pricing-faq'
 import SubscribeCTA from '@/components/checkout/subscribe-cta'
 
-export const runtime = 'edge'
-
+// Node.js runtime (не edge): страница рендерит SubscribeCTA → CheckoutModal,
+// чей граф использует Node-крипту (OTP-хэш, rate-limit, meta CAPI), несовместимую
+// с Edge Runtime. Раньше страница была edge (статичный лендинг) — теперь нужен Node.
 export const metadata: Metadata = {
   title: 'Kudaclub — подписка 1 990 ₸/мес',
   description:

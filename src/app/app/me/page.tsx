@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { EmptyState } from '@/components/ui/empty-state'
 import { MeMetrica } from './me-metrica'
+import { CancelSubscriptionButton } from './cancel-subscription-button'
 import { VenuesSection } from '@/components/home/venues-section'
 import { HomeMobileControls } from '@/components/home/home-mobile-controls'
 import { WhatsappGoalLink } from '@/components/analytics/whatsapp-goal-link'
@@ -28,6 +29,7 @@ type Subscription = {
   status: 'inactive' | 'pending_payment' | 'active' | 'expired'
   start_date: string | null
   end_date: string | null
+  tiptop_subscription_id: string | null
 }
 
 type PageProps = {
@@ -69,7 +71,7 @@ export default async function MePage({ searchParams }: PageProps) {
 
   const { data: subscriptions } = await supabase
     .from('subscriptions')
-    .select('id, status, start_date, end_date')
+    .select('id, status, start_date, end_date, tiptop_subscription_id')
     .eq('user_id', user.id)
     .order('created_at', { ascending: false })
     .returns<Subscription[]>()
@@ -217,6 +219,9 @@ export default async function MePage({ searchParams }: PageProps) {
               </Badge>
             </div>
           </div>
+          {latestSubscription?.tiptop_subscription_id ? (
+            <CancelSubscriptionButton paidUntil={latestSubscription.end_date} />
+          ) : null}
         </Card>
       </div>
 

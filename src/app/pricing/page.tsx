@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import Link from 'next/link'
 import {
   ArrowLeftRight,
   CheckCircle,
@@ -6,7 +7,8 @@ import {
   ShieldCheck,
 } from 'lucide-react'
 import { PricingFaq } from './pricing-faq'
-import { WhatsappGoalLink } from '@/components/analytics/whatsapp-goal-link'
+import SubscribeButton from '@/components/SubscribeButton'
+import { createSupabaseServerClient } from '@/lib/supabase/server'
 
 export const runtime = 'edge'
 
@@ -64,7 +66,18 @@ const GUARANTEES = [
   },
 ]
 
-export default function PricingPage() {
+export default async function PricingPage() {
+  const supabase = await createSupabaseServerClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  // Кнопка оплаты доступна только залогиненным (нужен userId для привязки
+  // подписки). Гостя ведём на /login. Синтетические wa-адреса не годятся
+  // для квитанций — тогда передаём пустой email.
+  const receiptEmail =
+    user?.email && !user.email.endsWith('@wa.local') ? user.email : ''
+
   return (
     <>
       {/* SECTION 1 — HERO */}
@@ -136,18 +149,21 @@ export default function PricingPage() {
             </ul>
 
             {/* CTA */}
-            <WhatsappGoalLink
-              source="pricing-page"
-              messageKind="pricing-page"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="block w-full rounded-md bg-primary px-5 py-[13px] text-center text-[15px] font-medium text-white transition-colors hover:bg-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2"
-            >
-              Попробовать за 1 990 ₸
-            </WhatsappGoalLink>
+            {user ? (
+              <SubscribeButton userId={user.id} email={receiptEmail} amount={1990} />
+            ) : (
+              <Link
+                href="/login"
+                className="block w-full rounded-md bg-primary px-5 py-[13px] text-center text-[15px] font-medium text-white transition-colors hover:bg-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2"
+              >
+                Войти и оформить за 1 990 ₸
+              </Link>
+            )}
 
             <p className="mt-2.5 text-center text-[11px] text-neutral-500">
-              Ответим в WhatsApp за 5 минут · Активация в то же время
+              {user
+                ? 'Оплата картой · Списание 1 990 ₸/мес, отмена в любой момент'
+                : 'Сначала войдите — подписка привяжется к вашему аккаунту'}
             </p>
           </div>
 

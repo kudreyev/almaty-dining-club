@@ -3,7 +3,7 @@ import { createSupabaseServerClient } from '@/lib/supabase/server'
 
 export type SubscriptionRow = {
   id: string
-  status: 'inactive' | 'pending_payment' | 'active' | 'expired'
+  status: 'inactive' | 'pending_payment' | 'active' | 'cancelled' | 'expired'
   plan_name: string
   plan_type: 'paid' | 'trial' | 'staff'
   start_date: string | null
@@ -28,7 +28,8 @@ export async function getCurrentUserSubscription() {
     .from('subscriptions')
     .select('id, status, plan_name, plan_type, start_date, end_date')
     .eq('user_id', user.id)
-    .eq('status', 'active')
+    // active — списания идут; cancelled — доступ до конца оплаченного периода.
+    .in('status', ['active', 'cancelled'])
     .order('created_at', { ascending: false })
     .limit(1)
     .returns<SubscriptionRow[]>()
@@ -47,7 +48,12 @@ export function isSubscriptionCurrentlyActive(subscription: {
   end_date: string | null
 } | null) {
   if (!subscription) return false
-  if (subscription.status !== 'active') return false
+  // Доступ определяется оплаченным периодом (paidUntil = end_date), а не самим
+  // статусом: 'cancelled' (автосписания остановлены) сохраняет доступ до конца
+  // периода наравне с 'active'. 'inactive'/'expired' доступа не дают.
+  if (subscription.status !== 'active' && subscription.status !== 'cancelled') {
+    return false
+  }
   if (!subscription.start_date || !subscription.end_date) return false
 
   const today = new Date()

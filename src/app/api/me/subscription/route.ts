@@ -36,7 +36,9 @@ export async function GET() {
     .from('subscriptions')
     .select('status, start_date, end_date')
     .eq('user_id', user.id)
-    .eq('status', 'active')
+    // active — списания идут; cancelled — доступ до конца оплаченного периода.
+    // Оба дают доступ (проверяем по end_date в isSubscriptionCurrentlyActive).
+    .in('status', ['active', 'cancelled'])
     .order('created_at', { ascending: false })
     .limit(1)
     .returns<SubRow[]>()

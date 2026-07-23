@@ -74,15 +74,16 @@ export async function POST(req: NextRequest) {
         status === 'Rejected' ||
         status === 'Expired'
       ) {
-        // Доступ оставляем до конца оплаченного периода (end_date).
-        // Если период уже истёк — помечаем подписку expired.
+        // Автосписаний больше не будет. Доступ оставляем до конца оплаченного
+        // периода → статус 'cancelled' (страховка, если отмена пришла из кабинета
+        // TipTop Pay или клиент отменил через my.tiptoppay.kz). Если период уже
+        // истёк — доступа нет → 'inactive'.
         const today = new Date().toISOString().slice(0, 10)
-        if (!subRow.end_date || subRow.end_date < today) {
-          await admin
-            .from('subscriptions')
-            .update({ status: 'expired' })
-            .eq('id', subRow.id)
-        }
+        const periodEnded = !subRow.end_date || subRow.end_date < today
+        await admin
+          .from('subscriptions')
+          .update({ status: periodEnded ? 'inactive' : 'cancelled' })
+          .eq('id', subRow.id)
       }
       // PastDue: доступ сохраняем (идут повторные попытки списания), статус не трогаем.
     }

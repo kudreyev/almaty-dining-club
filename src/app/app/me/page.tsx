@@ -26,7 +26,7 @@ type Profile = {
 
 type Subscription = {
   id: string
-  status: 'inactive' | 'pending_payment' | 'active' | 'expired'
+  status: 'inactive' | 'pending_payment' | 'active' | 'cancelled' | 'expired'
   start_date: string | null
   end_date: string | null
   tiptop_subscription_id: string | null
@@ -176,7 +176,15 @@ export default async function MePage({ searchParams }: PageProps) {
     .returns<Redemption[]>()
 
   const subColor: 'green' | 'yellow' | 'default' =
-    latestSubscription?.status === 'active' ? 'green' : latestSubscription ? 'yellow' : 'default'
+    latestSubscription?.status === 'active'
+      ? 'green'
+      : latestSubscription
+        ? 'yellow'
+        : 'default'
+
+  const paidUntilLabel = latestSubscription?.end_date
+    ? new Date(latestSubscription.end_date).toLocaleDateString('ru-RU')
+    : null
 
   return (
     <div className="mx-auto max-w-2xl px-5 py-8">
@@ -210,8 +218,14 @@ export default async function MePage({ searchParams }: PageProps) {
               </Badge>
             </div>
           </div>
-          {latestSubscription?.tiptop_subscription_id ? (
+          {latestSubscription?.status === 'active' &&
+          latestSubscription.tiptop_subscription_id ? (
             <CancelSubscriptionButton paidUntil={latestSubscription.end_date} />
+          ) : latestSubscription?.status === 'cancelled' ? (
+            <p className="mt-3 text-sm text-gray-600">
+              Автосписаний больше не будет.
+              {paidUntilLabel ? ` Доступ сохранится до ${paidUntilLabel}.` : ''}
+            </p>
           ) : null}
         </Card>
       </div>

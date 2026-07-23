@@ -10,7 +10,7 @@ export function paymentStatusLabel(status: 'pending' | 'approved' | 'rejected') 
   }
   
   export function subscriptionStatusLabel(
-    status: 'inactive' | 'pending_payment' | 'active' | 'expired'
+    status: 'inactive' | 'pending_payment' | 'active' | 'cancelled' | 'expired'
   ) {
     switch (status) {
       case 'inactive':
@@ -19,6 +19,8 @@ export function paymentStatusLabel(status: 'pending' | 'approved' | 'rejected') 
         return 'Ожидает оплату'
       case 'active':
         return 'Активна'
+      case 'cancelled':
+        return 'Отменена'
       case 'expired':
         return 'Истекла'
     }

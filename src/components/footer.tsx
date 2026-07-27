@@ -62,6 +62,14 @@ export function Footer() {
             </Link>
             <span aria-hidden="true" className="text-neutral-300">·</span>
 
+            <Link
+              href="/offer"
+              className="transition-colors hover:text-neutral-900"
+            >
+              Публичная оферта
+            </Link>
+            <span aria-hidden="true" className="text-neutral-300">·</span>
+
             <WhatsappSupportLink
               source="footer-support"
               href="https://wa.me/77066059899"

@@ -7,6 +7,15 @@ export type LegalEntity = {
   legalAddress: string
   /** Email для претензий (если требует процессинг) */
   email?: string
+  /** Банковские реквизиты (для публичной оферты) */
+  bank?: {
+    /** Название банка, напр. АО Kaspi Bank */
+    name: string
+    /** БИК банка */
+    bik: string
+    /** Расчётный счёт (IBAN) */
+    account: string
+  }
 }
 
 /**
@@ -14,8 +23,13 @@ export type LegalEntity = {
  */
 export const LEGAL_ENTITY: LegalEntity = {
   name: 'ИП «FOODX»',
-  bin: '',
+  bin: '970207300076',
   legalAddress: 'г. Алматы, ул. Кармысова, 84/2, к1',
+  bank: {
+    name: 'АО Kaspi Bank',
+    bik: 'CASPKZKA',
+    account: 'KZ17722S000044187983',
+  },
 }
 
 function taxIdLabel(name: string): 'БИН' | 'ИИН' {

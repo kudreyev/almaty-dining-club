@@ -62,6 +62,9 @@ export default function CheckoutModal({
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
   const [resendIn, setResendIn] = useState(0)
+  // Согласие с офертой и рекуррентом — обязательно, не отмечено по умолчанию
+  // (требование платёжной системы для регулярных списаний).
+  const [agreed, setAgreed] = useState(false)
   const userIdRef = useRef<string | null>(user?.id ?? null)
   const widgetOpenedRef = useRef(false)
   const paidRef = useRef(false)
@@ -150,6 +153,10 @@ export default function CheckoutModal({
   )
 
   const launchWidget = useCallback(() => {
+    if (!agreed) {
+      setError('Подтвердите согласие с офертой, чтобы продолжить.')
+      return
+    }
     const tiptop = window.tiptop
     if (!tiptop || !userIdRef.current) {
       setError('Платёжный виджет ещё загружается. Попробуйте через секунду.')
@@ -190,7 +197,7 @@ export default function CheckoutModal({
         trackGoal('payment_fail', { source })
       })
       .finally(() => setBusy(false))
-  }, [phone, source, refresh])
+  }, [agreed, phone, source, refresh])
 
   if (!mounted || typeof document === 'undefined') return null
 
@@ -296,7 +303,32 @@ export default function CheckoutModal({
               {PRICE.toLocaleString('ru-RU')} ₸ сегодня, далее автоматически раз в месяц. Отменить можно
               в любой момент в личном кабинете.
             </p>
-            <button type="button" disabled={busy} onClick={launchWidget} className={`${primaryBtn} mt-4`}>
+            <label className="mt-4 flex cursor-pointer items-start gap-2.5 text-[13px] leading-[1.45] text-neutral-600">
+              <input
+                type="checkbox"
+                checked={agreed}
+                onChange={(e) => setAgreed(e.target.checked)}
+                className="mt-0.5 h-4 w-4 shrink-0 cursor-pointer accent-primary"
+              />
+              <span>
+                Я согласен с{' '}
+                <a
+                  href="/offer"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-primary underline underline-offset-2 hover:opacity-80"
+                >
+                  публичной офертой
+                </a>{' '}
+                и регулярными ежемесячными списаниями.
+              </span>
+            </label>
+            <button
+              type="button"
+              disabled={busy || !agreed}
+              onClick={launchWidget}
+              className={`${primaryBtn} mt-4`}
+            >
               {busy ? 'Открываем оплату…' : 'Оплатить картой'}
             </button>
           </>

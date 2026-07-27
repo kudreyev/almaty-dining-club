@@ -11,7 +11,11 @@ import { logServerError } from '@/lib/safe-errors'
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
-type SubRow = { id: string; end_date: string | null }
+type SubRow = {
+  id: string
+  end_date: string | null
+  tiptop_subscription_id: string | null
+}
 
 export async function POST(req: NextRequest) {
   const rawBody = await req.text()
@@ -41,7 +45,7 @@ export async function POST(req: NextRequest) {
     if (subscriptionId) {
       const { data } = await admin
         .from('subscriptions')
-        .select('id, end_date')
+        .select('id, end_date, tiptop_subscription_id')
         .eq('tiptop_subscription_id', subscriptionId)
         .limit(1)
         .maybeSingle<SubRow>()
@@ -51,7 +55,7 @@ export async function POST(req: NextRequest) {
     if (!subRow && accountId) {
       const { data } = await admin
         .from('subscriptions')
-        .select('id, end_date')
+        .select('id, end_date, tiptop_subscription_id')
         .eq('user_id', accountId)
         .order('created_at', { ascending: false })
         .limit(1)
@@ -60,14 +64,17 @@ export async function POST(req: NextRequest) {
     }
 
     if (subRow) {
+      // Recurrent — основной надёжный источник ID подписки (p.Id). Пишем его
+      // идемпотентно: только если он есть и ещё не заполнен у нас.
+      const idPatch =
+        subscriptionId && !subRow.tiptop_subscription_id
+          ? { tiptop_subscription_id: subscriptionId }
+          : {}
+
       if (status === 'Active') {
-        // Подтверждаем активность и фиксируем id подписки, если его ещё нет.
         await admin
           .from('subscriptions')
-          .update({
-            status: 'active',
-            ...(subscriptionId ? { tiptop_subscription_id: subscriptionId } : {}),
-          })
+          .update({ status: 'active', ...idPatch })
           .eq('id', subRow.id)
       } else if (
         status === 'Cancelled' ||
@@ -82,10 +89,13 @@ export async function POST(req: NextRequest) {
         const periodEnded = !subRow.end_date || subRow.end_date < today
         await admin
           .from('subscriptions')
-          .update({ status: periodEnded ? 'inactive' : 'cancelled' })
+          .update({ status: periodEnded ? 'inactive' : 'cancelled', ...idPatch })
           .eq('id', subRow.id)
+      } else if (Object.keys(idPatch).length > 0) {
+        // PastDue и прочие статусы: доступ/статус не трогаем, но ID всё равно
+        // сохраняем, если он ещё не записан.
+        await admin.from('subscriptions').update(idPatch).eq('id', subRow.id)
       }
-      // PastDue: доступ сохраняем (идут повторные попытки списания), статус не трогаем.
     }
   } catch (error) {
     logServerError('api/tiptoppay/recurrent', error)

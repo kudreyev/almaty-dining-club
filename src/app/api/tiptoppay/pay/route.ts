@@ -66,26 +66,27 @@ export async function POST(req: NextRequest) {
 
     // Ищем существующую подписку: сначала по TipTop subscriptionId (идемпотентность
     // рекуррентных списаний), затем — последнюю по user_id.
-    let subRow: { id: string } | null = null
+    type SubRow = { id: string; tiptop_subscription_id: string | null }
+    let subRow: SubRow | null = null
 
     if (subscriptionId) {
       const { data } = await admin
         .from('subscriptions')
-        .select('id')
+        .select('id, tiptop_subscription_id')
         .eq('tiptop_subscription_id', subscriptionId)
         .limit(1)
-        .maybeSingle<{ id: string }>()
+        .maybeSingle<SubRow>()
       subRow = data ?? null
     }
 
     if (!subRow) {
       const { data } = await admin
         .from('subscriptions')
-        .select('id')
+        .select('id, tiptop_subscription_id')
         .eq('user_id', accountId)
         .order('created_at', { ascending: false })
         .limit(1)
-        .maybeSingle<{ id: string }>()
+        .maybeSingle<SubRow>()
       subRow = data ?? null
     }
 
@@ -95,19 +96,29 @@ export async function POST(req: NextRequest) {
       plan_type: 'paid',
       start_date: startDate,
       end_date: endDate,
-      tiptop_subscription_id: subscriptionId,
     }
 
     if (subRow) {
+      // Идемпотентность: пишем tiptop_subscription_id только если он есть в
+      // уведомлении и ещё не заполнен — не перезатираем существующий ID (в т.ч.
+      // в NULL, когда установочный Pay пришёл без SubscriptionId).
+      const idPatch =
+        subscriptionId && !subRow.tiptop_subscription_id
+          ? { tiptop_subscription_id: subscriptionId }
+          : {}
       const { error } = await admin
         .from('subscriptions')
-        .update(patch)
+        .update({ ...patch, ...idPatch })
         .eq('id', subRow.id)
       if (error) throw error
     } else {
       const { error } = await admin
         .from('subscriptions')
-        .insert({ user_id: accountId, ...patch })
+        .insert({
+          user_id: accountId,
+          ...patch,
+          tiptop_subscription_id: subscriptionId,
+        })
       if (error) throw error
     }
   } catch (error) {

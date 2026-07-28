@@ -8,6 +8,11 @@ import { NextRequest, NextResponse } from 'next/server'
 import { verifyWebhook, parseWebhookBody } from '@/lib/tiptoppay'
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 import { logServerError } from '@/lib/safe-errors'
+import { sendPurchaseEvent } from '@/lib/meta-capi'
+import {
+  buildTipTopPurchaseEventId,
+  isTipTopInstallmentInvoiceId,
+} from '@/lib/meta-purchase'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -17,6 +22,26 @@ const UUID_RE =
 
 function toDateString(d: Date): string {
   return d.toISOString().slice(0, 10)
+}
+
+async function resolvePhoneForCapi(
+  admin: ReturnType<typeof createSupabaseAdminClient>,
+  userId: string,
+): Promise<string | null> {
+  const { data: profile } = await admin
+    .from('profiles')
+    .select('phone')
+    .eq('id', userId)
+    .maybeSingle<{ phone: string | null }>()
+  if (profile?.phone) return profile.phone
+
+  const { data: authData } = await admin.auth.admin.getUserById(userId)
+  const metaPhone = authData.user?.user_metadata?.phone_e164
+  if (typeof metaPhone === 'string' && metaPhone.trim()) return metaPhone.trim()
+  if (typeof authData.user?.phone === 'string' && authData.user.phone.trim()) {
+    return authData.user.phone.trim()
+  }
+  return null
 }
 
 export async function POST(req: NextRequest) {
@@ -32,6 +57,7 @@ export async function POST(req: NextRequest) {
   // p.Amount         — сумма
   // p.Status         — Completed (для paymentSchema: Single)
   // p.AccountId      — ID нашего пользователя (мы передали его в userInfo.accountId)
+  // p.InvoiceId      — externalId виджета (sub_${userId}_${ts} для установочного)
   // p.SubscriptionId — ID подписки; есть у рекуррентных списаний и у установочного
   //                    платежа, создавшего подписку
   // p.TestMode       — "1" если тестовый платёж
@@ -39,6 +65,7 @@ export async function POST(req: NextRequest) {
 
   const accountId = p.AccountId
   const subscriptionId = p.SubscriptionId || null
+  const invoiceId = p.InvoiceId || null
   const status = p.Status
 
   // Активируем доступ только по успешному платежу. Иные статусы просто
@@ -120,6 +147,20 @@ export async function POST(req: NextRequest) {
           tiptop_subscription_id: subscriptionId,
         })
       if (error) throw error
+    }
+
+    // Meta CAPI Purchase — только установочный платёж виджета (InvoiceId = sub_…).
+    // Рекурренты не шлём, чтобы не дублировать конверсии в рекламе.
+    // eventID совпадает с браузерным Pixel (дедуп). Ошибки CAPI не валят webhook.
+    if (isTipTopInstallmentInvoiceId(invoiceId)) {
+      const phone = await resolvePhoneForCapi(admin, accountId)
+      if (phone) {
+        void sendPurchaseEvent({
+          userId: accountId,
+          phone,
+          eventId: buildTipTopPurchaseEventId(invoiceId),
+        })
+      }
     }
   } catch (error) {
     logServerError('api/tiptoppay/pay', error)

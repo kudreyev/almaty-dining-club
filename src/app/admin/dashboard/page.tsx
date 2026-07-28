@@ -5,12 +5,35 @@ import { logServerError } from '@/lib/safe-errors'
 import { isKZNumber, normalizeToE164Like } from '@/lib/kz-phone'
 import {
   aggregateMetricaBySource,
-  computeWhatsappConversion,
   SUPPORT_WHATSAPP_SOURCES,
-  type WhatsappClickRow,
 } from '@/lib/whatsapp-analytics'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+
+/** Шаги TipTop-воронки (порядок для UI). */
+const TIPTOP_FUNNEL_STEPS = [
+  'cta_click',
+  'checkout_opened',
+  'phone_submitted',
+  'otp_verified',
+  'widget_opened',
+  'payment_success',
+  'payment_fail',
+  'payment_abandoned',
+] as const
+
+type TipTopFunnelStep = (typeof TIPTOP_FUNNEL_STEPS)[number]
+
+const TIPTOP_STEP_LABELS: Record<TipTopFunnelStep, string> = {
+  cta_click: 'CTA клик',
+  checkout_opened: 'Чекаут открыт',
+  phone_submitted: 'Телефон',
+  otp_verified: 'OTP',
+  widget_opened: 'Виджет',
+  payment_success: 'Оплата OK',
+  payment_fail: 'Оплата fail',
+  payment_abandoned: 'Бросил оплату',
+}
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
@@ -122,13 +145,9 @@ type SubscriptionRetentionRow = {
 type AnalyticsEventRow = {
   id: string
   user_id: string | null
+  event_name?: string
   created_at?: string
   meta: Record<string, unknown> | null
-}
-
-type SubscriptionCreatedRow = {
-  user_id: string
-  created_at: string
 }
 
 type MetricaGoalsDailyRow = {
@@ -137,40 +156,91 @@ type MetricaGoalsDailyRow = {
   date: string
 }
 
-type WhatsappFunnelStats = {
+type TipTopFunnelStats = {
+  steps: Record<TipTopFunnelStep, number>
+  crPct: number | null
+  bySource: Array<{ source: string; ctaClicks: number; payments: number; crPct: number | null }>
+}
+
+type SupportWhatsappStats = {
   total: number
-  subscribeClicks: number
-  supportClicks: number
   bySource: Array<{ source: string; clicks: number }>
 }
 
-function aggregateWhatsappFunnel(rows: AnalyticsEventRow[]): WhatsappFunnelStats {
-  const bySource = new Map<string, number>()
-  let subscribeClicks = 0
-  let supportClicks = 0
-
-  for (const row of rows) {
-    const raw = row.meta?.source
-    const source = typeof raw === 'string' && raw.length > 0 ? raw : '(без source)'
-    bySource.set(source, (bySource.get(source) ?? 0) + 1)
-    if (SUPPORT_WHATSAPP_SOURCES.has(source)) {
-      supportClicks++
-    } else {
-      subscribeClicks++
-    }
-  }
-
+function emptyTipTopSteps(): Record<TipTopFunnelStep, number> {
   return {
-    total: rows.length,
-    subscribeClicks,
-    supportClicks,
-    bySource: Array.from(bySource.entries())
-      .sort((a, b) => b[1] - a[1])
-      .map(([source, clicks]) => ({ source, clicks })),
+    cta_click: 0,
+    checkout_opened: 0,
+    phone_submitted: 0,
+    otp_verified: 0,
+    widget_opened: 0,
+    payment_success: 0,
+    payment_fail: 0,
+    payment_abandoned: 0,
   }
 }
 
-async function loadWhatsappFunnel(scope: CustomerMetricsScope, daysAgo: number) {
+function aggregateTipTopFunnel(rows: AnalyticsEventRow[]): TipTopFunnelStats {
+  const steps = emptyTipTopSteps()
+  const ctaBySource = new Map<string, number>()
+  const payBySource = new Map<string, number>()
+
+  for (const row of rows) {
+    const name = row.event_name
+    if (!name || !(name in steps)) continue
+    const step = name as TipTopFunnelStep
+    steps[step]++
+
+    const raw = row.meta?.source
+    const source = typeof raw === 'string' && raw.length > 0 ? raw : '(без source)'
+    if (step === 'cta_click') {
+      ctaBySource.set(source, (ctaBySource.get(source) ?? 0) + 1)
+    } else if (step === 'payment_success') {
+      payBySource.set(source, (payBySource.get(source) ?? 0) + 1)
+    }
+  }
+
+  const sources = new Set([...ctaBySource.keys(), ...payBySource.keys()])
+  const bySource = Array.from(sources)
+    .map((source) => {
+      const ctaClicks = ctaBySource.get(source) ?? 0
+      const payments = payBySource.get(source) ?? 0
+      return {
+        source,
+        ctaClicks,
+        payments,
+        crPct: ctaClicks > 0 ? Math.round((payments / ctaClicks) * 100) : null,
+      }
+    })
+    .sort((a, b) => b.ctaClicks - a.ctaClicks || b.payments - a.payments)
+
+  return {
+    steps,
+    crPct:
+      steps.cta_click > 0
+        ? Math.round((steps.payment_success / steps.cta_click) * 100)
+        : null,
+    bySource,
+  }
+}
+
+async function loadTipTopFunnel(scope: CustomerMetricsScope, daysAgo: number) {
+  const supabase = createSupabaseAdminClient()
+  const since = isoTimestamp(-daysAgo)
+  return safe(async () => {
+    const { data, error } = await supabase
+      .from('analytics_events')
+      .select('id, user_id, event_name, meta')
+      .in('event_name', [...TIPTOP_FUNNEL_STEPS])
+      .gte('created_at', since)
+      .returns<AnalyticsEventRow[]>()
+    if (error) throw error
+
+    return aggregateTipTopFunnel(scope.filterNullableUserRows(data ?? []))
+  }, `tiptop_funnel_${daysAgo}d`)
+}
+
+async function loadSupportWhatsapp(scope: CustomerMetricsScope, daysAgo: number) {
   const supabase = createSupabaseAdminClient()
   const since = isoTimestamp(-daysAgo)
   return safe(async () => {
@@ -182,51 +252,56 @@ async function loadWhatsappFunnel(scope: CustomerMetricsScope, daysAgo: number) 
       .returns<AnalyticsEventRow[]>()
     if (error) throw error
 
-    return aggregateWhatsappFunnel(scope.filterNullableUserRows(data ?? []))
-  }, `whatsapp_funnel_${daysAgo}d`)
+    const bySource = new Map<string, number>()
+    let total = 0
+    for (const row of scope.filterNullableUserRows(data ?? [])) {
+      const raw = row.meta?.source
+      const source = typeof raw === 'string' && raw.length > 0 ? raw : '(без source)'
+      if (!SUPPORT_WHATSAPP_SOURCES.has(source)) continue
+      total++
+      bySource.set(source, (bySource.get(source) ?? 0) + 1)
+    }
+
+    return {
+      total,
+      bySource: Array.from(bySource.entries())
+        .sort((a, b) => b[1] - a[1])
+        .map(([source, clicks]) => ({ source, clicks })),
+    } satisfies SupportWhatsappStats
+  }, `support_whatsapp_${daysAgo}d`)
 }
 
-async function loadWhatsappConversion(scope: CustomerMetricsScope, daysAgo: number) {
-  const supabase = createSupabaseAdminClient()
-  const since = isoTimestamp(-daysAgo)
-  return safe(async () => {
-    const [clicksRes, subsRes] = await Promise.all([
-      supabase
-        .from('analytics_events')
-        .select('user_id, created_at, meta')
-        .eq('event_name', 'whatsapp_click')
-        .gte('created_at', since)
-        .returns<WhatsappClickRow[]>(),
-      scope.applySubscriptionExclusion(
-        supabase.from('subscriptions').select('user_id, created_at').gte('created_at', since),
-      ).returns<SubscriptionCreatedRow[]>(),
-    ])
-    if (clicksRes.error) throw clicksRes.error
-    if (subsRes.error) throw subsRes.error
-
-    return computeWhatsappConversion({
-      clicks: scope.filterNullableUserRows(clicksRes.data ?? []),
-      newSubscriptions: scope.filterUserRows(subsRes.data ?? []),
-    })
-  }, `whatsapp_conversion_${daysAgo}d`)
-}
-
-async function loadMetricaWhatsappFunnel(daysAgo: number) {
+async function loadMetricaTipTopGoals(daysAgo: number) {
   const supabase = createSupabaseAdminClient()
   const since = isoDateUtc(-daysAgo)
   return safe(async () => {
     const { data, error } = await supabase
       .from('metrica_goals_daily')
-      .select('source, achievements, date')
-      .eq('goal_name', 'whatsapp_click')
+      .select('source, achievements, date, goal_name')
+      .in('goal_name', ['cta_click', 'payment_success'])
       .gte('date', since)
-      .returns<MetricaGoalsDailyRow[]>()
+      .returns<Array<MetricaGoalsDailyRow & { goal_name: string }>>()
     if (error) throw error
 
-    const bySource = aggregateMetricaBySource(data ?? [])
-    const total = bySource.reduce((sum, row) => sum + row.achievements, 0)
-    return { total, bySource }
-  }, `metrica_whatsapp_${daysAgo}d`)
+    let cta = 0
+    let payment = 0
+    const paymentRows: MetricaGoalsDailyRow[] = []
+    for (const row of data ?? []) {
+      if (row.goal_name === 'cta_click') cta += row.achievements
+      if (row.goal_name === 'payment_success') {
+        payment += row.achievements
+        paymentRows.push(row)
+      }
+    }
+
+    const bySource = aggregateMetricaBySource(paymentRows)
+    return {
+      cta,
+      payment,
+      crPct: cta > 0 ? Math.round((payment / cta) * 100) : null,
+      bySource,
+    }
+  }, `metrica_tiptop_${daysAgo}d`)
 }
 
 async function loadActiveSubscribers(scope: CustomerMetricsScope) {
@@ -468,10 +543,9 @@ export default async function AdminDashboardPage() {
     activeSubs,
     new7d,
     new30d,
-    whatsapp7d,
-    whatsapp30d,
-    conversion7d,
-    conversion30d,
+    tipTop7d,
+    tipTop30d,
+    supportWa7d,
     metrica7d,
     redemptions30d,
     topRestaurants,
@@ -481,11 +555,10 @@ export default async function AdminDashboardPage() {
     loadActiveSubscribers(scope),
     loadNewSubscriptions(scope, 7),
     loadNewSubscriptions(scope, 30),
-    loadWhatsappFunnel(scope, 7),
-    loadWhatsappFunnel(scope, 30),
-    loadWhatsappConversion(scope, 7),
-    loadWhatsappConversion(scope, 30),
-    loadMetricaWhatsappFunnel(7),
+    loadTipTopFunnel(scope, 7),
+    loadTipTopFunnel(scope, 30),
+    loadSupportWhatsapp(scope, 7),
+    loadMetricaTipTopGoals(7),
     loadRedemptions30d(scope),
     loadTopRestaurants30d(scope),
     loadExpiringSubscriptions(scope),
@@ -525,10 +598,6 @@ export default async function AdminDashboardPage() {
 
   const new7 = renderNewBlock(new7d)
   const new30 = renderNewBlock(new30d)
-
-  const attributedSubs30d = conversion30d.ok
-    ? conversion30d.value.bySource.reduce((sum, row) => sum + row.attributedSubs, 0)
-    : null
 
   function fmtPct(n: number | null | undefined): string {
     if (n == null) return '—'
@@ -572,70 +641,60 @@ export default async function AdminDashboardPage() {
         </div>
       </section>
 
-      {/* БЛОК 2 — WHATSAPP-ВОРОНКА */}
+      {/* БЛОК 2 — TIPTOP-ВОРОНКА */}
       <section className="mb-10">
-        <h2 className="mb-1 text-lg font-semibold text-gray-800">2. WhatsApp-воронка</h2>
+        <h2 className="mb-1 text-lg font-semibold text-gray-800">2. TipTop-воронка</h2>
         <p className="mb-3 text-sm text-gray-500">
-          Live-данные из analytics_events (Слой 2). Обновляется при каждом клике на сайте.
+          Live-данные из analytics_events (SubscribeCTA → CheckoutModal). За 7 и 30 дней.
         </p>
 
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           <MetricCard
-            label="Кликов за 7 дней"
-            value={whatsapp7d.ok ? fmtNumber(whatsapp7d.value.total) : '—'}
-            hint="whatsapp_click, все источники"
+            label="CTA клики (7д)"
+            value={tipTop7d.ok ? fmtNumber(tipTop7d.value.steps.cta_click) : '—'}
+            hint="cta_click"
           />
           <MetricCard
-            label="Подписные CTA"
-            value={whatsapp7d.ok ? fmtNumber(whatsapp7d.value.subscribeClicks) : '—'}
-            hint="без саппортных ссылок"
+            label="Оплаты (7д)"
+            value={tipTop7d.ok ? fmtNumber(tipTop7d.value.steps.payment_success) : '—'}
+            hint="payment_success"
           />
           <MetricCard
-            label="Саппорт"
-            value={whatsapp7d.ok ? fmtNumber(whatsapp7d.value.supportClicks) : '—'}
-            hint="footer, /support, /activate"
-          />
-        </div>
-
-        <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
-          <MetricCard
-            label="Новых подписок (7д)"
-            value={conversion7d.ok ? fmtNumber(conversion7d.value.newSubscriptions) : '—'}
-            hint="все новые subscriptions"
+            label="CR (7д)"
+            value={tipTop7d.ok ? fmtPct(tipTop7d.value.crPct) : '—'}
+            hint="payment_success / cta_click"
           />
           <MetricCard
-            label="Конверсия (proxy)"
-            value={conversion7d.ok ? fmtPct(conversion7d.value.proxyConversionPct) : '—'}
-            hint="подписки / подписные клики"
-          />
-          <MetricCard
-            label="Атрибуция (7д)"
-            value={
-              conversion7d.ok
-                ? fmtNumber(
-                    conversion7d.value.bySource.reduce((s, r) => s + r.attributedSubs, 0),
-                  )
-                : '—'
-            }
-            hint="last-touch, только залогиненные клики"
-          />
-          <MetricCard
-            label="Атрибуция (30д)"
-            value={attributedSubs30d != null ? fmtNumber(attributedSubs30d) : '—'}
-            hint="окно 7 дней после клика"
+            label="CR (30д)"
+            value={tipTop30d.ok ? fmtPct(tipTop30d.value.crPct) : '—'}
+            hint="payment_success / cta_click"
           />
         </div>
 
         <div className="mt-4">
+          <h3 className="mb-2 text-sm font-medium text-gray-600">Шаги воронки (7 дней)</h3>
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+            {TIPTOP_FUNNEL_STEPS.map((step) => (
+              <MetricCard
+                key={step}
+                label={TIPTOP_STEP_LABELS[step]}
+                value={tipTop7d.ok ? fmtNumber(tipTop7d.value.steps[step]) : '—'}
+                hint={step}
+              />
+            ))}
+          </div>
+        </div>
+
+        <div className="mt-4">
           <h3 className="mb-2 text-sm font-medium text-gray-600">
-            Конверсия по source (30 дней, last-touch)
+            CTA → оплата по source (30 дней)
           </h3>
           <Card padding="none" className="overflow-hidden">
-            {!conversion30d.ok ? (
+            {!tipTop30d.ok ? (
               <p className="px-4 py-6 text-center text-base text-gray-400">— нет данных —</p>
-            ) : conversion30d.value.bySource.length === 0 ? (
+            ) : tipTop30d.value.bySource.length === 0 ? (
               <p className="px-4 py-6 text-center text-base text-gray-500">
-                Пока нет подписных кликов за 30 дней.
+                Пока нет событий воронки. Данные появятся после кликов SubscribeCTA.
               </p>
             ) : (
               <div className="overflow-x-auto">
@@ -643,20 +702,18 @@ export default async function AdminDashboardPage() {
                   <thead>
                     <tr className="border-b border-gray-100 bg-gray-50/50">
                       <th className="px-4 py-3 text-sm font-medium text-gray-500">source</th>
-                      <th className="px-4 py-3 text-sm font-medium text-gray-500">Клики</th>
-                      <th className="px-4 py-3 text-sm font-medium text-gray-500">Подписки</th>
+                      <th className="px-4 py-3 text-sm font-medium text-gray-500">CTA</th>
+                      <th className="px-4 py-3 text-sm font-medium text-gray-500">Оплаты</th>
                       <th className="px-4 py-3 text-sm font-medium text-gray-500">CR</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-50">
-                    {conversion30d.value.bySource.map((row) => (
+                    {tipTop30d.value.bySource.map((row) => (
                       <tr key={row.source}>
                         <td className="px-4 py-3 font-mono text-sm text-gray-900">{row.source}</td>
-                        <td className="px-4 py-3 tabular-nums">{fmtNumber(row.clicks)}</td>
-                        <td className="px-4 py-3 tabular-nums">{fmtNumber(row.attributedSubs)}</td>
-                        <td className="px-4 py-3 tabular-nums text-gray-600">
-                          {fmtPct(row.conversionPct)}
-                        </td>
+                        <td className="px-4 py-3 tabular-nums">{fmtNumber(row.ctaClicks)}</td>
+                        <td className="px-4 py-3 tabular-nums">{fmtNumber(row.payments)}</td>
+                        <td className="px-4 py-3 tabular-nums text-gray-600">{fmtPct(row.crPct)}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -664,61 +721,41 @@ export default async function AdminDashboardPage() {
               </div>
             )}
           </Card>
-          <p className="mt-2 text-xs text-gray-400">
-            CR по source — только если пользователь был залогинен при клике. Proxy-конверсия выше —
-            грубая оценка по всем подпискам.
-          </p>
         </div>
 
-        <div className="mt-4">
+        <div className="mt-6">
           <h3 className="mb-2 text-sm font-medium text-gray-600">
-            Разбивка по source (30 дней)
+            Саппорт WhatsApp (7 дней)
           </h3>
-          <Card padding="none" className="overflow-hidden">
-            {!whatsapp30d.ok ? (
-              <p className="px-4 py-6 text-center text-base text-gray-400">— нет данных —</p>
-            ) : whatsapp30d.value.bySource.length === 0 ? (
-              <p className="px-4 py-6 text-center text-base text-gray-500">
-                Пока нет кликов. Данные появятся после первых WhatsApp-кнопок на сайте.
-              </p>
-            ) : (
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+            <MetricCard
+              label="Кликов в саппорт"
+              value={supportWa7d.ok ? fmtNumber(supportWa7d.value.total) : '—'}
+              hint="whatsapp_click, только support sources"
+            />
+          </div>
+          {supportWa7d.ok && supportWa7d.value.bySource.length > 0 ? (
+            <Card padding="none" className="mt-3 overflow-hidden">
               <div className="overflow-x-auto">
-                <table className="w-full min-w-[480px] text-left text-base">
+                <table className="w-full min-w-[400px] text-left text-base">
                   <thead>
                     <tr className="border-b border-gray-100 bg-gray-50/50">
                       <th className="px-4 py-3 text-sm font-medium text-gray-500">source</th>
                       <th className="px-4 py-3 text-sm font-medium text-gray-500">Клики</th>
-                      <th className="px-4 py-3 text-sm font-medium text-gray-500">Доля</th>
-                      <th className="px-4 py-3 text-sm font-medium text-gray-500">Тип</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-50">
-                    {whatsapp30d.value.bySource.map((row) => {
-                      const isSupport = SUPPORT_WHATSAPP_SOURCES.has(row.source)
-                      const share =
-                        whatsapp30d.value.total > 0
-                          ? Math.round((row.clicks / whatsapp30d.value.total) * 100)
-                          : 0
-                      return (
-                        <tr key={row.source}>
-                          <td className="px-4 py-3 font-mono text-sm text-gray-900">
-                            {row.source}
-                          </td>
-                          <td className="px-4 py-3 tabular-nums">{fmtNumber(row.clicks)}</td>
-                          <td className="px-4 py-3 tabular-nums text-gray-600">{share}%</td>
-                          <td className="px-4 py-3">
-                            <Badge color={isSupport ? 'yellow' : 'green'}>
-                              {isSupport ? 'саппорт' : 'подписка'}
-                            </Badge>
-                          </td>
-                        </tr>
-                      )
-                    })}
+                    {supportWa7d.value.bySource.map((row) => (
+                      <tr key={row.source}>
+                        <td className="px-4 py-3 font-mono text-sm text-gray-900">{row.source}</td>
+                        <td className="px-4 py-3 tabular-nums">{fmtNumber(row.clicks)}</td>
+                      </tr>
+                    ))}
                   </tbody>
                 </table>
               </div>
-            )}
-          </Card>
+            </Card>
+          ) : null}
         </div>
       </section>
 
@@ -727,31 +764,43 @@ export default async function AdminDashboardPage() {
         <h2 className="mb-1 text-lg font-semibold text-gray-800">3. Яндекс.Метрика</h2>
         <p className="mb-3 text-sm text-gray-500">
           Агрегаты из metrica_goals_daily (Слой 1). Обновляется cron раз в сутки (~03:00 Алматы).
+          Нужны JS-цели с идентификаторами cta_click / payment_success.
         </p>
 
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-2">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           <MetricCard
-            label="Достижений whatsapp_click (7д)"
-            value={metrica7d.ok ? fmtNumber(metrica7d.value.total) : '—'}
-            hint="официальная статистика Метрики"
+            label="cta_click (7д, Метрика)"
+            value={metrica7d.ok ? fmtNumber(metrica7d.value.cta) : '—'}
+            hint="официальная статистика"
           />
           <MetricCard
-            label="Live-кликов (7д)"
-            value={whatsapp7d.ok ? fmtNumber(whatsapp7d.value.total) : '—'}
+            label="payment_success (7д, Метрика)"
+            value={metrica7d.ok ? fmtNumber(metrica7d.value.payment) : '—'}
+            hint="официальная статистика"
+          />
+          <MetricCard
+            label="CR Метрика (7д)"
+            value={metrica7d.ok ? fmtPct(metrica7d.value.crPct) : '—'}
+            hint="payment / cta"
+          />
+          <MetricCard
+            label="CR Live (7д)"
+            value={tipTop7d.ok ? fmtPct(tipTop7d.value.crPct) : '—'}
             hint="analytics_events для сравнения"
           />
         </div>
 
         <div className="mt-4">
           <h3 className="mb-2 text-sm font-medium text-gray-600">
-            whatsapp_click по source (7 дней, Метрика)
+            payment_success по source (7 дней, Метрика)
           </h3>
           <Card padding="none" className="overflow-hidden">
             {!metrica7d.ok ? (
               <p className="px-4 py-6 text-center text-base text-gray-400">— нет данных —</p>
             ) : metrica7d.value.bySource.length === 0 ? (
               <p className="px-4 py-6 text-center text-base text-gray-500">
-                Нет данных Метрики за 7 дней. Проверьте cron metrica-sync и YANDEX_OAUTH_TOKEN.
+                Нет данных Метрики за 7 дней. Создайте JS-цели TipTop и проверьте cron
+                metrica-sync / YANDEX_OAUTH_TOKEN.
               </p>
             ) : (
               <div className="overflow-x-auto">
@@ -761,15 +810,13 @@ export default async function AdminDashboardPage() {
                       <th className="px-4 py-3 text-sm font-medium text-gray-500">source</th>
                       <th className="px-4 py-3 text-sm font-medium text-gray-500">Достижения</th>
                       <th className="px-4 py-3 text-sm font-medium text-gray-500">Доля</th>
-                      <th className="px-4 py-3 text-sm font-medium text-gray-500">Тип</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-50">
                     {metrica7d.value.bySource.map((row) => {
-                      const isSupport = SUPPORT_WHATSAPP_SOURCES.has(row.source)
                       const share =
-                        metrica7d.value.total > 0
-                          ? Math.round((row.achievements / metrica7d.value.total) * 100)
+                        metrica7d.value.payment > 0
+                          ? Math.round((row.achievements / metrica7d.value.payment) * 100)
                           : 0
                       return (
                         <tr key={row.source}>
@@ -778,11 +825,6 @@ export default async function AdminDashboardPage() {
                           </td>
                           <td className="px-4 py-3 tabular-nums">{fmtNumber(row.achievements)}</td>
                           <td className="px-4 py-3 tabular-nums text-gray-600">{share}%</td>
-                          <td className="px-4 py-3">
-                            <Badge color={isSupport ? 'yellow' : 'green'}>
-                              {isSupport ? 'саппорт' : 'подписка'}
-                            </Badge>
-                          </td>
                         </tr>
                       )
                     })}

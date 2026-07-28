@@ -1,113 +1,133 @@
 # Конвенции аналитики
 
-Источник правды для трекинга WhatsApp-кликов и текста сообщений
-в WhatsApp.
+Источник правды для трекинга конверсий Kudaclub: основная воронка —
+in-app TipTop Pay (`SubscribeCTA` → `CheckoutModal`). WhatsApp-ссылки
+остались только для саппорта и activation-ошибок.
 
-## Goal `whatsapp_click`
+## Основная воронка TipTop Pay
 
-Срабатывает на каждый клик по wa.me-ссылке на сайте. Параметр `source`
-обязателен и идентифицирует точку клика. Сам goal вызывается из двух
-переиспользуемых компонентов:
+```
+cta_click → checkout_opened → phone_submitted → otp_verified
+  → widget_opened → payment_success | payment_fail | payment_abandoned
+```
 
-- `src/components/analytics/whatsapp-goal-link.tsx` — подписные CTA
-  (дополнительно дёргает Meta Pixel `InitiateCheckout`).
-- `src/components/analytics/whatsapp-support-link.tsx` — саппортные
-  ссылки (без Meta Pixel — это не подписной CTA).
-
-### Статические source-идентификаторы
-
-Подписные CTA (через `WhatsappGoalLink`):
-
-| `source` | UI-место |
-|---|---|
-| `home-hero` | Главная, hero-кнопка «Попробовать за 1 990 ₸» |
-| `home-pricing` | Главная, финальный CTA-блок (`final-cta.tsx`) |
-| `pricing-page` | Страница `/pricing`, CTA в карточке тарифа |
-| `header-cta` | Кнопка в шапке (desktop) |
-| `mobile-menu-cta` | Кнопка в раскрытом мобильном меню |
-| `me-no-sub` | `/app/me`, кнопка «Оформить» при отсутствии подписки |
-| `me-expired` | `/app/me`, кнопка «Продлить» при истёкшей подписке |
-| `login-no-account` | `/login`, экран «нет аккаунта» |
-| `home-trial-upgrade` | Главная, ссылка «Оформить полную подписку» для trial-юзера |
-
-Саппортные ссылки (через `WhatsappSupportLink`):
-
-| `source` | UI-место |
-|---|---|
-| `footer-support` | Футер, ссылка «Написать нам» |
-| `support-page` | `/support`, основная кнопка |
-| `support-phone` | `/support`, inline-номер телефона в блоке контактов |
-| `activate-error` | `/activate`, состояния «не найдена / отменена / истекла» |
-| `activate-already-used` | `/activate`, состояние «уже использована» |
-| `activate-card-error` | `/activate`, error-состояния `ActivateCard` |
-| `activate-card-intro` | `/activate`, intro-экран `ActivateCard` |
-
-### Динамические source-идентификаторы
-
-Гранулярность по ресторану / офферу намеренна — позволяет считать
-конверсию в Метрике в разрезе конкретного места:
-
-| Формат | Конструктор | UI-место |
+| Goal | Где | Params |
 |---|---|---|
-| `venue-cta-{slug}` | `venueCtaSource(slug)` в `src/lib/whatsapp.ts` | CTA-баннер на странице заведения |
-| `offer-card-{slug}-{offerId}` | `offerCardSource(slug, offerId)` в `src/lib/whatsapp.ts` | Пейволл, открываемый из карточки оффера |
+| `cta_click` | `SubscribeCTA` | `source` |
+| `checkout_opened` | `CheckoutModal` mount | `source` |
+| `phone_submitted` | OTP отправлен | `source` |
+| `otp_verified` | код подтверждён | `source` |
+| `widget_opened` | TipTop Widget start | `source` |
+| `payment_success` | widget status=success | `source` |
+| `payment_fail` | ошибка оплаты | `source` |
+| `payment_abandoned` | закрыл модалку после виджета без оплаты | `source` |
 
-## Текст сообщения в WhatsApp
+Компоненты:
 
-Текст подписного CTA выбирается из `WhatsAppMessageKind` в
-`src/lib/whatsapp.ts`. Не путать с `source` для Метрики: `source`
-включает slug, `messageKind` — это «базовый» тип CTA без slug.
+- `src/components/checkout/subscribe-cta.tsx` — CTA
+- `src/components/checkout/checkout-modal.tsx` — чекаут + Meta Pixel
 
-| `messageKind` | Текст сообщения |
+Каждый `trackGoal()` дублируется в `POST /api/track` → `analytics_events`.
+
+### Source-идентификаторы CTA
+
+| `source` | UI-место |
 |---|---|
-| `header-cta`, `mobile-menu-cta` | «Здравствуйте! Интересует подписка Kudaclub» |
-| `home-hero`, `me-no-sub`, `login-no-account` | «Здравствуйте! Хочу подписку Kudaclub» |
-| `home-pricing`, `pricing-page`, `home-trial-upgrade` | «Здравствуйте! Хочу оформить подписку Kudaclub» |
-| `venue-cta`, `offer-card` (с `restaurantName`) | «Здравствуйте! Хочу подписку Kudaclub. Хочу попробовать {restaurantName}» |
-| `me-expired` | «Здравствуйте! Хочу продлить подписку Kudaclub» |
-| любой без kind | «Здравствуйте! Хочу подписку Kudaclub» (дефолт) |
+| `home-hero` | Главная, hero |
+| `home-final` | Финальный CTA-блок |
+| `pricing` | `/pricing` |
+| `header` | Шапка (desktop) |
+| `mobile-menu` | Мобильное меню |
+| `me-no-sub` | `/app/me`, нет подписки |
+| `me-expired` | `/app/me`, истекла |
+| `login-no-account` | `/login`, нет аккаунта |
+| `home-trial-upgrade` | Trial → paid |
+| `venue-cta-{slug}` | Баннер на странице заведения |
+| `offer-card-{slug}-{offerId}` | Пейволл из карточки оффера |
 
-Логика — менеджер в WhatsApp по тексту входящего сообщения сразу
-понимает источник и температуру лида:
+## Meta Pixel / CAPI
 
-- «Интересует подписка» → шапка / меню (холодный).
-- «Хочу подписку» → главная или login-форма (тёплый).
-- «Хочу оформить подписку» → знает цену, прошёл pricing-блок (горячий).
-- «Хочу подписку Kudaclub. Хочу попробовать {restaurant}» → знает,
-  куда хочет (самый горячий).
-- «Хочу продлить» → возвращающийся клиент (самый ценный).
+### TipTop-чекаут
 
-Саппортные ссылки текст не меняют: `WhatsappSupportLink` принимает
-готовый `href`, в котором текст либо отсутствует, либо захардкожен
-(«Нужна помощь с активацией подписки Kudaclub» для `activate*` точек).
+| Событие | Когда | eventID |
+|---|---|---|
+| `InitiateCheckout` | `checkout_opened` | `checkout_{source}_{unix}` |
+| `Purchase` (Pixel) | `payment_success` | `purchase_tiptop_{externalId}` |
+| `Purchase` (CAPI) | webhook `/api/tiptoppay/pay` | тот же `purchase_tiptop_{InvoiceId}` |
 
-## Meta Pixel `InitiateCheckout`
+- `externalId` виджета = `sub_{userId}_{ts}` → в webhook приходит как `InvoiceId`.
+- CAPI шлётся **только** для установочных платежей (`InvoiceId` начинается с `sub_`), рекурренты пропускаются.
+- Pixel и CAPI дедупятся Meta по общему `eventID`.
+- Value: `1990 KZT`.
 
-Срабатывает только в `WhatsappGoalLink` (подписные CTA) с
-`{ value: 1990, currency: 'KZT' }`. В `WhatsappSupportLink`
-не вызывается — саппорт не является событием инициации оплаты.
+Хелперы: `src/lib/meta-purchase.ts`, клиент: `src/lib/meta-pixel-client.ts`,
+сервер: `src/lib/meta-capi.ts`.
+
+### Activation-ссылки (legacy / gifts / trial)
+
+`/activate` → paid: CAPI + redirect на `/app/me?activated=true&purchase_event_id=…`
+→ `MeMetrica` стреляет Pixel `Purchase` / `StartTrial` с тем же eventID.
+Не смешивать с TipTop `purchase_tiptop_*`.
+
+### Trial upgrade CTA
+
+`TrialUpgradeLink` — Pixel `InitiateCheckout` (открывает чекаут через `SubscribeCTA`).
+
+## Яндекс.Метрика — чеклист целей
+
+В кабинете Метрики создать **JavaScript-цели** (тип «JavaScript-событие»)
+с идентификаторами точно как в коде:
+
+1. `cta_click`
+2. `checkout_opened`
+3. `phone_submitted`
+4. `otp_verified`
+5. `widget_opened`
+6. `payment_success`
+7. `payment_fail`
+8. `payment_abandoned`
+
+Затем собрать многошаговую воронку в UI Метрики по этим целям.
+Cron `metrica-sync` уже трекает эти имена (`TRACKED_GOAL_NAMES`).
+
+Опционально оставить цель `whatsapp_click` для саппортных ссылок.
+
+## Goal `whatsapp_click` (только саппорт)
+
+Срабатывает на клик по wa.me через `WhatsappSupportLink`
+(`src/components/analytics/whatsapp-support-link.tsx`). Meta Pixel не вызывается.
+
+| `source` | UI-место |
+|---|---|
+| `footer-support` | Футер |
+| `support-page` | `/support` |
+| `support-phone` | `/support`, номер |
+| `activate-error` | `/activate`, ошибки |
+| `activate-already-used` | `/activate`, уже использована |
+| `activate-card-error` | `ActivateCard` errors |
+| `activate-card-intro` | `ActivateCard` intro |
+
+`WhatsappGoalLink` в коде есть, но подписные CTA на него больше не завязаны.
 
 ## Live-трекинг в Supabase (Слой 2)
-
-Каждый вызов `trackGoal()` дублируется в `POST /api/track` → таблица
-`analytics_events` (поле `meta` = params + `page`).
 
 | Источник | Задержка | Назначение |
 |---|---|---|
 | Яндекс.Метрика | часы / cron | официальная статистика, воронки в UI |
-| `analytics_events` | мгновенно | SQL-джойны с подписками, live-дашборд |
-
-Пример запроса:
+| `analytics_events` | мгновенно | live-дашборд TipTop |
 
 ```sql
 select created_at, event_name, meta->>'source' as source, meta->>'page' as page
 from public.analytics_events
-where event_name = 'whatsapp_click'
+where event_name in (
+  'cta_click', 'checkout_opened', 'phone_submitted', 'otp_verified',
+  'widget_opened', 'payment_success', 'payment_fail', 'payment_abandoned'
+)
 order by created_at desc
 limit 50;
 ```
 
-Allowlist событий: `src/lib/client-analytics-events.ts`.
+Allowlist: `src/lib/client-analytics-events.ts`.
 
 ## Cron-снимки и алерты (Слой 3)
 
@@ -115,36 +135,16 @@ Allowlist событий: `src/lib/client-analytics-events.ts`.
 
 1. Считает метрики за **вчера** (календарный день Алматы).
 2. Upsert в `metrics_daily_snapshot`.
-3. **Каждую ночь** шлёт **ежедневную сводку** в Telegram (активные, MRR, подписки, WA, офферы).
-4. В конце сводки — блок **алертов**, если сработали правила:
-
-| Правило | Условие |
-|---|---|
-| Падение WhatsApp | кликов < 50% от предыдущего дня |
-| Ноль подписок | `new_subs_24h = 0`, вчера было > 0 |
-| Ошибки активации | > 5 кликов `activate-error` + `activate-card-error` |
+3. Ежедневная сводка в Telegram.
+4. Алерты (в т.ч. падение WA-кликов саппорта, ноль подписок).
 
 Env: `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`, `CRON_SECRET`.
 
-Пример запроса истории:
-
-```sql
-select date, active_subscribers, new_subs_24h, whatsapp_clicks_24h, mrr_kzt
-from public.metrics_daily_snapshot
-order by date desc
-limit 14;
-```
-
 ## Weekly LLM digest (Слой 4)
 
-Каждый **понедельник 04:00 Алматы** `/api/cron/weekly-digest`:
-
-1. Собирает контекст: `metrics_daily_snapshot` (7 дней), конверсию WhatsApp, топ ресторанов.
-2. Отправляет промпт в OpenAI → Markdown-отчёт в Telegram.
+Каждый **понедельник 04:00 Алматы** `/api/cron/weekly-digest`.
 
 Env: `OPENAI_API_KEY`, `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`, `CRON_SECRET`.
-
-Ручной запуск:
 
 ```bash
 curl -s https://kudaclub.kz/api/cron/weekly-digest \
@@ -153,13 +153,9 @@ curl -s https://kudaclub.kz/api/cron/weekly-digest \
 
 ## Расширение
 
-Добавление нового CTA:
+Добавление нового подписного CTA:
 
-1. Подобрать `source` (статический или динамический через helper в
-   `src/lib/whatsapp.ts`) и зафиксировать в этой таблице.
-2. Если нужен отдельный текст в WhatsApp — добавить ветку
-   в `WhatsAppMessageKind` и в `getWhatsAppText` (`src/lib/whatsapp.ts`).
-3. Использовать `WhatsappGoalLink` (подписной CTA) или
-   `WhatsappSupportLink` (саппорт).
-4. Добавить имя события в `CLIENT_ANALYTICS_EVENTS`
-   (`src/lib/client-analytics-events.ts`), если это новый `trackGoal`.
+1. Подобрать `source` и зафиксировать в таблице выше.
+2. Обернуть в `SubscribeCTA` с этим `source` (не WhatsApp).
+3. Если новый `trackGoal` — добавить имя в `CLIENT_ANALYTICS_EVENTS`
+   и при необходимости в `TRACKED_GOAL_NAMES` (`metrica-sync`).

@@ -41,6 +41,15 @@ const TRACKED_GOAL_NAMES = [
   'offer_redeemed',
   'subscription_activated',
   'sort_mode_switch',
+  // TipTop checkout funnel (SubscribeCTA → CheckoutModal)
+  'cta_click',
+  'checkout_opened',
+  'phone_submitted',
+  'otp_verified',
+  'widget_opened',
+  'payment_success',
+  'payment_fail',
+  'payment_abandoned',
 ] as const
 
 function unauthorized(): NextResponse {

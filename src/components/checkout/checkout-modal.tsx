@@ -15,6 +15,15 @@ import { verifyWhatsAppLoginCode } from '@/app/login/actions'
 import { trackGoal, setUserId } from '@/lib/analytics-client'
 import { useUser } from '@/lib/auth/use-user'
 import { DEFAULT_CITY, CITY_COOKIE, isCity } from '@/lib/cities'
+import {
+  META_SUBSCRIPTION_PRICE_KZT,
+  trackMetaPixelInitiateCheckout,
+  trackMetaPixelPurchase,
+} from '@/lib/meta-pixel-client'
+import {
+  buildInitiateCheckoutEventId,
+  buildTipTopPurchaseEventId,
+} from '@/lib/meta-purchase'
 
 declare global {
   interface Window {
@@ -68,11 +77,17 @@ export default function CheckoutModal({
   const userIdRef = useRef<string | null>(user?.id ?? null)
   const widgetOpenedRef = useRef(false)
   const paidRef = useRef(false)
+  const externalIdRef = useRef<string | null>(null)
 
   // Portal-монтирование + фон/скролл/Escape + предзагрузка виджета + аналитика.
   useEffect(() => {
     setMounted(true)
     trackGoal('checkout_opened', { source })
+    const eventTime = Math.floor(Date.now() / 1000)
+    trackMetaPixelInitiateCheckout(
+      { value: META_SUBSCRIPTION_PRICE_KZT, currency: 'KZT' },
+      buildInitiateCheckoutEventId(source, eventTime),
+    )
 
     if (!document.querySelector(`script[src="${WIDGET_SRC}"]`)) {
       const s = document.createElement('script')
@@ -166,6 +181,8 @@ export default function CheckoutModal({
     setError('')
     widgetOpenedRef.current = true
     trackGoal('widget_opened', { source })
+    const externalId = `sub_${userIdRef.current}_${Date.now()}`
+    externalIdRef.current = externalId
     new tiptop.Widget()
       .start({
         publicTerminalId: process.env.NEXT_PUBLIC_TIPTOPPAY_PUBLIC_ID,
@@ -174,7 +191,7 @@ export default function CheckoutModal({
         currency: 'KZT',
         culture: 'ru-RU',
         paymentSchema: 'Single',
-        externalId: `sub_${userIdRef.current}_${Date.now()}`,
+        externalId,
         metadata: { source }, // источник CTA придёт в вебхук — для аналитики
         userInfo: { accountId: userIdRef.current, phone: normalizeToE164Like(phone) ?? phone },
         recurrent: { period: 1, interval: 'Month', amount: PRICE },
@@ -184,6 +201,13 @@ export default function CheckoutModal({
           paidRef.current = true
           setStep('success')
           trackGoal('payment_success', { source })
+          const invoiceId = externalIdRef.current
+          if (invoiceId) {
+            trackMetaPixelPurchase(
+              { value: META_SUBSCRIPTION_PRICE_KZT, currency: 'KZT' },
+              buildTipTopPurchaseEventId(invoiceId),
+            )
+          }
           void refresh()
         } else if (r?.type === 'cancel') {
           setStep('pay')

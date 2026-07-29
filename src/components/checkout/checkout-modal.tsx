@@ -24,6 +24,7 @@ import {
   buildInitiateCheckoutEventId,
   buildTipTopPurchaseEventId,
 } from '@/lib/meta-purchase'
+import { readUtmFromCookie } from '@/components/analytics/utm-capture'
 
 declare global {
   interface Window {
@@ -183,6 +184,7 @@ export default function CheckoutModal({
     trackGoal('widget_opened', { source })
     const externalId = `sub_${userIdRef.current}_${Date.now()}`
     externalIdRef.current = externalId
+    const utm = readUtmFromCookie()
     new tiptop.Widget()
       .start({
         publicTerminalId: process.env.NEXT_PUBLIC_TIPTOPPAY_PUBLIC_ID,
@@ -192,7 +194,8 @@ export default function CheckoutModal({
         culture: 'ru-RU',
         paymentSchema: 'Single',
         externalId,
-        metadata: { source }, // источник CTA придёт в вебхук — для аналитики
+        // source CTA + UTM/promo → JsonData в вебхуке → subscribers
+        metadata: { source, ...utm },
         userInfo: { accountId: userIdRef.current, phone: normalizeToE164Like(phone) ?? phone },
         recurrent: { period: 1, interval: 'Month', amount: PRICE },
       })

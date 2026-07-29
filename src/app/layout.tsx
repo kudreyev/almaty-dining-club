@@ -5,6 +5,7 @@ import { Header } from '@/components/header'
 import { HeaderShell } from '@/components/header-shell'
 import { Footer } from '@/components/footer'
 import { YandexMetrica } from '@/components/yandex-metrica'
+import { UtmCapture } from '@/components/analytics/utm-capture'
 import { UserProvider } from '@/lib/auth/use-user'
 import {
   buildMetaPixelBootstrapScript,
@@ -53,6 +54,7 @@ export default function RootLayout({
           </noscript>
         ) : null}
         <UserProvider>
+          <UtmCapture />
           <div className="flex min-h-screen flex-col bg-[#fafaf9] text-gray-900">
             <HeaderShell>
               <Header />

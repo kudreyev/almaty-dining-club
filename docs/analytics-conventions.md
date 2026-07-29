@@ -159,3 +159,31 @@ curl -s https://kudaclub.kz/api/cron/weekly-digest \
 2. Обернуть в `SubscribeCTA` с этим `source` (не WhatsApp).
 3. Если новый `trackGoal` — добавить имя в `CLIENT_ANALYTICS_EVENTS`
    и при необходимости в `TRACKED_GOAL_NAMES` (`metrica-sync`).
+
+## Analytics ledger + /admin/analytics
+
+Источник правды по подписчикам TipTop (отдельно от продуктового `subscriptions`):
+
+| Таблица | Назначение |
+|---|---|
+| `subscribers` | status, UTM, promo_code, subscribed_at / cancelled_at |
+| `payments` | success/fail, идемпотентность по `ttp_transaction_id` |
+| `daily_ad_stats` | spend/impressions/clicks (FB) + visits/goal (Метрика) |
+
+Вебхуки (HMAC `Content-HMAC`, ответ `{code:0}`):
+
+- `POST /api/webhooks/ttp/pay`
+- `POST /api/webhooks/ttp/fail`
+- `POST /api/webhooks/ttp/recurrent`
+
+UTM: `UtmCapture` пишет cookie `kc_utm` → `CheckoutModal` кладёт в TipTop `metadata` → `JsonData` в вебхуке.
+
+Cron:
+
+| Path | Алматы | Что |
+|---|---|---|
+| `/api/cron/ad-stats` | 07:00 | FB + Метрика → `daily_ad_stats` |
+| `/api/cron/analytics-digest` | 09:00 | Telegram: новые/отмены/расход/CAC |
+
+Дашборд: `/admin/analytics` (`requireAdmin`, `robots: noindex`).
+CAC = расход / новые с `utm_medium=paid`; порог стопа — 4000 ₸.

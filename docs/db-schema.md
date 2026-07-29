@@ -19,6 +19,9 @@
 | payment_admin_audit | on | — | — | — | только insert/read через **bypass** (политик нет) |
 | activation_links | on | — | admin | admin | bypass |
 | analytics_events | on | — | admin | admin | **bypass** (серверные вставки) |
+| subscribers | on | — | admin | — | **bypass** (TipTop webhooks) |
+| payments | on | — | admin | — | **bypass** (TipTop webhooks) |
+| daily_ad_stats | on | — | admin | — | **bypass** (cron ad-stats) |
 | redeem_tokens | on | — | own | own + **anon UPDATE (true)** | bypass |
 | redemptions | on | — | own + admin | admin | bypass; **anon INSERT (true)** |
 | staff_users | on | **все is_active=true (вкл. PIN)** | admin | admin | bypass |

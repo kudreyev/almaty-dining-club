@@ -13,7 +13,7 @@ import {
   isValidUserAccountId,
 } from '@/lib/tiptoppay-product'
 import { recordSuccessfulPayment } from '@/lib/ttp-analytics-ledger'
-import { notifySubscriberGained } from '@/lib/analytics-telegram'
+import { notifyLedgerPaymentResult } from '@/lib/notify-ledger-payment'
 import {
   parseAmount,
   parseWebhookJsonData,
@@ -63,9 +63,7 @@ export async function POST(req: NextRequest) {
           jsonData: parseWebhookJsonData(p),
           rawPayload: p,
         })
-        if (!ledger.duplicate && (ledger.created || ledger.reactivated)) {
-          void notifySubscriberGained(ledger.subscriber)
-        }
+        notifyLedgerPaymentResult(ledger, parseAmount(p.Amount))
       } catch (ledgerError) {
         logServerError('api/tiptoppay/pay:ledger', ledgerError)
       }

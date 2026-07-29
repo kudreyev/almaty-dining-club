@@ -12,6 +12,8 @@ import {
   assertStaffRedeemNotRateLimited,
   recordStaffRedeemFailure,
 } from '@/lib/staff-redeem-rate-limit'
+import { notifyOfferRedeemed } from '@/lib/analytics-telegram'
+import { logServerError } from '@/lib/safe-errors'
 
 async function requireStaffContext() {
   const restaurantId = await getStaffSessionRestaurantId()
@@ -149,6 +151,29 @@ export async function redeemTokenByCode(formData: FormData) {
     }
 
     redirect('/staff/redeem?error=redemption_failed')
+  }
+
+  // Telegram: только реальное использование, не идемпотентный повтор клика.
+  if (!result.idempotent) {
+    try {
+      const { data: tokenMeta } = await admin
+        .from('redeem_tokens')
+        .select('restaurant_id, offer_id, restaurants(name), offers(offer_title)')
+        .eq('token_code', tokenCode)
+        .maybeSingle<{
+          restaurant_id: string
+          offer_id: string
+          restaurants: { name: string } | null
+          offers: { offer_title: string } | null
+        }>()
+
+      const restaurantName =
+        tokenMeta?.restaurants?.name?.trim() || 'заведение'
+      const offerTitle = tokenMeta?.offers?.offer_title?.trim() || null
+      void notifyOfferRedeemed({ restaurantName, offerTitle })
+    } catch (error) {
+      logServerError('staff/redeem:telegram', error)
+    }
   }
 
   revalidatePath('/staff/redeem')

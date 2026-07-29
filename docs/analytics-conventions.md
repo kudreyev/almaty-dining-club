@@ -187,3 +187,5 @@ Cron:
 
 Дашборд: `/admin/analytics` (`requireAdmin`, `robots: noindex`).
 CAC = расход / новые с `utm_medium=paid`; порог стопа — 4000 ₸.
+
+Ежедневный ритуал команды: [analytics-daily-ritual.md](./analytics-daily-ritual.md).

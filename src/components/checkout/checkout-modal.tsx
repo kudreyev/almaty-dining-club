@@ -48,11 +48,8 @@ type ModalUser = { id: string; phone: string } | null
 type Step =
   | 'checkout'
   | 'confirming'
-  | 'success'
   | 'needs_otp'
-  | 'processing'
   | 'fail'
-  | 'fix_phone'
 
 type AppliedPromo = {
   code: string
@@ -68,6 +65,10 @@ function readCityFromCookie(): string {
     .find((c) => c.startsWith(`${CITY_COOKIE}=`))
   const value = match?.split('=')[1]
   return value && isCity(value) ? value : DEFAULT_CITY
+}
+
+function goHome(): void {
+  window.location.assign(`/${readCityFromCookie()}`)
 }
 
 function maskPhone(e164: string): string {
@@ -110,8 +111,6 @@ export default function CheckoutModal({
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
   const [paidPhone, setPaidPhone] = useState<string | null>(null)
-  const [fixNote, setFixNote] = useState('')
-  const [fixSent, setFixSent] = useState(false)
   const [promoOpen, setPromoOpen] = useState(false)
   const [promoInput, setPromoInput] = useState('')
   const [promoBusy, setPromoBusy] = useState(false)
@@ -196,7 +195,7 @@ export default function CheckoutModal({
             )
           }
           void refresh()
-          setStep('success')
+          goHome()
           return
         }
         if (data.status === 'needs_otp') {
@@ -221,9 +220,9 @@ export default function CheckoutModal({
       }
       await new Promise((r) => setTimeout(r, COMPLETE_POLL_MS))
     }
-    // Вебхук не успел — не ошибка, доступ придёт в WhatsApp.
+    // Вебхук не успел — на главную; доступ придёт в WhatsApp.
     paidRef.current = true
-    setStep('processing')
+    goHome()
   }, [refresh, source])
 
   const launchWidget = useCallback(
@@ -417,31 +416,6 @@ export default function CheckoutModal({
     }
   }, [appliedPromo, launchWidget, phoneE164, phoneValid, source])
 
-  const submitFixPhone = useCallback(async () => {
-    if (!fixNote.trim()) {
-      setError('Опишите, какой номер нужно привязать.')
-      return
-    }
-    setBusy(true)
-    setError('')
-    try {
-      const res = await fetch('/api/support/phone-fix', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          currentPhone: paidPhone,
-          message: fixNote.trim(),
-        }),
-      })
-      if (!res.ok) throw new Error('fail')
-      setFixSent(true)
-    } catch {
-      setError('Не удалось отправить. Напишите в поддержку в WhatsApp.')
-    } finally {
-      setBusy(false)
-    }
-  }, [fixNote, paidPhone])
-
   if (!mounted || typeof document === 'undefined') return null
 
   return createPortal(
@@ -622,62 +596,6 @@ export default function CheckoutModal({
           </>
         )}
 
-        {step === 'processing' && (
-          <>
-            <h3 className="text-lg font-medium tracking-[-0.2px] text-neutral-900">
-              Оплата обрабатывается
-            </h3>
-            <p className="mt-1.5 text-[13px] leading-[1.5] text-neutral-500">
-              Доступ придёт в WhatsApp. Обычно это занимает до минуты.
-            </p>
-            <a href={`/${readCityFromCookie()}`} className={`${primaryBtn} mt-4`}>
-              На главную
-            </a>
-          </>
-        )}
-
-        {step === 'success' && (
-          <>
-            <h3 className="text-lg font-medium tracking-[-0.2px] text-neutral-900">
-              Оплата прошла!
-            </h3>
-            <p className="mt-1.5 text-[13px] leading-[1.5] text-neutral-500">
-              Подписка привязана к{' '}
-              {paidPhone ? maskPhone(paidPhone) : 'вашему номеру'}.
-            </p>
-            <div className="mt-4 rounded-lg bg-neutral-50 px-3.5 py-3 text-[13px] leading-[1.5] text-neutral-700">
-              <p className="font-medium text-neutral-900">Как пользоваться</p>
-              <ol className="mt-1.5 list-decimal space-y-1 pl-4">
-                <li>Откройте заведение в каталоге</li>
-                <li>Покажите оффер официанту или на кассе</li>
-                <li>Скидка применяется при оплате счёта</li>
-              </ol>
-            </div>
-            <a href={`/${readCityFromCookie()}`} className={`${primaryBtn} mt-4`}>
-              На главную
-            </a>
-            <button
-              type="button"
-              onClick={() => {
-                setFixSent(false)
-                setFixNote('')
-                setStep('fix_phone')
-              }}
-              className="mt-2 w-full text-center text-[13px] text-neutral-500 underline-offset-2 hover:text-neutral-800"
-            >
-              Исправить номер
-            </button>
-            <a
-              href={SUPPORT_WA}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="mt-2 block text-center text-[13px] text-neutral-500 underline-offset-2 hover:text-neutral-800"
-            >
-              Написать в поддержку
-            </a>
-          </>
-        )}
-
         {step === 'needs_otp' && (
           <>
             <h3 className="text-lg font-medium tracking-[-0.2px] text-neutral-900">
@@ -702,47 +620,6 @@ export default function CheckoutModal({
             >
               Написать в поддержку
             </a>
-          </>
-        )}
-
-        {step === 'fix_phone' && (
-          <>
-            <h3 className="text-lg font-medium tracking-[-0.2px] text-neutral-900">
-              Исправить номер
-            </h3>
-            {fixSent ? (
-              <>
-                <p className="mt-1.5 text-[13px] leading-[1.5] text-neutral-500">
-                  Запрос отправлен в поддержку. Мы свяжемся с вами в WhatsApp.
-                </p>
-                <a href={`/${readCityFromCookie()}`} className={`${primaryBtn} mt-4`}>
-                  На главную
-                </a>
-              </>
-            ) : (
-              <>
-                <p className="mt-1.5 text-[13px] leading-[1.5] text-neutral-500">
-                  Текущий номер:{' '}
-                  {paidPhone ? maskPhone(paidPhone) : 'не указан'}. Напишите
-                  правильный номер — создадим тикет поддержке.
-                </p>
-                <textarea
-                  value={fixNote}
-                  onChange={(e) => setFixNote(e.target.value)}
-                  rows={3}
-                  placeholder="Правильный номер: +7…"
-                  className={`${inputCls} mt-3 resize-none`}
-                />
-                <button
-                  type="button"
-                  disabled={busy}
-                  onClick={() => void submitFixPhone()}
-                  className={`${primaryBtn} mt-3`}
-                >
-                  {busy ? 'Отправляем…' : 'Отправить в поддержку'}
-                </button>
-              </>
-            )}
           </>
         )}
 

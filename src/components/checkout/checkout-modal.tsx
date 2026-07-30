@@ -16,7 +16,7 @@ import {
 import { trackGoal, setUserId } from '@/lib/analytics-client'
 import { useUser } from '@/lib/auth/use-user'
 import { DEFAULT_CITY, CITY_COOKIE, isCity } from '@/lib/cities'
-import { PRICE_KZT, formatPriceKzt, formatPricePerMonth } from '@/lib/pricing'
+import { PRICE_KZT, formatPriceKzt, formatPricePerMonth, formatFirstMonthPromoOffer } from '@/lib/pricing'
 import {
   trackMetaPixelInitiateCheckout,
   trackMetaPixelPurchase,
@@ -53,6 +53,13 @@ type Step =
   | 'processing'
   | 'fail'
   | 'fix_phone'
+
+type AppliedPromo = {
+  code: string
+  applies_to: 'first_month' | 'forever'
+  first_amount: number
+  recurrent_amount: number
+}
 
 function readCityFromCookie(): string {
   if (typeof document === 'undefined') return DEFAULT_CITY
@@ -105,14 +112,26 @@ export default function CheckoutModal({
   const [paidPhone, setPaidPhone] = useState<string | null>(null)
   const [fixNote, setFixNote] = useState('')
   const [fixSent, setFixSent] = useState(false)
+  const [promoOpen, setPromoOpen] = useState(false)
+  const [promoInput, setPromoInput] = useState('')
+  const [promoBusy, setPromoBusy] = useState(false)
+  const [promoError, setPromoError] = useState('')
+  const [appliedPromo, setAppliedPromo] = useState<AppliedPromo | null>(null)
   const phoneFilledRef = useRef(false)
   const widgetOpenedRef = useRef(false)
   const paidRef = useRef(false)
   const externalIdRef = useRef<string | null>(null)
   const existingAccountRef = useRef(false)
+  const paidAmountRef = useRef(PRICE_KZT)
 
   const phoneE164 = normalizeToE164Like(phone)
   const phoneValid = Boolean(phoneE164 && isKZNumber(phoneE164))
+  const chargeAmount = appliedPromo?.first_amount ?? PRICE_KZT
+  const recurrentAmount = appliedPromo?.recurrent_amount ?? PRICE_KZT
+  const hasFirstMonthPromo =
+    appliedPromo != null &&
+    appliedPromo.applies_to === 'first_month' &&
+    appliedPromo.first_amount !== appliedPromo.recurrent_amount
 
   useEffect(() => {
     setMounted(true)
@@ -172,7 +191,7 @@ export default function CheckoutModal({
           const invoiceId = externalIdRef.current
           if (invoiceId) {
             trackMetaPixelPurchase(
-              { value: PRICE_KZT, currency: 'KZT' },
+              { value: paidAmountRef.current, currency: 'KZT' },
               buildTipTopPurchaseEventId(invoiceId),
             )
           }
@@ -187,7 +206,7 @@ export default function CheckoutModal({
           const invoiceId = externalIdRef.current
           if (invoiceId) {
             trackMetaPixelPurchase(
-              { value: PRICE_KZT, currency: 'KZT' },
+              { value: paidAmountRef.current, currency: 'KZT' },
               buildTipTopPurchaseEventId(invoiceId),
             )
           }
@@ -208,7 +227,11 @@ export default function CheckoutModal({
   }, [refresh, source])
 
   const launchWidget = useCallback(
-    async (normalizedPhone: string) => {
+    async (
+      normalizedPhone: string,
+      amounts: { first: number; recurrent: number },
+      promoCode: string | null,
+    ) => {
       const tiptop = window.tiptop
       if (!tiptop) {
         setError('Платёжный виджет ещё загружается. Попробуйте через секунду.')
@@ -222,31 +245,41 @@ export default function CheckoutModal({
 
       const externalId = `sub_${Date.now()}_${normalizedPhone.replace(/\D/g, '').slice(-8)}`
       externalIdRef.current = externalId
+      paidAmountRef.current = amounts.first
       const utm = readUtmFromCookie()
+      const metadata = {
+        source,
+        ...utm,
+        ...(promoCode ? { promo_code: promoCode } : {}),
+      }
 
       try {
+        // TipTop/CloudPayments: amount = инитный платёж;
+        // recurrent.amount = регулярный (когда отличается от первого).
+        // https://developers.tiptoppay.kz/ — «Параметры. Рекуррентные платежи»
+        const recurrentPayload = {
+          period: 1,
+          interval: 'Month' as const,
+          amount: amounts.recurrent,
+        }
         const result = await new tiptop.Widget().start({
           publicTerminalId: process.env.NEXT_PUBLIC_TIPTOPPAY_PUBLIC_ID,
           description: 'Подписка kudaclub — 1 месяц',
-          amount: PRICE_KZT,
+          amount: amounts.first,
           currency: 'KZT',
           culture: 'ru-RU',
           paymentSchema: 'Single',
           externalId,
-          metadata: { source, ...utm },
+          metadata,
           accountId: normalizedPhone,
           userInfo: {
             accountId: normalizedPhone,
             phone: normalizedPhone,
           },
           data: {
-            recurrent: { interval: 'Month', period: 1 },
+            recurrent: recurrentPayload,
           },
-          recurrent: {
-            period: 1,
-            interval: 'Month',
-            amount: PRICE_KZT,
-          },
+          recurrent: recurrentPayload,
         })
 
         if (result?.status === 'success') {
@@ -267,6 +300,65 @@ export default function CheckoutModal({
     [pollComplete, source],
   )
 
+  const applyPromo = useCallback(async () => {
+    const code = promoInput.trim()
+    if (!code) {
+      setPromoError('Введите промокод.')
+      return
+    }
+    setPromoBusy(true)
+    setPromoError('')
+    try {
+      const res = await fetch('/api/promo/validate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code }),
+      })
+      const data = (await res.json()) as {
+        ok?: boolean
+        code?: string
+        applies_to?: 'first_month' | 'forever'
+        first_amount?: number
+        recurrent_amount?: number
+        message?: string
+      }
+      if (
+        !data.ok ||
+        !data.code ||
+        data.first_amount == null ||
+        data.recurrent_amount == null ||
+        !data.applies_to
+      ) {
+        setAppliedPromo(null)
+        setPromoError(data.message ?? 'Промокод недействителен.')
+        return
+      }
+      setAppliedPromo({
+        code: data.code,
+        applies_to: data.applies_to,
+        first_amount: data.first_amount,
+        recurrent_amount: data.recurrent_amount,
+      })
+      setPromoError('')
+      trackGoal('promo_applied', {
+        source,
+        promo_code: data.code,
+        first_amount: data.first_amount,
+        applies_to: data.applies_to,
+      })
+    } catch {
+      setPromoError('Не удалось проверить промокод. Попробуйте ещё раз.')
+    } finally {
+      setPromoBusy(false)
+    }
+  }, [promoInput, source])
+
+  const clearPromo = useCallback(() => {
+    setAppliedPromo(null)
+    setPromoInput('')
+    setPromoError('')
+  }, [])
+
   const onPayClick = useCallback(async () => {
     if (!phoneValid || !phoneE164) {
       setError('Введите корректный номер телефона.')
@@ -280,27 +372,50 @@ export default function CheckoutModal({
       const res = await fetch('/api/checkout/start', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone: phoneE164, source }),
+        body: JSON.stringify({
+          phone: phoneE164,
+          source,
+          ...(appliedPromo ? { promo_code: appliedPromo.code } : {}),
+        }),
       })
       const data = (await res.json()) as {
         ok?: boolean
         phone?: string
         existing_account?: boolean
+        first_amount?: number
+        recurrent_amount?: number
+        promo_code?: string | null
         error?: string
+        promo_error?: string
       }
       if (!data.ok || !data.phone) {
+        // Невалидный промо не блокирует оплату без кода — снимаем скидку.
+        if (data.promo_error) {
+          setAppliedPromo(null)
+          setPromoError(data.error ?? 'Промокод больше не действует.')
+          setError('')
+          setBusy(false)
+          return
+        }
         setError(data.error ?? 'Не удалось начать оплату. Попробуйте ещё раз.')
         setBusy(false)
         return
       }
       existingAccountRef.current = Boolean(data.existing_account)
       setPaidPhone(data.phone)
-      await launchWidget(data.phone)
+      await launchWidget(
+        data.phone,
+        {
+          first: data.first_amount ?? PRICE_KZT,
+          recurrent: data.recurrent_amount ?? PRICE_KZT,
+        },
+        data.promo_code ?? appliedPromo?.code ?? null,
+      )
     } catch {
       setError('Не удалось начать оплату. Проверьте соединение.')
       setBusy(false)
     }
-  }, [launchWidget, phoneE164, phoneValid, source])
+  }, [appliedPromo, launchWidget, phoneE164, phoneValid, source])
 
   const submitFixPhone = useCallback(async () => {
     if (!fixNote.trim()) {
@@ -354,7 +469,9 @@ export default function CheckoutModal({
         {step === 'checkout' && (
           <>
             <h3 className="text-lg font-medium tracking-[-0.2px] text-neutral-900">
-              {formatPricePerMonth()}
+              {hasFirstMonthPromo
+                ? formatFirstMonthPromoOffer(chargeAmount, recurrentAmount)
+                : formatPricePerMonth(chargeAmount)}
             </h3>
             <ul className="mt-3 space-y-1.5 text-[13px] leading-[1.45] text-neutral-600">
               <li>· Офферы 2 за 1 в заведениях-партнёрах</li>
@@ -378,6 +495,85 @@ export default function CheckoutModal({
                 placeholder="+7 (700) 000-00-00"
                 className={inputCls}
               />
+
+              {!promoOpen && !appliedPromo ? (
+                <button
+                  type="button"
+                  onClick={() => setPromoOpen(true)}
+                  className="self-start text-[13px] text-neutral-500 underline-offset-2 hover:text-neutral-800 hover:underline"
+                >
+                  Есть промокод?
+                </button>
+              ) : (
+                <div className="flex flex-col gap-2">
+                  {appliedPromo ? (
+                    <div className="flex items-center justify-between gap-2 rounded-lg bg-neutral-50 px-3 py-2.5 text-[13px] text-neutral-700">
+                      <span>
+                        Промокод{' '}
+                        <span className="font-medium text-neutral-900">
+                          {appliedPromo.code}
+                        </span>{' '}
+                        применён
+                      </span>
+                      <button
+                        type="button"
+                        onClick={clearPromo}
+                        className="shrink-0 text-neutral-500 underline-offset-2 hover:text-neutral-800 hover:underline"
+                      >
+                        Убрать
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        value={promoInput}
+                        onChange={(e) => {
+                          setPromoInput(e.target.value)
+                          setPromoError('')
+                        }}
+                        placeholder="Промокод"
+                        autoComplete="off"
+                        autoCapitalize="characters"
+                        className={`${inputCls} flex-1`}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault()
+                            void applyPromo()
+                          }
+                        }}
+                      />
+                      <button
+                        type="button"
+                        disabled={promoBusy || !promoInput.trim()}
+                        onClick={() => void applyPromo()}
+                        className="shrink-0 rounded-lg border-[0.5px] border-neutral-200 bg-white px-3.5 text-[13px] font-medium text-neutral-800 transition-colors hover:bg-neutral-50 disabled:cursor-not-allowed disabled:opacity-60"
+                      >
+                        {promoBusy ? '…' : 'Применить'}
+                      </button>
+                    </div>
+                  )}
+                  {promoError ? (
+                    <p className="text-[12px] leading-[1.4] text-red-600">
+                      {promoError}
+                    </p>
+                  ) : null}
+                  {!appliedPromo ? (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setPromoOpen(false)
+                        setPromoInput('')
+                        setPromoError('')
+                      }}
+                      className="self-start text-[12px] text-neutral-400 hover:text-neutral-600"
+                    >
+                      Скрыть
+                    </button>
+                  ) : null}
+                </div>
+              )}
+
               <button
                 type="submit"
                 disabled={busy || !phoneValid}
@@ -385,7 +581,7 @@ export default function CheckoutModal({
               >
                 {busy
                   ? 'Открываем оплату…'
-                  : `Оплатить ${formatPriceKzt()}`}
+                  : `Оплатить ${formatPriceKzt(chargeAmount)}`}
               </button>
             </form>
             <p className="mt-3 text-[11px] leading-[1.45] text-neutral-400">
@@ -407,8 +603,10 @@ export default function CheckoutModal({
               >
                 политику обработки данных
               </a>
-              . Списание {formatPriceKzt()} ежемесячно, отмена в любой момент в
-              2 клика.
+              .
+              {hasFirstMonthPromo
+                ? ` Списание ${formatPriceKzt(chargeAmount)} сейчас, далее ${formatPriceKzt(recurrentAmount)} ежемесячно, отмена в любой момент в 2 клика.`
+                : ` Списание ${formatPriceKzt(chargeAmount)} ежемесячно, отмена в любой момент в 2 клика.`}
             </p>
           </>
         )}

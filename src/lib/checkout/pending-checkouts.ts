@@ -76,6 +76,8 @@ export async function createPendingCheckout(args: {
   phoneRaw: string
   utm?: UtmAttribution | null
   source?: string | null
+  /** Промокод из поля чекаута — приоритетнее cookie UTM. */
+  promoCode?: string | null
 }): Promise<{
   checkout: PendingCheckoutRow
   phone: string
@@ -90,6 +92,10 @@ export async function createPendingCheckout(args: {
   const existingAccount = await phoneHasActiveSubscription(phone)
   const token = generateCheckoutToken()
   const expiresAt = new Date(Date.now() + CHECKOUT_TOKEN_MAX_AGE_SEC * 1000)
+  const promoFromForm =
+    typeof args.promoCode === 'string' && args.promoCode.trim()
+      ? args.promoCode.trim().slice(0, 64).toUpperCase()
+      : null
 
   const insertRow = {
     phone,
@@ -97,7 +103,7 @@ export async function createPendingCheckout(args: {
     utm_source: args.utm?.utm_source ?? null,
     utm_medium: args.utm?.utm_medium ?? null,
     utm_campaign: args.utm?.utm_campaign ?? null,
-    promo_code: args.utm?.promo_code ?? null,
+    promo_code: promoFromForm ?? args.utm?.promo_code ?? null,
     source: args.source?.trim().slice(0, 128) || null,
     status: 'pending' as const,
     existing_account: existingAccount,

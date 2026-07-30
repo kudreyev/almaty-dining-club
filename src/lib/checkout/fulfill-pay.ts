@@ -24,6 +24,7 @@ import { notifyLedgerPaymentResult } from '@/lib/notify-ledger-payment'
 import { parseAmount, parseWebhookJsonData } from '@/lib/ttp-webhook-utils'
 import { hasAnyUtm, parseUtmFromJsonData, type UtmAttribution } from '@/lib/utm'
 import { isTipTopInstallmentInvoiceId } from '@/lib/meta-purchase'
+import { incrementPromoCodeUsage } from '@/lib/promo-codes'
 import { logServerError } from '@/lib/safe-errors'
 
 const PHONE_ACCOUNT_RE = /^\+7\d{10}$/
@@ -142,6 +143,22 @@ export async function fulfillSuccessfulPay(
     notifyLedgerPaymentResult(ledger, parseAmount(p.Amount))
   } catch (ledgerError) {
     logServerError('fulfillSuccessfulPay:ledger', ledgerError)
+  }
+
+  // used_count только после подтверждённой оплаты и только для установочного
+  // платежа (не рекуррент). Дубликат вебхука не инкрементирует повторно.
+  const promoForUsage = merged.promo_code
+  if (
+    promoForUsage &&
+    ledger &&
+    !ledger.duplicate &&
+    isTipTopInstallmentInvoiceId(p.InvoiceId)
+  ) {
+    try {
+      await incrementPromoCodeUsage(promoForUsage)
+    } catch (promoError) {
+      logServerError('fulfillSuccessfulPay:promo_usage', promoError)
+    }
   }
 
   const shouldNotifyAccess =

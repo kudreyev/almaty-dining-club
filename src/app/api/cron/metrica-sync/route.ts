@@ -50,6 +50,7 @@ const TRACKED_GOAL_NAMES = [
   'purchase',
   'payment_fail',
   'payment_abandoned',
+  'promo_applied',
 ] as const
 
 function unauthorized(): NextResponse {

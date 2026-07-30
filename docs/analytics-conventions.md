@@ -12,6 +12,7 @@ cta_click → checkout_open → phone_filled → pay_click
 ```
 
 OTP и чекбокс согласия **не** входят в воронку (OTP только для входа в кабинет).
+Опционально: `promo_applied` при успешном применении промокода (не шаг воронки).
 
 | Goal | Где | Params |
 |---|---|---|
@@ -23,6 +24,7 @@ OTP и чекбокс согласия **не** входят в воронку (
 | `purchase` | `/api/checkout/complete` подтвердил оплату (+ Pixel Purchase) | `source` |
 | `payment_fail` | ошибка оплаты | `source` |
 | `payment_abandoned` | закрыл модалку после виджета без оплаты | `source` |
+| `promo_applied` | промокод успешно применён в чекауте | `source`, `promo_code`, `first_amount`, `applies_to` |
 
 Компоненты:
 
@@ -89,6 +91,7 @@ OTP и чекбокс согласия **не** входят в воронку (
 6. `purchase`
 7. `payment_fail`
 8. `payment_abandoned`
+9. `promo_applied`
 
 Старые цели `checkout_opened` / `phone_submitted` / `otp_verified` / `widget_opened` /
 `payment_success` из воронки убрать (или оставить архивными, не в новой воронке).

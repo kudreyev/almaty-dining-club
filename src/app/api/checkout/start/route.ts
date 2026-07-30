@@ -9,6 +9,8 @@ import {
   createPendingCheckout,
 } from '@/lib/checkout/pending-checkouts'
 import { parseUtmCookieValue, UTM_COOKIE_NAME } from '@/lib/utm'
+import { validatePromoCode } from '@/lib/promo-codes'
+import { PRICE_KZT } from '@/lib/pricing'
 import { logServerError } from '@/lib/safe-errors'
 import { getUserFacingError, getFallbackByContext } from '@/lib/safe-errors'
 
@@ -20,9 +22,33 @@ export async function POST(req: NextRequest) {
     const body = (await req.json()) as {
       phone?: string
       source?: string
+      promo_code?: string
     }
     const phoneRaw = typeof body.phone === 'string' ? body.phone : ''
     const source = typeof body.source === 'string' ? body.source : null
+    const promoRaw =
+      typeof body.promo_code === 'string' ? body.promo_code.trim() : ''
+
+    let validatedPromoCode: string | null = null
+    let firstAmount = PRICE_KZT
+    let recurrentAmount = PRICE_KZT
+
+    if (promoRaw) {
+      const promo = await validatePromoCode(promoRaw, PRICE_KZT)
+      if (!promo.ok) {
+        return NextResponse.json(
+          {
+            ok: false,
+            error: promo.message,
+            promo_error: promo.error,
+          },
+          { status: 400 },
+        )
+      }
+      validatedPromoCode = promo.code
+      firstAmount = promo.first_amount
+      recurrentAmount = promo.recurrent_amount
+    }
 
     const cookieStore = await cookies()
     const utm = parseUtmCookieValue(cookieStore.get(UTM_COOKIE_NAME)?.value)
@@ -31,6 +57,7 @@ export async function POST(req: NextRequest) {
       phoneRaw,
       utm,
       source,
+      promoCode: validatedPromoCode,
     })
 
     cookieStore.set(CHECKOUT_TOKEN_COOKIE, token, {
@@ -45,6 +72,9 @@ export async function POST(req: NextRequest) {
       ok: true,
       phone,
       existing_account: existingAccount,
+      first_amount: firstAmount,
+      recurrent_amount: recurrentAmount,
+      promo_code: validatedPromoCode,
     })
   } catch (error) {
     if (error instanceof Error && error.message === 'INVALID_PHONE') {

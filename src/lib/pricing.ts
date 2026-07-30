@@ -25,6 +25,17 @@ export function formatPricePerMonth(amount: number = PRICE_KZT): string {
   return `${formatPriceKzt(amount)}/мес`
 }
 
+/**
+ * Текст оффера со скидкой на первый месяц.
+ * «Первый месяц 995 ₸, далее 1 990 ₸/мес»
+ */
+export function formatFirstMonthPromoOffer(
+  firstAmount: number,
+  recurrentAmount: number = PRICE_KZT,
+): string {
+  return `Первый месяц ${formatPriceKzt(firstAmount)}, далее ${formatPricePerMonth(recurrentAmount)}`
+}
+
 /** Ссылка «ваш доступ» в WhatsApp/SMS после оплаты — на главную с каталогом. */
 export function getAccessUrl(): string {
   const fromEnv =

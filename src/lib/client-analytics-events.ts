@@ -16,6 +16,7 @@ export const CLIENT_ANALYTICS_EVENTS = [
   'purchase',
   'payment_fail',
   'payment_abandoned',
+  'promo_applied',
   // Legacy имена (старые клиенты / исторические записи) — принимаем, в воронку не ставим.
   'checkout_opened',
   'phone_submitted',

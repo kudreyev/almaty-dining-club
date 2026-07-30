@@ -224,41 +224,6 @@ async function generateLoginOtp(email: string) {
   }
 }
 
-async function sendTwilioSms({
-  to,
-  body,
-}: {
-  to: string
-  body: string
-}) {
-  const accountSid = getRequiredEnv('TWILIO_ACCOUNT_SID')
-  const authToken = getRequiredEnv('TWILIO_AUTH_TOKEN')
-  const phoneNumber = getRequiredEnv('TWILIO_PHONE_NUMBER')
-  const from = phoneNumber.replace(/^whatsapp:/, '')
-
-  const endpoint = `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`
-  const auth = Buffer.from(`${accountSid}:${authToken}`).toString('base64')
-
-  const params = new URLSearchParams()
-  params.set('From', from)
-  params.set('To', to)
-  params.set('Body', body)
-
-  const response = await fetch(endpoint, {
-    method: 'POST',
-    headers: {
-      Authorization: `Basic ${auth}`,
-      'Content-Type': 'application/x-www-form-urlencoded',
-    },
-    body: params.toString(),
-  })
-
-  if (!response.ok) {
-    const raw = await response.text()
-    throw new Error(`Twilio SMS error (${response.status}): ${raw}`)
-  }
-}
-
 async function sendTwilioTemplateMessage({
   to,
   verificationCode,
@@ -341,20 +306,8 @@ export async function sendWhatsAppVerificationCode({
   phoneE164: string
   verificationCode: string
 }) {
-  try {
-    await sendTwilioTemplateMessage({
-      to: phoneE164,
-      verificationCode,
-    })
-  } catch (waError) {
-    // Нет WhatsApp / шаблон недоступен → SMS fallback (тот же Twilio-аккаунт).
-    safeLog.warn('[whatsapp-login] WA OTP failed, falling back to SMS', {
-      phone: phoneE164,
-      error: waError instanceof Error ? waError.message : String(waError),
-    })
-    await sendTwilioSms({
-      to: phoneE164,
-      body: `Код входа Kudaclub: ${verificationCode}. Никому не сообщайте этот код.`,
-    })
-  }
+  await sendTwilioTemplateMessage({
+    to: phoneE164,
+    verificationCode,
+  })
 }

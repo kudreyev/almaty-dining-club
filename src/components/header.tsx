@@ -52,6 +52,7 @@ export async function Header() {
         { href: '/admin/offers', label: 'Офферы' },
         { href: '/admin/staff', label: 'Сотрудники' },
         { href: '/admin/activation-links', label: 'Активации' },
+        { href: '/admin/promo-codes', label: 'Промокоды' },
         { href: '/admin/transfer-subscription', label: 'Перенос' },
         { href: '/admin/payments', label: 'Оплаты' },
       ]

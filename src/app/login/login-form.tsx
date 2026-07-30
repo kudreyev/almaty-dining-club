@@ -8,6 +8,7 @@ import { formatPhoneForDisplay } from '@/lib/kz-phone'
 import { sendWhatsAppLogin, verifyWhatsAppLoginCode } from './actions'
 import { setUserId } from '@/lib/analytics-client'
 import SubscribeCTA from '@/components/checkout/subscribe-cta'
+import { formatPriceKzt } from '@/lib/pricing'
 
 export function LoginForm({
   safeNext,
@@ -163,7 +164,7 @@ export function LoginForm({
             source="login-no-account"
             className="mt-5 flex w-full items-center justify-center rounded-lg bg-[#D85A30] px-5 py-[11px] text-[14px] font-medium text-white transition-opacity hover:opacity-95"
           >
-            Оформить за 1 990 ₸
+            Оформить за {formatPriceKzt()}
           </SubscribeCTA>
 
           <button

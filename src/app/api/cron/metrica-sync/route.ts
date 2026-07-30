@@ -41,13 +41,13 @@ const TRACKED_GOAL_NAMES = [
   'offer_redeemed',
   'subscription_activated',
   'sort_mode_switch',
-  // TipTop checkout funnel (SubscribeCTA → CheckoutModal)
+  // TipTop checkout funnel (без OTP/чекбокса)
   'cta_click',
-  'checkout_opened',
-  'phone_submitted',
-  'otp_verified',
-  'widget_opened',
-  'payment_success',
+  'checkout_open',
+  'phone_filled',
+  'pay_click',
+  'widget_open',
+  'purchase',
   'payment_fail',
   'payment_abandoned',
 ] as const

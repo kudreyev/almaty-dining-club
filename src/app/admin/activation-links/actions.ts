@@ -10,6 +10,7 @@ import {
   type ActivationLinkKind,
 } from '@/lib/activation-links'
 import { logAnalyticsEvent } from '@/lib/analytics'
+import { PRICE_KZT } from '@/lib/pricing'
 
 const TRIAL_DAYS = 14
 
@@ -46,7 +47,7 @@ export async function createActivationLink(formData: FormData) {
           const amountRaw = Number(formData.get('amount'))
           return Number.isFinite(amountRaw) && amountRaw > 0
             ? Math.floor(amountRaw)
-            : 1990
+            : PRICE_KZT
         })()
 
   const token = generateHashedActivationToken()

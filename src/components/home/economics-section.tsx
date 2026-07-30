@@ -1,3 +1,5 @@
+import { formatPriceKzt } from '@/lib/pricing'
+
 export function EconomicsSection() {
   return (
     <section className="px-5 py-10 md:py-14">
@@ -11,7 +13,7 @@ export function EconomicsSection() {
           Подписка окупается с первого визита
         </h2>
         <p className="mt-3 max-w-[640px] text-sm text-neutral-600 md:text-base">
-          Подписка стоит 1 990 ₸. Один ужин со скидкой 2-за-1 экономит в среднем
+          Подписка стоит {formatPriceKzt()}. Один ужин со скидкой 2-за-1 экономит в среднем
           2 500 ₸. Всё, что дальше — в плюс.
         </p>
 

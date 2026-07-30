@@ -7,18 +7,20 @@ in-app TipTop Pay (`SubscribeCTA` → `CheckoutModal`). WhatsApp-ссылки
 ## Основная воронка TipTop Pay
 
 ```
-cta_click → checkout_opened → phone_submitted → otp_verified
-  → widget_opened → payment_success | payment_fail | payment_abandoned
+cta_click → checkout_open → phone_filled → pay_click
+  → widget_open → purchase | payment_fail | payment_abandoned
 ```
+
+OTP и чекбокс согласия **не** входят в воронку (OTP только для входа в кабинет).
 
 | Goal | Где | Params |
 |---|---|---|
 | `cta_click` | `SubscribeCTA` | `source` |
-| `checkout_opened` | `CheckoutModal` mount | `source` |
-| `phone_submitted` | OTP отправлен | `source` |
-| `otp_verified` | код подтверждён | `source` |
-| `widget_opened` | TipTop Widget start | `source` |
-| `payment_success` | widget status=success | `source` |
+| `checkout_open` | `CheckoutModal` mount (+ Pixel InitiateCheckout) | `source` |
+| `phone_filled` | валидный номер введён | `source` |
+| `pay_click` | кнопка «Оплатить» | `source` |
+| `widget_open` | TipTop Widget start | `source` |
+| `purchase` | `/api/checkout/complete` подтвердил оплату (+ Pixel Purchase) | `source` |
 | `payment_fail` | ошибка оплаты | `source` |
 | `payment_abandoned` | закрыл модалку после виджета без оплаты | `source` |
 
@@ -51,14 +53,15 @@ cta_click → checkout_opened → phone_submitted → otp_verified
 
 | Событие | Когда | eventID |
 |---|---|---|
-| `InitiateCheckout` | `checkout_opened` | `checkout_{source}_{unix}` |
-| `Purchase` (Pixel) | `payment_success` | `purchase_tiptop_{externalId}` |
-| `Purchase` (CAPI) | webhook `/api/tiptoppay/pay` | тот же `purchase_tiptop_{InvoiceId}` |
+| `InitiateCheckout` | `checkout_open` | `checkout_{source}_{unix}` |
+| `Purchase` (Pixel) | `purchase` (после complete) | `purchase_tiptop_{externalId}` |
+| `Purchase` (CAPI) | webhook Pay | тот же `purchase_tiptop_{InvoiceId}` |
 
-- `externalId` виджета = `sub_{userId}_{ts}` → в webhook приходит как `InvoiceId`.
+- `externalId` виджета = `sub_{ts}_{phoneTail}` → в webhook приходит как `InvoiceId`.
+- AccountId виджета = телефон `+7XXXXXXXXXX` (не UUID).
 - CAPI шлётся **только** для установочных платежей (`InvoiceId` начинается с `sub_`), рекурренты пропускаются.
 - Pixel и CAPI дедупятся Meta по общему `eventID`.
-- Value: `1990 KZT`.
+- Value: `PRICE` KZT (env, по умолчанию 1990).
 
 Хелперы: `src/lib/meta-purchase.ts`, клиент: `src/lib/meta-pixel-client.ts`,
 сервер: `src/lib/meta-capi.ts`.
@@ -79,16 +82,19 @@ cta_click → checkout_opened → phone_submitted → otp_verified
 с идентификаторами точно как в коде:
 
 1. `cta_click`
-2. `checkout_opened`
-3. `phone_submitted`
-4. `otp_verified`
-5. `widget_opened`
-6. `payment_success`
+2. `checkout_open`
+3. `phone_filled`
+4. `pay_click`
+5. `widget_open`
+6. `purchase`
 7. `payment_fail`
 8. `payment_abandoned`
 
-Затем собрать многошаговую воронку в UI Метрики по этим целям.
-Cron `metrica-sync` уже трекает эти имена (`TRACKED_GOAL_NAMES`).
+Старые цели `checkout_opened` / `phone_submitted` / `otp_verified` / `widget_opened` /
+`payment_success` из воронки убрать (или оставить архивными, не в новой воронке).
+
+Затем собрать многошаговую воронку в UI Метрики по новым целям.
+Cron `metrica-sync` трекает эти имена (`TRACKED_GOAL_NAMES`).
 
 Опционально оставить цель `whatsapp_click` для саппортных ссылок.
 
@@ -120,14 +126,23 @@ Cron `metrica-sync` уже трекает эти имена (`TRACKED_GOAL_NAMES
 select created_at, event_name, meta->>'source' as source, meta->>'page' as page
 from public.analytics_events
 where event_name in (
-  'cta_click', 'checkout_opened', 'phone_submitted', 'otp_verified',
-  'widget_opened', 'payment_success', 'payment_fail', 'payment_abandoned'
+  'cta_click', 'checkout_open', 'phone_filled', 'pay_click',
+  'widget_open', 'purchase', 'payment_fail', 'payment_abandoned'
 )
 order by created_at desc
 limit 50;
 ```
 
 Allowlist: `src/lib/client-analytics-events.ts`.
+
+## Checkout без OTP до оплаты
+
+1. `POST /api/checkout/start` → `pending_checkouts` + httpOnly token
+2. Виджет TipTop (`AccountId` = телефон)
+3. Pay-вебхук → user + subscription + ledger + WhatsApp Utility
+4. `POST /api/checkout/complete` (поллинг) → сессия, только если `status=paid`
+
+Если телефон уже с активной подпиской (`existing_account`) — сессию не выдаём, только OTP-вход.
 
 ## Cron-снимки и алерты (Слой 3)
 
@@ -167,16 +182,18 @@ curl -s https://kudaclub.kz/api/cron/weekly-digest \
 | Таблица | Назначение |
 |---|---|
 | `subscribers` | status, UTM, promo_code, subscribed_at / cancelled_at |
-| `payments` | success/fail, идемпотентность по `ttp_transaction_id` |
+| `payments` | success/fail/refunded, идемпотентность по `ttp_transaction_id` |
 | `daily_ad_stats` | spend/impressions/clicks (FB) + visits/goal (Метрика) |
+| `pending_checkouts` | лиды до оплаты + one-time token автологина |
 
 Вебхуки (HMAC `Content-HMAC`, ответ `{code:0}`):
 
-- `POST /api/webhooks/ttp/pay`
+- `POST /api/webhooks/ttp/pay` (+ `/api/tiptoppay/pay`)
 - `POST /api/webhooks/ttp/fail`
-- `POST /api/webhooks/ttp/recurrent`
+- `POST /api/webhooks/ttp/recurrent` (+ `/api/tiptoppay/recurrent`)
+- `POST /api/tiptoppay/refund`
 
-UTM: `UtmCapture` пишет cookie `kc_utm` → `CheckoutModal` кладёт в TipTop `metadata` → `JsonData` в вебхуке.
+UTM: `UtmCapture` пишет cookie `kc_utm` → `CheckoutModal` / `checkout/start` → pending + TipTop `metadata` → `JsonData` в вебхуке.
 
 Cron:
 

@@ -79,7 +79,7 @@ export function PhoneInput({
       <input
         {...rest}
         id={id}
-        type="text"
+        type="tel"
         inputMode="tel"
         autoComplete="tel"
         data-ym-disable-keys

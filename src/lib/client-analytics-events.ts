@@ -9,13 +9,19 @@ export const CLIENT_ANALYTICS_EVENTS = [
   'sort_mode_switch',
   // Воронка чекаута TipTop Pay (SubscribeCTA → CheckoutModal).
   'cta_click',
+  'checkout_open',
+  'phone_filled',
+  'pay_click',
+  'widget_open',
+  'purchase',
+  'payment_fail',
+  'payment_abandoned',
+  // Legacy имена (старые клиенты / исторические записи) — принимаем, в воронку не ставим.
   'checkout_opened',
   'phone_submitted',
   'otp_verified',
   'widget_opened',
   'payment_success',
-  'payment_fail',
-  'payment_abandoned',
   'first_offer_view',
 ] as const
 

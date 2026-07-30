@@ -47,7 +47,7 @@ export function isKZNumber(e164: string): boolean {
 
 /**
  * digits11: строка из 11 цифр, начиная с 7.
- * Пример: 77001234567 -> +7 (700) 123 4567
+ * Пример: 77001234567 -> +7 (700) 123-45-67
  */
 export function formatKZPhoneFromDigits(digits11: string): string {
   if (!/^\d{11}$/.test(digits11) || !digits11.startsWith('7')) {
@@ -57,8 +57,15 @@ export function formatKZPhoneFromDigits(digits11: string): string {
   const s = digits11.slice(1)
   const a = s.slice(0, 3)
   const b = s.slice(3, 6)
-  const c = s.slice(6, 10)
-  return `+7 (${a}) ${b} ${c}`
+  const c = s.slice(6, 8)
+  const d = s.slice(8, 10)
+  let out = '+7'
+  if (a) out += ` (${a}`
+  if (a.length === 3) out += ')'
+  if (b) out += ` ${b}`
+  if (c) out += `-${c}`
+  if (d) out += `-${d}`
+  return out
 }
 
 export function formatPhoneForDisplay(input: string): string {

@@ -17,6 +17,7 @@ import { loadHomeRestaurants } from '@/lib/home/load-home-restaurants'
 import { isSubscriptionCurrentlyActive } from '@/lib/subscription'
 import { pluralizeRu } from '@/lib/ru-plural'
 import { CITY_COOKIE, CITY_LABELS_GENITIVE, DEFAULT_CITY, isCity } from '@/lib/cities'
+import { formatPriceKzt } from '@/lib/pricing'
 
 type Profile = {
   id: string
@@ -132,7 +133,7 @@ export default async function MePage({ searchParams }: PageProps) {
               source={hasAnySubscription ? 'me-expired' : 'me-no-sub'}
               className="mt-4 inline-flex items-center justify-center rounded-lg bg-[#D85A30] px-5 py-[11px] text-[14px] font-medium text-white transition-opacity hover:opacity-95"
             >
-              {hasAnySubscription ? 'Продлить за 1 990 ₸' : 'Оформить за 1 990 ₸'}
+              {hasAnySubscription ? `Продлить за ${formatPriceKzt()}` : `Оформить за ${formatPriceKzt()}`}
             </SubscribeCTA>
           </div>
 

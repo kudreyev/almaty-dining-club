@@ -1,5 +1,6 @@
 import { pluralizeRu } from '@/lib/ru-plural'
 import { CITY_LABELS_GENITIVE, type City } from '@/lib/cities'
+import { formatPriceKzt } from '@/lib/pricing'
 
 type HowItWorksProps = {
   venuesCount: number
@@ -21,7 +22,7 @@ function buildSteps(venuesCount: number, city: City): ReadonlyArray<{
     {
       n: 1,
       title: 'Оформите подписку',
-      description: '1 990 ₸ картой онлайн. Доступ открывается сразу.',
+      description: `${formatPriceKzt()} картой онлайн. Доступ открывается сразу.`,
     },
     {
       n: 2,

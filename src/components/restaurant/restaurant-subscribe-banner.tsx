@@ -2,6 +2,7 @@
 
 import SubscribeCTA from '@/components/checkout/subscribe-cta'
 import { venueCtaSource } from '@/lib/whatsapp'
+import { formatPriceKzt, formatPricePerMonth } from '@/lib/pricing'
 
 type RestaurantSubscribeBannerProps = {
   restaurantName: string
@@ -15,8 +16,8 @@ export function RestaurantSubscribeBanner({
   maxSavingsLabel,
 }: RestaurantSubscribeBannerProps) {
   const subtitle = maxSavingsLabel
-    ? `Подписка Kudaclub — 1 990 ₸/мес. Один ужин здесь экономит ${maxSavingsLabel}.`
-    : 'Подписка Kudaclub — 1 990 ₸/мес. Окупается первым визитом.'
+    ? `Подписка Kudaclub — ${formatPricePerMonth()}. Один ужин здесь экономит ${maxSavingsLabel}.`
+    : `Подписка Kudaclub — ${formatPricePerMonth()}. Окупается первым визитом.`
 
   return (
     <section className="px-5" style={{ marginBottom: '24px' }}>
@@ -47,7 +48,7 @@ export function RestaurantSubscribeBanner({
           source={venueCtaSource(restaurantSlug)}
           className="inline-block rounded-lg bg-white px-6 py-[11px] text-[14px] font-medium text-[#1a1a1a] transition-opacity hover:opacity-90"
         >
-          Попробовать за 1 990 ₸
+          Попробовать за {formatPriceKzt()}
         </SubscribeCTA>
       </div>
     </section>

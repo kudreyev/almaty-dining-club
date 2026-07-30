@@ -1,7 +1,8 @@
 import { createCustomerMetricsScope, type CustomerMetricsScope } from '@/lib/customer-metrics'
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
+import { PRICE_KZT } from '@/lib/pricing'
 
-export const MONTHLY_PRICE_KZT = 1990
+export const MONTHLY_PRICE_KZT = PRICE_KZT
 
 export type MetricsDailySnapshot = {
   date: string

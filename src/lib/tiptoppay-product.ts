@@ -4,6 +4,7 @@
  */
 
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
+import { normalizePhoneToE164 } from '@/lib/auth/whatsapp-login'
 import { sendPurchaseEvent } from '@/lib/meta-capi'
 import {
   buildTipTopPurchaseEventId,
@@ -46,8 +47,10 @@ export async function activateProductSubscription(args: {
   accountId: string
   subscriptionId: string | null
   invoiceId: string | null
+  /** Телефон из AccountId/формы — быстрее CAPI, без лишнего lookup. */
+  phoneHint?: string | null
 }): Promise<void> {
-  const { accountId, subscriptionId, invoiceId } = args
+  const { accountId, subscriptionId, invoiceId, phoneHint } = args
   if (!isValidUserAccountId(accountId)) {
     throw new Error(`invalid AccountId: ${accountId}`)
   }
@@ -110,7 +113,9 @@ export async function activateProductSubscription(args: {
   }
 
   if (isTipTopInstallmentInvoiceId(invoiceId)) {
-    const phone = await resolvePhoneForCapi(admin, accountId)
+    const phone =
+      (phoneHint && phoneHint.trim()) ||
+      (await resolvePhoneForCapi(admin, accountId))
     if (phone) {
       void sendPurchaseEvent({
         userId: accountId,
@@ -119,6 +124,23 @@ export async function activateProductSubscription(args: {
       })
     }
   }
+}
+
+async function resolveUserIdFromAccountId(
+  admin: ReturnType<typeof createSupabaseAdminClient>,
+  accountId: string,
+): Promise<string | null> {
+  if (isValidUserAccountId(accountId)) return accountId
+
+  const phone = normalizePhoneToE164(accountId)
+  if (!phone) return null
+
+  const { data: profile } = await admin
+    .from('profiles')
+    .select('id')
+    .eq('phone', phone)
+    .maybeSingle<{ id: string }>()
+  return profile?.id ?? null
 }
 
 /** Зеркалирует Recurrent-статус в public.subscriptions. */
@@ -148,14 +170,17 @@ export async function applyProductRecurrentStatus(args: {
   }
 
   if (!subRow && accountId) {
-    const { data } = await admin
-      .from('subscriptions')
-      .select('id, end_date, tiptop_subscription_id')
-      .eq('user_id', accountId)
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .maybeSingle<SubRow>()
-    subRow = data ?? null
+    const userId = await resolveUserIdFromAccountId(admin, accountId)
+    if (userId) {
+      const { data } = await admin
+        .from('subscriptions')
+        .select('id, end_date, tiptop_subscription_id')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle<SubRow>()
+      subRow = data ?? null
+    }
   }
 
   if (!subRow) return
@@ -175,6 +200,8 @@ export async function applyProductRecurrentStatus(args: {
     status === 'Rejected' ||
     status === 'Expired'
   ) {
+    // Cancelled/Rejected: доступ до end_date (cancelled), иначе inactive.
+    // Analytics ledger (subscribers.cancelled_at) обновляется отдельно в applyRecurrentStatus.
     const today = new Date().toISOString().slice(0, 10)
     const periodEnded = !subRow.end_date || subRow.end_date < today
     await admin

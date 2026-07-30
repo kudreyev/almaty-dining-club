@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import SubscribeCTA from '@/components/checkout/subscribe-cta'
+import { formatPriceKzt } from '@/lib/pricing'
 
 type NavLink = { href: string; label: string }
 
@@ -73,7 +74,7 @@ export function MobileMenu({
                   onClick={() => setOpen(false)}
                   className="rounded-lg bg-accent px-3 py-2.5 text-center text-sm font-medium text-white"
                 >
-                  Попробовать за 1 990 ₸
+                  Попробовать за {formatPriceKzt()}
                 </SubscribeCTA>
                 <Link
                   href="/login"

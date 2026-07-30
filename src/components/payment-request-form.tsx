@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createSupabaseBrowserClient } from '@/lib/supabase/client'
 import { getFallbackByContext, getUserFacingError } from '@/lib/safe-errors'
+import { PRICE_KZT } from '@/lib/pricing'
 
 export function PaymentRequestForm({
   userId,
@@ -13,7 +14,7 @@ export function PaymentRequestForm({
   initialPaymentCode: string
 }) {
   const router = useRouter()
-  const [amount, setAmount] = useState('1990')
+  const [amount, setAmount] = useState(String(PRICE_KZT))
   const [comment, setComment] = useState('')
   const [paymentCode] = useState(initialPaymentCode)
   const [loading, setLoading] = useState(false)

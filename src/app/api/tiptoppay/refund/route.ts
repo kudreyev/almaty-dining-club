@@ -10,16 +10,29 @@ import {
   cancelSubscription,
 } from '@/lib/tiptoppay'
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
+import { normalizePhoneToE164 } from '@/lib/auth/whatsapp-login'
+import { isValidUserAccountId } from '@/lib/tiptoppay-product'
+import { recordRefundedPayment } from '@/lib/ttp-refund-ledger'
 import { logServerError } from '@/lib/safe-errors'
 import { safeLog } from '@/lib/safe-logger'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
-const UUID_RE =
-  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
-
 type SubRow = { id: string; tiptop_subscription_id: string | null }
+
+async function resolveUserId(accountId: string): Promise<string | null> {
+  if (isValidUserAccountId(accountId)) return accountId
+  const phone = normalizePhoneToE164(accountId)
+  if (!phone) return null
+  const admin = createSupabaseAdminClient()
+  const { data } = await admin
+    .from('profiles')
+    .select('id')
+    .eq('phone', phone)
+    .maybeSingle<{ id: string }>()
+  return data?.id ?? null
+}
 
 export async function POST(req: NextRequest) {
   const rawBody = await req.text()
@@ -29,69 +42,68 @@ export async function POST(req: NextRequest) {
   }
 
   const p = parseWebhookBody(rawBody)
-  // Ключевые поля:
-  // p.TransactionId          — ID транзакции возврата
-  // p.OriginalTransactionId  — ID исходного (возвращаемого) платежа
-  // p.AccountId              — ID нашего пользователя (auth.users.id)
-  // p.Amount                 — сумма возврата
   const transactionId = p.TransactionId || null
   const originalTransactionId = p.OriginalTransactionId || null
-  const accountId = p.AccountId
+  const accountId = p.AccountId?.trim() || null
   const amount = p.Amount || null
 
-  // Возврат — событие, которое мы всегда подтверждаем (code 0), даже если не
-  // смогли что-то сделать: TipTop Pay иначе будет слать уведомление повторно.
-  if (!accountId || !UUID_RE.test(accountId)) {
-    logServerError(
-      'api/tiptoppay/refund',
-      new Error(`invalid AccountId: ${accountId}`),
-    )
+  // Возврат всегда подтверждаем code 0, иначе TipTop ретраит.
+  if (!accountId) {
+    logServerError('api/tiptoppay/refund', new Error('missing AccountId'))
     return NextResponse.json({ code: 0 })
   }
 
   try {
+    const userId = await resolveUserId(accountId)
     const admin = createSupabaseAdminClient()
 
-    // Берём последнюю подписку пользователя — нужен её id и tiptop_subscription_id.
-    const { data } = await admin
-      .from('subscriptions')
-      .select('id, tiptop_subscription_id')
-      .eq('user_id', accountId)
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .maybeSingle<SubRow>()
-    const subRow = data ?? null
-
-    if (subRow) {
-      // Немедленно закрываем доступ: статус inactive + paidUntil = сегодня.
-      const today = new Date().toISOString().slice(0, 10)
-      const { error } = await admin
+    if (userId) {
+      const { data } = await admin
         .from('subscriptions')
-        .update({ status: 'inactive', end_date: today })
-        .eq('id', subRow.id)
-      if (error) throw error
+        .select('id, tiptop_subscription_id')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle<SubRow>()
+      const subRow = data ?? null
 
-      // Останавливаем будущие списания на случай, если оператор оформил возврат,
-      // но забыл отменить рекуррент в кабинете. Если подписка уже отменена —
-      // API вернёт ошибку, это нормально: возврат всё равно обработан.
-      if (subRow.tiptop_subscription_id) {
-        try {
-          await cancelSubscription(subRow.tiptop_subscription_id)
-        } catch (cancelError) {
-          logServerError('api/tiptoppay/refund:cancel', cancelError)
+      if (subRow) {
+        const today = new Date().toISOString().slice(0, 10)
+        const { error } = await admin
+          .from('subscriptions')
+          .update({ status: 'inactive', end_date: today })
+          .eq('id', subRow.id)
+        if (error) throw error
+
+        if (subRow.tiptop_subscription_id) {
+          try {
+            await cancelSubscription(subRow.tiptop_subscription_id)
+          } catch (cancelError) {
+            logServerError('api/tiptoppay/refund:cancel', cancelError)
+          }
         }
       }
     }
 
+    try {
+      await recordRefundedPayment({
+        ttpAccountId: accountId,
+        refundTransactionId: transactionId,
+        originalTransactionId,
+        rawPayload: p,
+      })
+    } catch (ledgerError) {
+      logServerError('api/tiptoppay/refund:ledger', ledgerError)
+    }
+
     safeLog.info('[api/tiptoppay/refund] processed', {
-      user_id: accountId,
+      accountId,
+      userId,
       transactionId,
       originalTransactionId,
       amount,
-      subscriptionFound: Boolean(subRow),
     })
   } catch (error) {
-    // Не роняем обработку ненулевым кодом — иначе TipTop Pay будет ретраить.
     logServerError('api/tiptoppay/refund', error)
   }
 

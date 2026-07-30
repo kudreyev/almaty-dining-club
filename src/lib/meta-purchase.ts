@@ -1,4 +1,6 @@
-export const META_PURCHASE_VALUE_KZT = 1990
+import { PRICE_KZT } from '@/lib/pricing'
+
+export const META_PURCHASE_VALUE_KZT = PRICE_KZT
 export const META_PURCHASE_CURRENCY = 'KZT'
 
 /** TipTop widget externalId / webhook InvoiceId для установочного платежа. */

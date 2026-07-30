@@ -9,15 +9,16 @@ import {
 } from '@/lib/whatsapp-analytics'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import { PRICE_KZT } from '@/lib/pricing'
 
 /** Шаги TipTop-воронки (порядок для UI). */
 const TIPTOP_FUNNEL_STEPS = [
   'cta_click',
-  'checkout_opened',
-  'phone_submitted',
-  'otp_verified',
-  'widget_opened',
-  'payment_success',
+  'checkout_open',
+  'phone_filled',
+  'pay_click',
+  'widget_open',
+  'purchase',
   'payment_fail',
   'payment_abandoned',
 ] as const
@@ -26,20 +27,17 @@ type TipTopFunnelStep = (typeof TIPTOP_FUNNEL_STEPS)[number]
 
 const TIPTOP_STEP_LABELS: Record<TipTopFunnelStep, string> = {
   cta_click: 'CTA клик',
-  checkout_opened: 'Чекаут открыт',
-  phone_submitted: 'Телефон',
-  otp_verified: 'OTP',
-  widget_opened: 'Виджет',
-  payment_success: 'Оплата OK',
+  checkout_open: 'Чекаут открыт',
+  phone_filled: 'Телефон',
+  pay_click: 'Оплатить',
+  widget_open: 'Виджет',
+  purchase: 'Оплата OK',
   payment_fail: 'Оплата fail',
   payment_abandoned: 'Бросил оплату',
 }
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
-
-// Месячная цена подписки. Если поменяется тариф — поменять здесь.
-const MONTHLY_PRICE_KZT = 1990
 
 // ---------- helpers ----------
 
@@ -170,11 +168,11 @@ type SupportWhatsappStats = {
 function emptyTipTopSteps(): Record<TipTopFunnelStep, number> {
   return {
     cta_click: 0,
-    checkout_opened: 0,
-    phone_submitted: 0,
-    otp_verified: 0,
-    widget_opened: 0,
-    payment_success: 0,
+    checkout_open: 0,
+    phone_filled: 0,
+    pay_click: 0,
+    widget_open: 0,
+    purchase: 0,
     payment_fail: 0,
     payment_abandoned: 0,
   }
@@ -195,7 +193,7 @@ function aggregateTipTopFunnel(rows: AnalyticsEventRow[]): TipTopFunnelStats {
     const source = typeof raw === 'string' && raw.length > 0 ? raw : '(без source)'
     if (step === 'cta_click') {
       ctaBySource.set(source, (ctaBySource.get(source) ?? 0) + 1)
-    } else if (step === 'payment_success') {
+    } else if (step === 'purchase') {
       payBySource.set(source, (payBySource.get(source) ?? 0) + 1)
     }
   }
@@ -218,7 +216,7 @@ function aggregateTipTopFunnel(rows: AnalyticsEventRow[]): TipTopFunnelStats {
     steps,
     crPct:
       steps.cta_click > 0
-        ? Math.round((steps.payment_success / steps.cta_click) * 100)
+        ? Math.round((steps.purchase / steps.cta_click) * 100)
         : null,
     bySource,
   }
@@ -278,7 +276,7 @@ async function loadMetricaTipTopGoals(daysAgo: number) {
     const { data, error } = await supabase
       .from('metrica_goals_daily')
       .select('source, achievements, date, goal_name')
-      .in('goal_name', ['cta_click', 'payment_success'])
+      .in('goal_name', ['cta_click', 'purchase'])
       .gte('date', since)
       .returns<Array<MetricaGoalsDailyRow & { goal_name: string }>>()
     if (error) throw error
@@ -288,7 +286,7 @@ async function loadMetricaTipTopGoals(daysAgo: number) {
     const paymentRows: MetricaGoalsDailyRow[] = []
     for (const row of data ?? []) {
       if (row.goal_name === 'cta_click') cta += row.achievements
-      if (row.goal_name === 'payment_success') {
+      if (row.goal_name === 'purchase') {
         payment += row.achievements
         paymentRows.push(row)
       }
@@ -574,7 +572,7 @@ export default async function AdminDashboardPage() {
     : { ok: false }
 
   const mrr: MetricValue<number> = activeSubs.ok
-    ? { ok: true, value: activeSubs.value.paid * MONTHLY_PRICE_KZT }
+    ? { ok: true, value: activeSubs.value.paid * PRICE_KZT }
     : { ok: false }
 
   const activeRedeemers: MetricValue<number> = redemptions30d.ok
@@ -634,7 +632,7 @@ export default async function AdminDashboardPage() {
             hint={new30.hint}
           />
           <MetricCard
-            label="MRR (paid × 1990)"
+            label={`MRR (paid × ${PRICE_KZT})`}
             value={mrr.ok ? fmtKzt(mrr.value) : '—'}
             hint="только paid-подписки"
           />
@@ -656,18 +654,18 @@ export default async function AdminDashboardPage() {
           />
           <MetricCard
             label="Оплаты (7д)"
-            value={tipTop7d.ok ? fmtNumber(tipTop7d.value.steps.payment_success) : '—'}
-            hint="payment_success"
+            value={tipTop7d.ok ? fmtNumber(tipTop7d.value.steps.purchase) : '—'}
+            hint="purchase"
           />
           <MetricCard
             label="CR (7д)"
             value={tipTop7d.ok ? fmtPct(tipTop7d.value.crPct) : '—'}
-            hint="payment_success / cta_click"
+            hint="purchase / cta_click"
           />
           <MetricCard
             label="CR (30д)"
             value={tipTop30d.ok ? fmtPct(tipTop30d.value.crPct) : '—'}
-            hint="payment_success / cta_click"
+            hint="purchase / cta_click"
           />
         </div>
 
@@ -764,7 +762,7 @@ export default async function AdminDashboardPage() {
         <h2 className="mb-1 text-lg font-semibold text-gray-800">3. Яндекс.Метрика</h2>
         <p className="mb-3 text-sm text-gray-500">
           Агрегаты из metrica_goals_daily (Слой 1). Обновляется cron раз в сутки (~03:00 Алматы).
-          Нужны JS-цели с идентификаторами cta_click / payment_success.
+          Нужны JS-цели с идентификаторами cta_click / purchase.
         </p>
 
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -774,14 +772,14 @@ export default async function AdminDashboardPage() {
             hint="официальная статистика"
           />
           <MetricCard
-            label="payment_success (7д, Метрика)"
+            label="purchase (7д, Метрика)"
             value={metrica7d.ok ? fmtNumber(metrica7d.value.payment) : '—'}
             hint="официальная статистика"
           />
           <MetricCard
             label="CR Метрика (7д)"
             value={metrica7d.ok ? fmtPct(metrica7d.value.crPct) : '—'}
-            hint="payment / cta"
+            hint="purchase / cta"
           />
           <MetricCard
             label="CR Live (7д)"
@@ -792,7 +790,7 @@ export default async function AdminDashboardPage() {
 
         <div className="mt-4">
           <h3 className="mb-2 text-sm font-medium text-gray-600">
-            payment_success по source (7 дней, Метрика)
+            purchase по source (7 дней, Метрика)
           </h3>
           <Card padding="none" className="overflow-hidden">
             {!metrica7d.ok ? (

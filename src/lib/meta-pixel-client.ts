@@ -1,4 +1,6 @@
-export const META_SUBSCRIPTION_PRICE_KZT = 1990
+import { PRICE_KZT } from '@/lib/pricing'
+
+export const META_SUBSCRIPTION_PRICE_KZT = PRICE_KZT
 export const META_OFFER_DEFAULT_VALUE_KZT = 2500
 
 export type MetaPixelStandardEvent =

@@ -7,12 +7,11 @@ import {
 } from 'lucide-react'
 import { PricingFaq } from './pricing-faq'
 import SubscribeCTA from '@/components/checkout/subscribe-cta'
+import { formatPriceKzt, formatPricePerMonth } from '@/lib/pricing'
 
-// Node.js runtime (не edge): страница рендерит SubscribeCTA → CheckoutModal,
-// чей граф использует Node-крипту (OTP-хэш, rate-limit, meta CAPI), несовместимую
-// с Edge Runtime. Раньше страница была edge (статичный лендинг) — теперь нужен Node.
+// Node.js runtime (не edge): страница рендерит SubscribeCTA → CheckoutModal.
 export const metadata: Metadata = {
-  title: 'Kudaclub — подписка 1 990 ₸/мес',
+  title: `Kudaclub — подписка ${formatPricePerMonth()}`,
   description:
     'Подписка Kudaclub: 2-за-1 на главные блюда и подарки к заказу. Без купонов, без распечаток, без скидочных карт.',
 }
@@ -72,7 +71,7 @@ export default function PricingPage() {
       <section className="px-5 pt-10 pb-12 md:pt-16 md:pb-16">
         <div className="mx-auto max-w-[480px] text-center">
           <span className="mb-4 inline-block rounded-full bg-primary-light px-2.5 py-1 text-[11px] tracking-wider text-primary-dark">
-            Подписка · 1 990 ₸/мес
+            Подписка · {formatPricePerMonth()}
           </span>
 
           <h1 className="mb-3 text-[28px] font-medium leading-[1.2] tracking-[-0.4px] text-neutral-900 md:text-[32px]">
@@ -91,7 +90,7 @@ export default function PricingPage() {
             <div className="flex items-baseline justify-between gap-3">
               <div>
                 <div className="text-4xl font-medium leading-none text-neutral-900">
-                  1 990 ₸
+                  {formatPriceKzt()}
                 </div>
                 <div className="mt-1.5 text-[11px] text-neutral-500">
                   за 30 дней доступа
@@ -141,11 +140,11 @@ export default function PricingPage() {
               source="pricing"
               className="block w-full rounded-md bg-primary px-5 py-[13px] text-center text-[15px] font-medium text-white transition-colors hover:bg-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2"
             >
-              Попробовать за 1 990 ₸
+              Попробовать за {formatPriceKzt()}
             </SubscribeCTA>
 
             <p className="mt-2.5 text-center text-[11px] text-neutral-500">
-              Оплата картой · списание 1 990 ₸/мес, отмена в любой момент
+              Оплата картой · списание {formatPricePerMonth()}, отмена в любой момент
             </p>
           </div>
         </div>

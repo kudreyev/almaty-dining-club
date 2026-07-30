@@ -5,6 +5,7 @@ import { createPortal } from 'react-dom'
 import Link from 'next/link'
 import { Check, X } from 'lucide-react'
 import SubscribeCTA from '@/components/checkout/subscribe-cta'
+import { formatPriceKzt } from '@/lib/pricing'
 import type { WhatsAppMessageKind } from '@/lib/whatsapp'
 
 const BULLETS = [
@@ -121,7 +122,7 @@ export function PaywallModal({
             source={whatsappSource}
             className="flex w-full items-center justify-center rounded-lg bg-[#D85A30] px-5 py-[11px] text-[14px] font-medium text-white transition-opacity hover:opacity-95"
           >
-            Оформить за 1 990 ₸
+            Оформить за {formatPriceKzt()}
           </SubscribeCTA>
           <Link
             href="/pricing"

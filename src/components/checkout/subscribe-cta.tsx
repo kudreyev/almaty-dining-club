@@ -10,6 +10,7 @@ import Link from 'next/link'
 import CheckoutModal from '@/components/checkout/checkout-modal'
 import { useUser } from '@/lib/auth/use-user'
 import { trackGoal } from '@/lib/analytics-client'
+import { formatPriceKzt } from '@/lib/pricing'
 
 type Props = {
   /** Источник для аналитики: header | pricing | venue-<slug> | map | home-hero … */
@@ -57,7 +58,7 @@ export default function SubscribeCTA({
           setOpen(true)
         }}
       >
-        {children ?? 'Попробовать за 1 990 ₸'}
+        {children ?? `Попробовать за ${formatPriceKzt()}`}
       </button>
       {open ? (
         <CheckoutModal

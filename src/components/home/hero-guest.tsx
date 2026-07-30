@@ -1,5 +1,6 @@
 import SubscribeCTA from '@/components/checkout/subscribe-cta'
 import { CITY_LABELS, CITY_LABELS_GENITIVE, type City } from '@/lib/cities'
+import { formatPriceKzt } from '@/lib/pricing'
 
 type HeroGuestProps = {
   venuesCount: number
@@ -20,7 +21,7 @@ export function HeroGuest({ venuesCount, city }: HeroGuestProps) {
         </h1>
 
         <p className="mx-auto mt-4 max-w-[520px] text-sm text-neutral-700 md:text-base">
-          Платите <span className="font-semibold">1 990 ₸ в месяц</span> — и в{' '}
+          Платите <span className="font-semibold">{formatPriceKzt()} в месяц</span> — и в{' '}
           {venuesCount} заведениях получаете второе блюдо бесплатно или подарок
           к заказу.
         </p>
@@ -34,7 +35,7 @@ export function HeroGuest({ venuesCount, city }: HeroGuestProps) {
             source="home-hero"
             className="inline-flex items-center justify-center rounded-lg bg-primary px-6 py-3.5 text-base font-medium text-white transition-colors hover:bg-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2"
           >
-            Попробовать за 1 990 ₸
+            Попробовать за {formatPriceKzt()}
           </SubscribeCTA>
           <a
             href="#venues"

@@ -500,7 +500,7 @@ export default function CheckoutModal({
                 <button
                   type="button"
                   onClick={() => setPromoOpen(true)}
-                  className="self-start text-[13px] text-neutral-500 underline-offset-2 hover:text-neutral-800 hover:underline"
+                  className="self-start py-1 text-[15px] font-medium text-neutral-700 underline-offset-2 hover:text-neutral-900 hover:underline"
                 >
                   Есть промокод?
                 </button>

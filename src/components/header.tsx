@@ -5,6 +5,7 @@ import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { LogoutButton } from '@/components/logout-button'
 import { MobileMenu } from '@/components/mobile-menu'
 import SubscribeCTA from '@/components/checkout/subscribe-cta'
+import { formatPriceKzt } from '@/lib/pricing'
 import { CitySelector } from '@/components/city-selector'
 import { CITY_COOKIE, DEFAULT_CITY, isCity } from '@/lib/cities'
 
@@ -108,7 +109,7 @@ export async function Header() {
                 source="header"
                 className="inline-flex items-center justify-center rounded-lg bg-[#D85A30] px-3.5 py-[7px] text-[13px] font-medium text-white transition-opacity hover:opacity-95"
               >
-                Попробовать за 1 990 ₸
+                Попробовать за {formatPriceKzt()}
               </SubscribeCTA>
             </>
           ) : (

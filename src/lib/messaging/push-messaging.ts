@@ -13,6 +13,7 @@ export type PushPayload = {
   body: string
   url: string
   tag?: string
+  campaignId?: string
 }
 
 type PushSubscriptionRow = {
@@ -20,7 +21,10 @@ type PushSubscriptionRow = {
   endpoint: string
   p256dh: string
   auth: string
+  subscriber_id?: string
 }
+
+export const PUSH_SEND_BATCH_SIZE = 100
 
 let vapidConfigured = false
 
@@ -43,14 +47,25 @@ function ensureVapid(): boolean {
   return true
 }
 
-function resolvePushUrl(url: string): string {
+export function resolvePushUrl(url: string, campaignId?: string): string {
   const trimmed = url.trim() || '/'
-  if (/^https?:\/\//i.test(trimmed)) return trimmed
   const site = (process.env.NEXT_PUBLIC_SITE_URL || 'https://kudaclub.kz').replace(
     /\/$/,
     '',
   )
-  return `${site}${trimmed.startsWith('/') ? trimmed : `/${trimmed}`}`
+  const absolute = /^https?:\/\//i.test(trimmed)
+    ? trimmed
+    : `${site}${trimmed.startsWith('/') ? trimmed : `/${trimmed}`}`
+
+  try {
+    const parsed = new URL(absolute)
+    if (campaignId) {
+      parsed.searchParams.set('push_campaign', campaignId)
+    }
+    return parsed.href
+  } catch {
+    return absolute
+  }
 }
 
 function isGoneStatus(statusCode: number | undefined): boolean {
@@ -75,6 +90,10 @@ async function sendToRow(
   payload: PushPayload,
 ): Promise<'ok' | 'gone' | 'error'> {
   try {
+    const tag = payload.campaignId
+      ? `campaign:${payload.campaignId}`
+      : (payload.tag ?? 'kudaclub')
+
     await webpush.sendNotification(
       {
         endpoint: row.endpoint,
@@ -83,8 +102,9 @@ async function sendToRow(
       JSON.stringify({
         title: payload.title,
         body: payload.body,
-        url: resolvePushUrl(payload.url),
-        tag: payload.tag ?? 'kudaclub',
+        url: resolvePushUrl(payload.url, payload.campaignId),
+        tag,
+        campaign_id: payload.campaignId ?? null,
       }),
       {
         TTL: 60 * 60 * 24,
@@ -155,7 +175,7 @@ export async function sendPush(
   return { sent, gone, failed }
 }
 
-/** Рассылка всем сохранённым подпискам (админ-скрипт). */
+/** Рассылка всем сохранённым подпискам (админ-скрипт / полный прогон). */
 export async function sendPushToAll(
   payload: PushPayload,
 ): Promise<{ subscribers: number; sent: number; gone: number; failed: number }> {
@@ -188,4 +208,104 @@ export async function sendPushToAll(
   }
 
   return { subscribers: subscriberIds.size, sent, gone, failed }
+}
+
+export async function countPushSubscriptions(): Promise<number> {
+  const db = createSupabaseAdminClient()
+  const { count } = await db
+    .from('push_subscriptions')
+    .select('id', { count: 'exact', head: true })
+  return count ?? 0
+}
+
+export async function countPushSubscribers(): Promise<number> {
+  const db = createSupabaseAdminClient()
+  const { data } = await db.from('push_subscriptions').select('subscriber_id')
+  return new Set((data ?? []).map((r) => r.subscriber_id)).size
+}
+
+/** Один батч endpoint-ов (для админ-UI / Vercel timeout). */
+export async function sendPushBatch(args: {
+  payload: PushPayload
+  offset: number
+  limit?: number
+  subscriberId?: string
+}): Promise<{
+  sent: number
+  gone: number
+  failed: number
+  processed: number
+  nextOffset: number
+  done: boolean
+  total: number
+}> {
+  if (!ensureVapid()) {
+    return {
+      sent: 0,
+      gone: 0,
+      failed: 0,
+      processed: 0,
+      nextOffset: args.offset,
+      done: true,
+      total: 0,
+    }
+  }
+
+  const limit = args.limit ?? PUSH_SEND_BATCH_SIZE
+  const db = createSupabaseAdminClient()
+
+  let totalQuery = db
+    .from('push_subscriptions')
+    .select('id', { count: 'exact', head: true })
+  if (args.subscriberId) {
+    totalQuery = totalQuery.eq('subscriber_id', args.subscriberId)
+  }
+  const { count } = await totalQuery
+  const total = count ?? 0
+
+  let pageQuery = db
+    .from('push_subscriptions')
+    .select('id, endpoint, p256dh, auth, subscriber_id')
+    .order('created_at', { ascending: true })
+    .range(args.offset, args.offset + limit - 1)
+  if (args.subscriberId) {
+    pageQuery = pageQuery.eq('subscriber_id', args.subscriberId)
+  }
+
+  const { data, error } = await pageQuery.returns<PushSubscriptionRow[]>()
+  if (error) {
+    logServerError('push-messaging:batch', error)
+    return {
+      sent: 0,
+      gone: 0,
+      failed: 0,
+      processed: 0,
+      nextOffset: args.offset,
+      done: true,
+      total,
+    }
+  }
+
+  const rows = data ?? []
+  let sent = 0
+  let gone = 0
+  let failed = 0
+
+  for (const row of rows) {
+    const result = await sendToRow(row, args.payload)
+    if (result === 'ok') sent += 1
+    else if (result === 'gone') gone += 1
+    else failed += 1
+  }
+
+  const nextOffset = args.offset + rows.length
+  return {
+    sent,
+    gone,
+    failed,
+    processed: rows.length,
+    nextOffset,
+    done: nextOffset >= total || rows.length === 0,
+    total,
+  }
 }

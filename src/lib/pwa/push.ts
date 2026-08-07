@@ -5,7 +5,7 @@
  * |--------------------------|--------------------------------------------|
  * | push_permission_granted  | Notification.permission = granted + subscribe ok |
  * | push_permission_denied   | permission = denied (после клика)          |
- * | push_clicked             | клик по пушу (query push_click=1 / postMessage) |
+ * | push_clicked             | клик по пушу; params.campaign_id при наличии   |
  */
 
 export const PUSH_STORAGE = {

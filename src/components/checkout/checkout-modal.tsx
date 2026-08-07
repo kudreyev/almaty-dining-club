@@ -26,6 +26,7 @@ import {
   buildTipTopPurchaseEventId,
 } from '@/lib/meta-purchase'
 import { readUtmFromCookie } from '@/components/analytics/utm-capture'
+import { PwaInstallBanner } from '@/components/pwa/pwa-install-banner'
 
 declare global {
   interface Window {
@@ -48,6 +49,7 @@ type ModalUser = { id: string; phone: string } | null
 type Step =
   | 'checkout'
   | 'confirming'
+  | 'success'
   | 'needs_otp'
   | 'fail'
 
@@ -195,7 +197,7 @@ export default function CheckoutModal({
             )
           }
           void refresh()
-          goHome()
+          setStep('success')
           return
         }
         if (data.status === 'needs_otp') {
@@ -593,6 +595,25 @@ export default function CheckoutModal({
             <p className="mt-1.5 text-[13px] leading-[1.5] text-neutral-500">
               Это займёт несколько секунд. Не закрывайте окно.
             </p>
+          </>
+        )}
+
+        {step === 'success' && (
+          <>
+            <h3 className="text-lg font-medium tracking-[-0.2px] text-neutral-900">
+              Оплата прошла!
+            </h3>
+            <p className="mt-1.5 text-[13px] leading-[1.5] text-neutral-500">
+              Подписка активна. Можно сразу выбирать заведения и офферы.
+            </p>
+            <PwaInstallBanner placement="payment_success" className="mt-4" />
+            <button
+              type="button"
+              onClick={goHome}
+              className={`${primaryBtn} mt-4`}
+            >
+              К заведениям
+            </button>
           </>
         )}
 

@@ -24,6 +24,12 @@ export const CLIENT_ANALYTICS_EVENTS = [
   'widget_opened',
   'payment_success',
   'first_offer_view',
+  // PWA install funnel (см. комментарий в src/lib/pwa/install.ts).
+  'pwa_prompt_shown',
+  'pwa_prompt_accepted',
+  'pwa_prompt_dismissed',
+  'pwa_installed',
+  'pwa_launch',
 ] as const
 
 export type ClientAnalyticsEventName = (typeof CLIENT_ANALYTICS_EVENTS)[number]

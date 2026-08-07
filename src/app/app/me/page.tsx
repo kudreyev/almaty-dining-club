@@ -13,6 +13,7 @@ import { CancelSubscriptionButton } from './cancel-subscription-button'
 import { VenuesSection } from '@/components/home/venues-section'
 import { HomeMobileControls } from '@/components/home/home-mobile-controls'
 import SubscribeCTA from '@/components/checkout/subscribe-cta'
+import { PwaCabinetInstallBanner } from '@/components/pwa/pwa-cabinet-install-banner'
 import { loadHomeRestaurants } from '@/lib/home/load-home-restaurants'
 import { isSubscriptionCurrentlyActive } from '@/lib/subscription'
 import { pluralizeRu } from '@/lib/ru-plural'
@@ -196,6 +197,8 @@ export default async function MePage({ searchParams }: PageProps) {
         <h1 className="text-xl font-semibold tracking-tight sm:text-2xl">Личный кабинет</h1>
         <LogoutButton />
       </div>
+
+      <PwaCabinetInstallBanner />
 
       {payment === 'submitted' ? (
         <div className="mb-6 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-base text-emerald-700">

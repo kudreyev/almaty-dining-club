@@ -7,16 +7,6 @@ const nextConfig: NextConfig = {
       { protocol: 'https', hostname: '*.supabase.in', pathname: '/storage/v1/object/public/**' },
     ],
   },
-  async redirects() {
-    return [
-      {
-        // PWA start_url → кабинет; query (utm_source=pwa) сохраняется.
-        source: '/cabinet',
-        destination: '/app/me',
-        permanent: false,
-      },
-    ]
-  },
   async headers() {
     return [
       {

@@ -5,7 +5,7 @@ export default function manifest(): MetadataRoute.Manifest {
     name: 'kudaclub',
     short_name: 'kudaclub',
     description: 'Подписка с офферами 2 за 1 и в подарок в ресторанах Казахстана.',
-    start_url: '/cabinet?utm_source=pwa',
+    start_url: '/app/me?utm_source=pwa',
     scope: '/',
     display: 'standalone',
     orientation: 'portrait-primary',

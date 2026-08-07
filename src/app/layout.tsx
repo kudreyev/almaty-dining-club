@@ -1,4 +1,4 @@
-import type { Metadata } from 'next'
+import type { Metadata, Viewport } from 'next'
 import { Inter } from 'next/font/google'
 import './globals.css'
 import { Header } from '@/components/header'
@@ -6,6 +6,7 @@ import { HeaderShell } from '@/components/header-shell'
 import { Footer } from '@/components/footer'
 import { YandexMetrica } from '@/components/yandex-metrica'
 import { UtmCapture } from '@/components/analytics/utm-capture'
+import { PwaRegister } from '@/components/pwa-register'
 import { UserProvider } from '@/lib/auth/use-user'
 import {
   buildMetaPixelBootstrapScript,
@@ -16,9 +17,26 @@ const inter = Inter({
   subsets: ['latin', 'cyrillic'],
 })
 
+export const viewport: Viewport = {
+  themeColor: '#D85A30',
+  colorScheme: 'light',
+}
+
 export const metadata: Metadata = {
   title: 'Kudaclub — подписка на рестораны',
   description: 'Подписка с офферами 2 за 1 и в подарок в ресторанах Казахстана.',
+  applicationName: 'kudaclub',
+  appleWebApp: {
+    capable: true,
+    title: 'kudaclub',
+    statusBarStyle: 'black-translucent',
+  },
+  icons: {
+    apple: [{ url: '/apple-touch-icon.png', sizes: '180x180', type: 'image/png' }],
+  },
+  other: {
+    'mobile-web-app-capable': 'yes',
+  },
 }
 
 export default function RootLayout({
@@ -33,6 +51,8 @@ export default function RootLayout({
   return (
     <html lang="ru">
       <head>
+        {/* iOS Safari: явный apple-мета-тег (помимо Metadata API). */}
+        <meta name="apple-mobile-web-app-capable" content="yes" />
         {metaPixelId ? (
           <script
             dangerouslySetInnerHTML={{
@@ -55,6 +75,7 @@ export default function RootLayout({
         ) : null}
         <UserProvider>
           <UtmCapture />
+          <PwaRegister />
           <div className="flex min-h-screen flex-col bg-[#fafaf9] text-gray-900">
             <HeaderShell>
               <Header />

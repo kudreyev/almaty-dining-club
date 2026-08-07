@@ -1,19 +1,23 @@
 /**
  * Цели Яндекс.Метрики для PWA-установки (завести в интерфейсе Метрики):
  *
- * | Goal                  | Когда                                      | Params              |
- * |-----------------------|--------------------------------------------|---------------------|
- * | pwa_prompt_shown      | Показали карточку предложения установки    | platform: android\|ios |
- * | pwa_prompt_accepted   | Android: accepted в prompt(); iOS: нажал «Добавить» (открыл шторку) | — |
- * | pwa_prompt_dismissed  | Закрыл баннер (X) / dismissed системного диалога Android | — |
- * | pwa_installed         | Событие appinstalled (Android/Chrome)      | — |
- * | pwa_launch            | Заход в standalone (раз в сессию вкладки)  | — |
+ * | Goal                    | Когда                                      | Params              |
+ * |-------------------------|--------------------------------------------|---------------------|
+ * | pwa_prompt_shown        | Показали предложение установки             | platform, placement |
+ * | pwa_prompt_accepted     | Android: accepted; iOS: «Добавить»         | — |
+ * | pwa_prompt_dismissed    | Закрыл баннер (X) / dismissed системного диалога | — |
+ * | pwa_onboarding_skipped  | Онбординг после оплаты: «Позже»            | — |
+ * | pwa_installed           | Событие appinstalled (Android/Chrome)      | — |
+ * | pwa_launch              | Заход в standalone (раз в сессию вкладки)  | — |
+ *
+ * placement: onboarding | cabinet | cabinet_menu
  */
 
 export const PWA_METRICA_GOALS = [
   'pwa_prompt_shown',
   'pwa_prompt_accepted',
   'pwa_prompt_dismissed',
+  'pwa_onboarding_skipped',
   'pwa_installed',
   'pwa_launch',
 ] as const
@@ -30,8 +34,10 @@ export const PWA_STORAGE = {
   launchSession: 'kudaclub:pwa_launch_session',
 } as const
 
-/** 14 дней кулдауна после отказа / закрытия баннера. */
-export const PWA_DISMISS_COOLDOWN_MS = 14 * 24 * 60 * 60 * 1000
+/** Кулдаун баннера в кабинете после отказа / «Позже». */
+export const PWA_DISMISS_COOLDOWN_DAYS = 7
+export const PWA_DISMISS_COOLDOWN_MS =
+  PWA_DISMISS_COOLDOWN_DAYS * 24 * 60 * 60 * 1000
 
 export type BeforeInstallPromptEventLike = Event & {
   prompt: () => Promise<void>

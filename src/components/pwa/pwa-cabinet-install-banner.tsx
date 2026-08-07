@@ -16,5 +16,5 @@ export function PwaCabinetInstallBanner() {
 
   if (visits < 2) return null
 
-  return <PwaInstallBanner placement="cabinet" meVisitCount={visits} className="mb-6" />
+  return <PwaInstallBanner meVisitCount={visits} className="mb-6" />
 }

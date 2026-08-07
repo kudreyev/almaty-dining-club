@@ -57,6 +57,7 @@ const TRACKED_GOAL_NAMES = [
   'pwa_prompt_dismissed',
   'pwa_installed',
   'pwa_launch',
+  'pwa_onboarding_skipped',
   'push_permission_granted',
   'push_permission_denied',
   'push_clicked',

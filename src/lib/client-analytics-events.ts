@@ -30,6 +30,7 @@ export const CLIENT_ANALYTICS_EVENTS = [
   'pwa_prompt_dismissed',
   'pwa_installed',
   'pwa_launch',
+  'pwa_onboarding_skipped',
   // Web Push (см. src/lib/pwa/push.ts).
   'push_permission_granted',
   'push_permission_denied',

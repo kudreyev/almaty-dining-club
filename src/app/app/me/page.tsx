@@ -14,6 +14,7 @@ import { VenuesSection } from '@/components/home/venues-section'
 import { HomeMobileControls } from '@/components/home/home-mobile-controls'
 import SubscribeCTA from '@/components/checkout/subscribe-cta'
 import { PwaCabinetInstallBanner } from '@/components/pwa/pwa-cabinet-install-banner'
+import { PwaInstallMenuItem } from '@/components/pwa/pwa-install-menu-item'
 import { PwaPushOptIn } from '@/components/pwa/pwa-push-opt-in'
 import { DiscountCodeCard } from '@/components/me/discount-code-card'
 import { MonthlySavingsStub } from '@/components/me/monthly-savings-stub'
@@ -239,6 +240,10 @@ export default async function MePage({ searchParams }: PageProps) {
       />
 
       <MonthlySavingsStub />
+
+      <div className="mb-6">
+        <PwaInstallMenuItem />
+      </div>
 
       <PwaCabinetInstallBanner />
       <PwaPushOptIn />

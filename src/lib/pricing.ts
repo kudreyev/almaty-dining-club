@@ -36,14 +36,26 @@ export function formatFirstMonthPromoOffer(
   return `Первый месяц ${formatPriceKzt(firstAmount)}, далее ${formatPricePerMonth(recurrentAmount)}`
 }
 
+function siteOrigin(): string {
+  const site = process.env.NEXT_PUBLIC_SITE_URL?.trim()
+  if (site) return site.replace(/\/$/, '')
+  return 'https://kudaclub.kz'
+}
+
 /** Ссылка «ваш доступ» в WhatsApp/SMS после оплаты — на главную с каталогом. */
 export function getAccessUrl(): string {
   const fromEnv =
     process.env.ACCESS_URL?.trim() || process.env.CABINET_URL?.trim()
   if (fromEnv) return fromEnv.replace(/\/$/, '')
-  const site = process.env.NEXT_PUBLIC_SITE_URL?.trim()
-  if (site) return site.replace(/\/$/, '')
-  return 'https://kudaclub.kz'
+  return siteOrigin()
+}
+
+/**
+ * Ссылка на кабинет для строки про установку PWA в WhatsApp-шаблоне.
+ * utm — чтобы в Метрике отличать заходы из WA.
+ */
+export function getPwaInstallInviteUrl(): string {
+  return `${siteOrigin()}/app/me?utm_source=whatsapp_pwa`
 }
 
 /** @deprecated используйте getAccessUrl */

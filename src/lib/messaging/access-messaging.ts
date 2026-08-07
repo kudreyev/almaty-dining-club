@@ -6,7 +6,7 @@
  */
 
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
-import { getAccessUrl } from '@/lib/pricing'
+import { getAccessUrl, getPwaInstallInviteUrl } from '@/lib/pricing'
 import { logServerError } from '@/lib/safe-errors'
 import { safeLog } from '@/lib/safe-logger'
 
@@ -92,9 +92,15 @@ class TwilioAccessMessaging implements AccessMessagingAdapter {
       From: creds.whatsappFrom,
       To: `whatsapp:${payload.phoneE164}`,
       ContentSid: contentSid,
+      // Шаблон ACCESS (новая версия — переутвердить в Meta/Twilio):
+      // см. docs/whatsapp-access-template-pwa.md
+      // {{1}} — ссылка в каталог/доступ
+      // {{2}} — дата следующего списания
+      // {{3}} — ссылка на кабинет для установки PWA
       ContentVariables: JSON.stringify({
         '1': getAccessUrl(),
         '2': payload.nextChargeDate,
+        '3': getPwaInstallInviteUrl(),
       }),
     }
     if (callback) {

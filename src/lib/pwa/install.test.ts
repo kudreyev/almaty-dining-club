@@ -40,7 +40,7 @@ describe('pwa install storage', () => {
     vi.unstubAllGlobals()
   })
 
-  it('keeps dismiss cooldown for 14 days', () => {
+  it('keeps dismiss cooldown for 7 days', () => {
     setDismissCooldown(Date.now())
     expect(isDismissCooldownActive(Date.now())).toBe(true)
     expect(

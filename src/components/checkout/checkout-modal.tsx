@@ -26,7 +26,7 @@ import {
   buildTipTopPurchaseEventId,
 } from '@/lib/meta-purchase'
 import { readUtmFromCookie } from '@/components/analytics/utm-capture'
-import { PwaInstallBanner } from '@/components/pwa/pwa-install-banner'
+import { PwaInstallOnboarding } from '@/components/pwa/pwa-install-onboarding'
 
 declare global {
   interface Window {
@@ -71,6 +71,10 @@ function readCityFromCookie(): string {
 
 function goHome(): void {
   window.location.assign(`/${readCityFromCookie()}`)
+}
+
+function goCabinet(): void {
+  window.location.assign('/app/me')
 }
 
 function maskPhone(e164: string): string {
@@ -600,20 +604,13 @@ export default function CheckoutModal({
 
         {step === 'success' && (
           <>
+            <PwaInstallOnboarding onSkip={goCabinet} />
             <h3 className="text-lg font-medium tracking-[-0.2px] text-neutral-900">
               Оплата прошла!
             </h3>
             <p className="mt-1.5 text-[13px] leading-[1.5] text-neutral-500">
-              Подписка активна. Можно сразу выбирать заведения и офферы.
+              Открываем кабинет…
             </p>
-            <PwaInstallBanner placement="payment_success" className="mt-4" />
-            <button
-              type="button"
-              onClick={goHome}
-              className={`${primaryBtn} mt-4`}
-            >
-              К заведениям
-            </button>
           </>
         )}
 

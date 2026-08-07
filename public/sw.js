@@ -2,7 +2,7 @@
  * CACHE_VERSION is injected at build time (git SHA / deploy id).
  * With skipWaiting + clients.claim, users get the new SW by the second open.
  */
-const CACHE_VERSION = 'kudaclub-e2d990a3c904'
+const CACHE_VERSION = 'kudaclub-23fa4ec1b585'
 const SHELL_CACHE = `${CACHE_VERSION}-shell`
 const PAGES_CACHE = `${CACHE_VERSION}-pages`
 

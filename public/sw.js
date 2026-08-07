@@ -1,8 +1,8 @@
 /* Kudaclub PWA service worker — app shell + offline catalog/cabinet.
- * Bump CACHE_VERSION on each deploy so old caches are dropped on activate.
+ * CACHE_VERSION is injected at build time (git SHA / deploy id).
  * With skipWaiting + clients.claim, users get the new SW by the second open.
  */
-const CACHE_VERSION = 'kudaclub-v1'
+const CACHE_VERSION = 'kudaclub-b75bf91c59ec'
 const SHELL_CACHE = `${CACHE_VERSION}-shell`
 const PAGES_CACHE = `${CACHE_VERSION}-pages`
 
@@ -52,7 +52,6 @@ function isOfflineablePage(url) {
   if (url.origin !== self.location.origin) return false
   const path = url.pathname.replace(/\/$/, '') || '/'
 
-  if (path === '/cabinet' || path.startsWith('/cabinet/')) return true
   if (path === '/app/me' || path.startsWith('/app/me/')) return true
 
   const segment = path.slice(1).split('/')[0]

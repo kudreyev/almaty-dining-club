@@ -2,7 +2,7 @@
  * CACHE_VERSION is injected at build time (git SHA / deploy id).
  * With skipWaiting + clients.claim, users get the new SW by the second open.
  */
-const CACHE_VERSION = 'kudaclub-23fa4ec1b585'
+const CACHE_VERSION = 'kudaclub-708b4f39c253'
 const SHELL_CACHE = `${CACHE_VERSION}-shell`
 const PAGES_CACHE = `${CACHE_VERSION}-pages`
 
@@ -157,7 +157,7 @@ function withPushClickParam(rawUrl) {
     url.searchParams.set('push_click', '1')
     return url.href
   } catch {
-    return self.location.origin + '/'
+    return self.location.origin + '/?push_click=1'
   }
 }
 
@@ -167,6 +167,7 @@ self.addEventListener('push', (event) => {
     body: 'Новая подборка заведений',
     url: '/',
     tag: 'kudaclub',
+    campaign_id: null,
   }
 
   try {
@@ -177,6 +178,8 @@ self.addEventListener('push', (event) => {
         body: typeof parsed.body === 'string' ? parsed.body : payload.body,
         url: typeof parsed.url === 'string' ? parsed.url : payload.url,
         tag: typeof parsed.tag === 'string' ? parsed.tag : payload.tag,
+        campaign_id:
+          typeof parsed.campaign_id === 'string' ? parsed.campaign_id : null,
       }
     }
   } catch {
@@ -195,16 +198,20 @@ self.addEventListener('push', (event) => {
       badge: '/icons/icon-192.png',
       tag: payload.tag,
       renotify: true,
-      data: { url: payload.url },
+      data: {
+        url: payload.url,
+        campaign_id: payload.campaign_id,
+      },
     }),
   )
 })
 
 self.addEventListener('notificationclick', (event) => {
   event.notification.close()
-  const targetUrl = withPushClickParam(
-    event.notification.data?.url || '/',
-  )
+  const data = event.notification.data || {}
+  const targetUrl = withPushClickParam(data.url || '/')
+  const campaignId =
+    typeof data.campaign_id === 'string' ? data.campaign_id : null
 
   event.waitUntil(
     (async () => {
@@ -216,7 +223,11 @@ self.addEventListener('notificationclick', (event) => {
       for (const client of allClients) {
         if (client.url.startsWith(self.location.origin) && 'focus' in client) {
           await client.focus()
-          client.postMessage({ type: 'PUSH_CLICK', url: targetUrl })
+          client.postMessage({
+            type: 'PUSH_CLICK',
+            url: targetUrl,
+            campaign_id: campaignId,
+          })
           return
         }
       }

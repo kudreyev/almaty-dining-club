@@ -1,7 +1,6 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import Link from 'next/link'
 import {
   readCachedDiscountCode,
   saveCachedDiscountCode,
@@ -14,20 +13,30 @@ export type DiscountCodeProps = {
   expiresAt: string | null
   restaurantName: string | null
   offerTitle: string | null
-  catalogHref: string
 }
 
-function isExpired(expiresAt: string | null, status: string | null): boolean {
-  if (status && status !== 'active') return true
-  if (!expiresAt) return false
-  return Date.parse(expiresAt) <= Date.now()
+function isUsable(code: {
+  tokenCode: string | null | undefined
+  status: string | null | undefined
+  expiresAt: string | null | undefined
+}): boolean {
+  if (!code.tokenCode) return false
+  if (code.status !== 'active') return false
+  if (!code.expiresAt) return false
+  return Date.parse(code.expiresAt) > Date.now()
 }
 
 export function DiscountCodeCard(props: DiscountCodeProps) {
   const [display, setDisplay] = useState<CachedDiscountCode | null>(() => {
-    if (props.tokenCode) {
-      return {
+    if (
+      isUsable({
         tokenCode: props.tokenCode,
+        status: props.status,
+        expiresAt: props.expiresAt,
+      })
+    ) {
+      return {
+        tokenCode: props.tokenCode!,
         status: props.status ?? 'active',
         expiresAt: props.expiresAt,
         restaurantName: props.restaurantName,
@@ -39,9 +48,15 @@ export function DiscountCodeCard(props: DiscountCodeProps) {
   })
 
   useEffect(() => {
-    if (props.tokenCode) {
-      const next: CachedDiscountCode = {
+    if (
+      isUsable({
         tokenCode: props.tokenCode,
+        status: props.status,
+        expiresAt: props.expiresAt,
+      })
+    ) {
+      const next: CachedDiscountCode = {
+        tokenCode: props.tokenCode!,
         status: props.status ?? 'active',
         expiresAt: props.expiresAt,
         restaurantName: props.restaurantName,
@@ -53,42 +68,31 @@ export function DiscountCodeCard(props: DiscountCodeProps) {
       return
     }
 
-    // Офлайн / пустой SSR — поднимаем последний код из localStorage.
+    // Офлайн: только если кэш ещё active и не истёк.
     const cached = readCachedDiscountCode()
-    if (cached) setDisplay(cached)
+    if (
+      cached &&
+      isUsable({
+        tokenCode: cached.tokenCode,
+        status: cached.status,
+        expiresAt: cached.expiresAt,
+      })
+    ) {
+      setDisplay(cached)
+      return
+    }
+
+    setDisplay(null)
   }, [props])
 
-  if (!display?.tokenCode) {
-    return (
-      <section className="mb-6 rounded-2xl border border-neutral-200 bg-white px-5 py-6 text-center shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
-        <p className="text-[13px] font-medium uppercase tracking-[0.08em] text-neutral-400">
-          Код скидки
-        </p>
-        <p className="mt-3 text-[15px] leading-[1.45] text-neutral-600">
-          Откройте оффер в заведении — здесь появится ваш код.
-        </p>
-        <Link
-          href={props.catalogHref}
-          className="mt-4 inline-flex items-center justify-center rounded-lg bg-primary px-4 py-2.5 text-[13px] font-medium text-white transition-colors hover:bg-primary-hover"
-        >
-          К заведениям
-        </Link>
-      </section>
-    )
-  }
-
-  const expired = isExpired(display.expiresAt, display.status)
+  if (!display || !isUsable(display)) return null
 
   return (
     <section className="mb-6 rounded-2xl border border-neutral-200 bg-white px-5 py-6 text-center shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
       <p className="text-[13px] font-medium uppercase tracking-[0.08em] text-neutral-400">
         Код скидки
       </p>
-      <p
-        className={`mt-3 text-4xl font-semibold tracking-[0.22em] tabular-nums sm:text-5xl ${
-          expired ? 'text-neutral-400 line-through' : 'text-neutral-900'
-        }`}
-      >
+      <p className="mt-3 text-4xl font-semibold tracking-[0.22em] tabular-nums text-neutral-900 sm:text-5xl">
         {display.tokenCode}
       </p>
       {display.restaurantName || display.offerTitle ? (
@@ -96,15 +100,9 @@ export function DiscountCodeCard(props: DiscountCodeProps) {
           {[display.restaurantName, display.offerTitle].filter(Boolean).join(' · ')}
         </p>
       ) : null}
-      {expired ? (
-        <p className="mt-2 text-[12px] text-neutral-400">
-          Код истёк — сгенерируйте новый в карточке оффера
-        </p>
-      ) : (
-        <p className="mt-2 text-[12px] text-neutral-400">
-          Покажите код сотруднику заведения
-        </p>
-      )}
+      <p className="mt-2 text-[12px] text-neutral-400">
+        Покажите код сотруднику заведения
+      </p>
     </section>
   )
 }

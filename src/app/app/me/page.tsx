@@ -201,6 +201,8 @@ export default async function MePage({ searchParams }: PageProps) {
           offers ( offer_title )
         `)
         .eq('user_id', user.id)
+        .eq('status', 'active')
+        .gt('expires_at', new Date().toISOString())
         .order('created_at', { ascending: false })
         .limit(1)
         .returns<LastRedeemToken[]>(),
@@ -236,7 +238,6 @@ export default async function MePage({ searchParams }: PageProps) {
         expiresAt={lastToken?.expires_at ?? null}
         restaurantName={lastToken?.restaurants?.restaurant_name ?? null}
         offerTitle={lastToken?.offers?.offer_title ?? null}
-        catalogHref={`/${city}`}
       />
 
       <MonthlySavingsStub />

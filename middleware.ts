@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
 import { CITY_COOKIE, isCity } from '@/lib/cities'
+import { supabaseAuthCookieOptions } from '@/lib/supabase/auth-cookie-options'
 
 export async function middleware(request: NextRequest) {
   const response = NextResponse.next({
@@ -11,20 +12,27 @@ export async function middleware(request: NextRequest) {
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
+      cookieOptions: supabaseAuthCookieOptions,
       cookies: {
         getAll() {
           return request.cookies.getAll()
         },
         setAll(cookiesToSet) {
           cookiesToSet.forEach(({ name, value, options }) => {
+            const merged = {
+              ...supabaseAuthCookieOptions,
+              ...options,
+              maxAge: options.maxAge ?? supabaseAuthCookieOptions.maxAge,
+            }
             request.cookies.set(name, value)
-            response.cookies.set(name, value, options)
+            response.cookies.set(name, value, merged)
           })
         },
       },
-    }
+    },
   )
 
+  // Обновляет access/refresh cookie на каждом заходе (критично для PWA после простоя).
   await supabase.auth.getUser()
 
   // Город — фильтр контента: при заходе на '/' с сохранённым городом ведём

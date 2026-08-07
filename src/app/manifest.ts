@@ -37,5 +37,28 @@ export default function manifest(): MetadataRoute.Manifest {
         purpose: 'maskable',
       },
     ],
+    shortcuts: [
+      {
+        name: 'Мой код скидки',
+        short_name: 'Код',
+        description: 'Открыть кабинет с кодом скидки',
+        url: '/app/me',
+        icons: [{ src: '/icons/icon-192.png', sizes: '192x192', type: 'image/png' }],
+      },
+      {
+        name: 'Заведения Алматы',
+        short_name: 'Алматы',
+        description: 'Каталог заведений в Алматы',
+        url: '/almaty?utm_source=pwa_shortcut',
+        icons: [{ src: '/icons/icon-192.png', sizes: '192x192', type: 'image/png' }],
+      },
+      {
+        name: 'Заведения Астана',
+        short_name: 'Астана',
+        description: 'Каталог заведений в Астане',
+        url: '/astana?utm_source=pwa_shortcut',
+        icons: [{ src: '/icons/icon-192.png', sizes: '192x192', type: 'image/png' }],
+      },
+    ],
   }
 }

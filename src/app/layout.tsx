@@ -9,6 +9,8 @@ import { UtmCapture } from '@/components/analytics/utm-capture'
 import { PwaRegister } from '@/components/pwa-register'
 import { PwaInstallProvider } from '@/components/pwa/pwa-install-provider'
 import { PushClickTracker } from '@/components/pwa/push-click-tracker'
+import { PwaAppBadge } from '@/components/pwa/pwa-app-badge'
+import { SessionKeepAlive } from '@/components/auth/session-keepalive'
 import { UserProvider } from '@/lib/auth/use-user'
 import {
   buildMetaPixelBootstrapScript,
@@ -80,6 +82,8 @@ export default function RootLayout({
             <UtmCapture />
             <PwaRegister />
             <PushClickTracker />
+            <SessionKeepAlive />
+            <PwaAppBadge />
             <div className="flex min-h-screen flex-col bg-[#fafaf9] text-gray-900">
               <HeaderShell>
                 <Header />

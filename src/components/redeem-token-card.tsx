@@ -10,6 +10,7 @@ import {
 import { getAppSiteOrigin } from '@/lib/site-url'
 import { Button } from '@/components/ui/button'
 import { trackGoal } from '@/lib/analytics-client'
+import { saveCachedDiscountCode } from '@/lib/pwa/discount-code-cache'
 import type { OfferType } from '@/lib/offers'
 
 type RedeemTokenCardProps = {
@@ -66,6 +67,18 @@ export function RedeemTokenCard({
   useEffect(() => {
     setLocalExpires(expiresAt)
   }, [expiresAt])
+
+  // Кэш для офлайн-показа кода на /app/me (PWA).
+  useEffect(() => {
+    saveCachedDiscountCode({
+      tokenCode,
+      status: 'active',
+      expiresAt: localExpires,
+      restaurantName: null,
+      offerTitle: null,
+      savedAt: new Date().toISOString(),
+    })
+  }, [tokenCode, localExpires])
 
   useEffect(() => {
     setRemainingMs(getRemainingMs(localExpires))

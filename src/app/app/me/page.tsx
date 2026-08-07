@@ -15,7 +15,11 @@ import { HomeMobileControls } from '@/components/home/home-mobile-controls'
 import SubscribeCTA from '@/components/checkout/subscribe-cta'
 import { PwaCabinetInstallBanner } from '@/components/pwa/pwa-cabinet-install-banner'
 import { PwaPushOptIn } from '@/components/pwa/pwa-push-opt-in'
+import { DiscountCodeCard } from '@/components/me/discount-code-card'
+import { MonthlySavingsStub } from '@/components/me/monthly-savings-stub'
+import { NewVenuesBlock } from '@/components/me/new-venues-block'
 import { loadHomeRestaurants } from '@/lib/home/load-home-restaurants'
+import { loadNewestRestaurants } from '@/lib/home/load-newest-restaurants'
 import { isSubscriptionCurrentlyActive } from '@/lib/subscription'
 import { pluralizeRu } from '@/lib/ru-plural'
 import { CITY_COOKIE, CITY_LABELS_GENITIVE, DEFAULT_CITY, isCity } from '@/lib/cities'
@@ -56,6 +60,14 @@ type Redemption = {
   } | null
 }
 
+type LastRedeemToken = {
+  token_code: string
+  status: string
+  expires_at: string
+  restaurants: { restaurant_name: string } | null
+  offers: { offer_title: string } | null
+}
+
 export default async function MePage({ searchParams }: PageProps) {
   const { payment } = await searchParams
   const supabase = await createSupabaseServerClient()
@@ -65,6 +77,9 @@ export default async function MePage({ searchParams }: PageProps) {
   } = await supabase.auth.getUser()
 
   if (!user) redirect('/login')
+
+  const cityCookie = (await cookies()).get(CITY_COOKIE)?.value
+  const city = isCity(cityCookie) ? cityCookie : DEFAULT_CITY
 
   const { data: profile } = await supabase
     .from('profiles')
@@ -93,8 +108,6 @@ export default async function MePage({ searchParams }: PageProps) {
   // показываем экран реактивации + каталог. Историю redemptions скрываем —
   // фокус на возврате к подписке. completeActivation/activate RPC не трогаем.
   if (!isActive) {
-    const cityCookie = (await cookies()).get(CITY_COOKIE)?.value
-    const city = isCity(cityCookie) ? cityCookie : DEFAULT_CITY
     const { restaurantsWithStatus, cuisineOptions } = await loadHomeRestaurants(city)
     const totalVenues = restaurantsWithStatus.length
     const venuesWord = pluralizeRu(totalVenues, [
@@ -165,18 +178,35 @@ export default async function MePage({ searchParams }: PageProps) {
     )
   }
 
-  // Активная подписка — стандартный кабинет с историей использований.
-  const { data: redemptions } = await supabase
-    .from('redemptions')
-    .select(`
-      id, redeemed_at, restaurant_id, offer_id,
-      restaurants ( restaurant_name, slug ),
-      offers ( offer_title, offer_type )
-    `)
-    .eq('user_id', user.id)
-    .order('redeemed_at', { ascending: false })
-    .limit(10)
-    .returns<Redemption[]>()
+  // Активная подписка — PWA home: код, экономия, новинки, история.
+  const [{ data: redemptions }, { data: lastTokens }, newestVenues] =
+    await Promise.all([
+      supabase
+        .from('redemptions')
+        .select(`
+          id, redeemed_at, restaurant_id, offer_id,
+          restaurants ( restaurant_name, slug ),
+          offers ( offer_title, offer_type )
+        `)
+        .eq('user_id', user.id)
+        .order('redeemed_at', { ascending: false })
+        .limit(10)
+        .returns<Redemption[]>(),
+      supabase
+        .from('redeem_tokens')
+        .select(`
+          token_code, status, expires_at,
+          restaurants ( restaurant_name ),
+          offers ( offer_title )
+        `)
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .returns<LastRedeemToken[]>(),
+      loadNewestRestaurants(3),
+    ])
+
+  const lastToken = lastTokens?.[0] ?? null
 
   const subColor: 'green' | 'yellow' | 'default' =
     latestSubscription?.status === 'active'
@@ -199,6 +229,17 @@ export default async function MePage({ searchParams }: PageProps) {
         <LogoutButton />
       </div>
 
+      <DiscountCodeCard
+        tokenCode={lastToken?.token_code ?? null}
+        status={lastToken?.status ?? null}
+        expiresAt={lastToken?.expires_at ?? null}
+        restaurantName={lastToken?.restaurants?.restaurant_name ?? null}
+        offerTitle={lastToken?.offers?.offer_title ?? null}
+        catalogHref={`/${city}`}
+      />
+
+      <MonthlySavingsStub />
+
       <PwaCabinetInstallBanner />
       <PwaPushOptIn />
 
@@ -207,6 +248,8 @@ export default async function MePage({ searchParams }: PageProps) {
           Заявка отправлена. После проверки подписка будет активирована.
         </div>
       ) : null}
+
+      <NewVenuesBlock venues={newestVenues} />
 
       <div className="mb-6 grid gap-4 sm:grid-cols-2">
         <Card>

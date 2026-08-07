@@ -148,3 +148,82 @@ self.addEventListener('fetch', (event) => {
     event.respondWith(cacheFirstShell(request))
   }
 })
+
+/* ── Web Push ─────────────────────────────────────────────── */
+
+function withPushClickParam(rawUrl) {
+  try {
+    const url = new URL(rawUrl, self.location.origin)
+    url.searchParams.set('push_click', '1')
+    return url.href
+  } catch {
+    return self.location.origin + '/'
+  }
+}
+
+self.addEventListener('push', (event) => {
+  let payload = {
+    title: 'kudaclub',
+    body: 'Новая подборка заведений',
+    url: '/',
+    tag: 'kudaclub',
+  }
+
+  try {
+    if (event.data) {
+      const parsed = event.data.json()
+      payload = {
+        title: typeof parsed.title === 'string' ? parsed.title : payload.title,
+        body: typeof parsed.body === 'string' ? parsed.body : payload.body,
+        url: typeof parsed.url === 'string' ? parsed.url : payload.url,
+        tag: typeof parsed.tag === 'string' ? parsed.tag : payload.tag,
+      }
+    }
+  } catch {
+    try {
+      const text = event.data?.text()
+      if (text) payload.body = text
+    } catch {
+      // keep defaults
+    }
+  }
+
+  event.waitUntil(
+    self.registration.showNotification(payload.title, {
+      body: payload.body,
+      icon: '/icons/icon-192.png',
+      badge: '/icons/icon-192.png',
+      tag: payload.tag,
+      renotify: true,
+      data: { url: payload.url },
+    }),
+  )
+})
+
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close()
+  const targetUrl = withPushClickParam(
+    event.notification.data?.url || '/',
+  )
+
+  event.waitUntil(
+    (async () => {
+      const allClients = await self.clients.matchAll({
+        type: 'window',
+        includeUncontrolled: true,
+      })
+
+      for (const client of allClients) {
+        if (client.url.startsWith(self.location.origin) && 'focus' in client) {
+          await client.focus()
+          client.postMessage({ type: 'PUSH_CLICK', url: targetUrl })
+          return
+        }
+      }
+
+      if (self.clients.openWindow) {
+        await self.clients.openWindow(targetUrl)
+      }
+    })(),
+  )
+})

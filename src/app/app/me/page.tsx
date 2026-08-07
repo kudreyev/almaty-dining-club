@@ -14,6 +14,7 @@ import { VenuesSection } from '@/components/home/venues-section'
 import { HomeMobileControls } from '@/components/home/home-mobile-controls'
 import SubscribeCTA from '@/components/checkout/subscribe-cta'
 import { PwaCabinetInstallBanner } from '@/components/pwa/pwa-cabinet-install-banner'
+import { PwaPushOptIn } from '@/components/pwa/pwa-push-opt-in'
 import { loadHomeRestaurants } from '@/lib/home/load-home-restaurants'
 import { isSubscriptionCurrentlyActive } from '@/lib/subscription'
 import { pluralizeRu } from '@/lib/ru-plural'
@@ -199,6 +200,7 @@ export default async function MePage({ searchParams }: PageProps) {
       </div>
 
       <PwaCabinetInstallBanner />
+      <PwaPushOptIn />
 
       {payment === 'submitted' ? (
         <div className="mb-6 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-base text-emerald-700">

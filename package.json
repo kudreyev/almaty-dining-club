@@ -4,6 +4,8 @@
   "private": true,
   "scripts": {
     "generate-sw": "node scripts/generate-sw.mjs",
+    "generate-vapid": "node scripts/generate-vapid-keys.mjs",
+    "send-push": "tsx scripts/send-push.ts",
     "dev": "node scripts/generate-sw.mjs && next dev",
     "build": "node scripts/generate-sw.mjs && next build",
     "start": "next start",
@@ -19,7 +21,8 @@
     "qrcode": "^1.5.4",
     "react": "19.2.3",
     "react-dom": "19.2.3",
-    "recharts": "^2.15.4"
+    "recharts": "^2.15.4",
+    "web-push": "^3.6.7"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
@@ -27,9 +30,12 @@
     "@types/qrcode": "^1.5.6",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@types/web-push": "^3.6.4",
+    "dotenv": "^17.4.2",
     "eslint": "^9",
     "eslint-config-next": "16.1.6",
     "tailwindcss": "^4",
+    "tsx": "^4.23.10",
     "typescript": "^5",
     "vitest": "^3.2.4"
   }

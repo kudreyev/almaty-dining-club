@@ -51,6 +51,15 @@ const TRACKED_GOAL_NAMES = [
   'payment_fail',
   'payment_abandoned',
   'promo_applied',
+  // PWA install + Web Push
+  'pwa_prompt_shown',
+  'pwa_prompt_accepted',
+  'pwa_prompt_dismissed',
+  'pwa_installed',
+  'pwa_launch',
+  'push_permission_granted',
+  'push_permission_denied',
+  'push_clicked',
 ] as const
 
 function unauthorized(): NextResponse {

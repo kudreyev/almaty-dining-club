@@ -30,6 +30,10 @@ export const CLIENT_ANALYTICS_EVENTS = [
   'pwa_prompt_dismissed',
   'pwa_installed',
   'pwa_launch',
+  // Web Push (см. src/lib/pwa/push.ts).
+  'push_permission_granted',
+  'push_permission_denied',
+  'push_clicked',
 ] as const
 
 export type ClientAnalyticsEventName = (typeof CLIENT_ANALYTICS_EVENTS)[number]

@@ -3,7 +3,7 @@
 import { useEffect } from 'react'
 
 /**
- * Регистрирует service worker. Без install-промптов и push.
+ * Регистрирует service worker (кэш + Web Push handlers в sw.js).
  */
 export function PwaRegister() {
   useEffect(() => {

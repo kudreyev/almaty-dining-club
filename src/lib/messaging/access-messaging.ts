@@ -1,6 +1,8 @@
 /**
  * Доставка доступа после оплаты через WhatsApp Utility-шаблон.
  * SMS-fallback временно отключён (нет Twilio SMS) — вернём позже через адаптер.
+ *
+ * Web Push: см. src/lib/messaging/push-messaging.ts → sendPush().
  */
 
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'

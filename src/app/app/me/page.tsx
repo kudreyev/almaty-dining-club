@@ -17,11 +17,14 @@ import { PwaCabinetInstallBanner } from '@/components/pwa/pwa-cabinet-install-ba
 import { PwaInstallMenuItem } from '@/components/pwa/pwa-install-menu-item'
 import { PwaPushOptIn } from '@/components/pwa/pwa-push-opt-in'
 import { DiscountCodeCard } from '@/components/me/discount-code-card'
-import { MonthlySavingsStub } from '@/components/me/monthly-savings-stub'
+import { LifetimeSavings } from '@/components/me/lifetime-savings'
 import { NewVenuesBlock } from '@/components/me/new-venues-block'
 import { loadHomeRestaurants } from '@/lib/home/load-home-restaurants'
 import { loadNewestRestaurants } from '@/lib/home/load-newest-restaurants'
-import { isSubscriptionCurrentlyActive } from '@/lib/subscription'
+import {
+  getUserSavings,
+  isSubscriptionCurrentlyActive,
+} from '@/lib/subscription'
 import { pluralizeRu } from '@/lib/ru-plural'
 import { CITY_COOKIE, CITY_LABELS_GENITIVE, DEFAULT_CITY, isCity } from '@/lib/cities'
 import { formatPriceKzt } from '@/lib/pricing'
@@ -180,7 +183,7 @@ export default async function MePage({ searchParams }: PageProps) {
   }
 
   // Активная подписка — PWA home: код, экономия, новинки, история.
-  const [{ data: redemptions }, { data: lastTokens }, newestVenues] =
+  const [{ data: redemptions }, { data: lastTokens }, newestVenues, savings] =
     await Promise.all([
       supabase
         .from('redemptions')
@@ -206,7 +209,8 @@ export default async function MePage({ searchParams }: PageProps) {
         .order('created_at', { ascending: false })
         .limit(1)
         .returns<LastRedeemToken[]>(),
-      loadNewestRestaurants(3),
+      loadNewestRestaurants(3, city),
+      getUserSavings(user.id),
     ])
 
   const lastToken = lastTokens?.[0] ?? null
@@ -240,7 +244,10 @@ export default async function MePage({ searchParams }: PageProps) {
         offerTitle={lastToken?.offers?.offer_title ?? null}
       />
 
-      <MonthlySavingsStub />
+      <LifetimeSavings
+        amountKzt={savings.amountKzt}
+        redemptionsCount={savings.redemptionsCount}
+      />
 
       <div className="mb-6">
         <PwaInstallMenuItem />

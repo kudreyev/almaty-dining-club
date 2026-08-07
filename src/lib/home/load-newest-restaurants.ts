@@ -11,26 +11,34 @@ export type NewestRestaurant = {
   photoUrl: string | null
 }
 
-/** Последние добавленные активные заведения (для блока «Новое в kudaclub»). */
-export async function loadNewestRestaurants(limit = 3): Promise<NewestRestaurant[]> {
+/** Последние добавленные активные заведения выбранного города. */
+export async function loadNewestRestaurants(
+  limit = 3,
+  city?: City,
+): Promise<NewestRestaurant[]> {
   const supabase = createSupabasePublicClient()
 
-  const { data } = await supabase
+  let query = supabase
     .from('restaurants')
     .select('id, restaurant_name, slug, city, cuisine, created_at')
     .eq('is_active', true)
     .order('created_at', { ascending: false })
     .limit(limit)
-    .returns<
-      {
-        id: string
-        restaurant_name: string
-        slug: string
-        city: string
-        cuisine: string | null
-        created_at: string
-      }[]
-    >()
+
+  if (city) {
+    query = query.eq('city', city)
+  }
+
+  const { data } = await query.returns<
+    {
+      id: string
+      restaurant_name: string
+      slug: string
+      city: string
+      cuisine: string | null
+      created_at: string
+    }[]
+  >()
 
   const rows = data ?? []
   if (rows.length === 0) return []

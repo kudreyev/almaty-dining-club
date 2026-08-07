@@ -57,6 +57,8 @@ export type AnalyticsRealtime = {
   new7d: number
   cancelled30d: number
   churn30d: number | null
+  /** Использований офферов за сегодня (Алматы). */
+  redemptionsToday: number
 }
 
 export type AnalyticsEfficiency = {
@@ -67,6 +69,8 @@ export type AnalyticsEfficiency = {
   newTotal: number
   landingCr: number | null
   organicShare: number | null
+  /** Использований офферов за выбранный период. */
+  redemptionsPeriod: number
 }
 
 export type ChannelRow = {
@@ -111,7 +115,12 @@ export async function loadAdminAnalytics(
   const periodStart = almatyDayUtcBounds(periodFrom).start
   const periodEndExclusive = almatyDayUtcBounds(addDaysIso(periodTo, 1)).start
 
-  const [{ data: subsData }, { data: adStats }] = await Promise.all([
+  const [
+    { data: subsData },
+    { data: adStats },
+    { count: redemptionsTodayCount },
+    { count: redemptionsPeriodCount },
+  ] = await Promise.all([
     db
       .from('subscribers')
       .select('id, status, subscribed_at, cancelled_at, utm_source, utm_medium')
@@ -122,6 +131,16 @@ export async function loadAdminAnalytics(
       .select('date, spend, visits, goal_click_pay')
       .gte('date', periodFrom)
       .lte('date', periodTo),
+    db
+      .from('redemptions')
+      .select('id', { count: 'exact', head: true })
+      .gte('redeemed_at', todayBounds.start)
+      .lt('redeemed_at', todayBounds.end),
+    db
+      .from('redemptions')
+      .select('id', { count: 'exact', head: true })
+      .gte('redeemed_at', periodStart)
+      .lt('redeemed_at', periodEndExclusive),
   ])
 
   const rows = (subsData ?? []) as SubRow[]
@@ -234,6 +253,7 @@ export async function loadAdminAnalytics(
       new7d,
       cancelled30d,
       churn30d,
+      redemptionsToday: redemptionsTodayCount ?? 0,
     },
     efficiency: {
       spend,
@@ -243,6 +263,7 @@ export async function loadAdminAnalytics(
       newTotal,
       landingCr,
       organicShare,
+      redemptionsPeriod: redemptionsPeriodCount ?? 0,
     },
     channels,
     series: {

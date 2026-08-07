@@ -69,7 +69,7 @@ export default async function AdminAnalyticsPage({
         <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-gray-500">
           Сейчас
         </h2>
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           <MetricCard label="Активные" value={fmtNumber(realtime.active)} />
           <MetricCard label="MRR" value={fmtKzt(realtime.mrr)} />
           <MetricCard label="Новые сегодня" value={fmtNumber(realtime.newToday)} />
@@ -82,6 +82,11 @@ export default async function AdminAnalyticsPage({
             label="Churn 30 дней"
             value={fmtPct(realtime.churn30d)}
           />
+          <MetricCard
+            label="Офферы сегодня"
+            value={fmtNumber(realtime.redemptionsToday)}
+            hint="использований"
+          />
         </div>
       </section>
 
@@ -90,7 +95,7 @@ export default async function AdminAnalyticsPage({
         <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-gray-500">
           Эффективность · {periodDays} дней
         </h2>
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
           <MetricCard label="Расход" value={fmtKzt(efficiency.spend)} />
           <Card
             className={
@@ -129,6 +134,11 @@ export default async function AdminAnalyticsPage({
             label="Доля органики"
             value={fmtPct(efficiency.organicShare)}
             hint="utm_medium ≠ paid"
+          />
+          <MetricCard
+            label="Офферы"
+            value={fmtNumber(efficiency.redemptionsPeriod)}
+            hint={`использований за ${periodDays}д`}
           />
         </div>
       </section>

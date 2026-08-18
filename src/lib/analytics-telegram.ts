@@ -21,8 +21,10 @@ export async function notifySubscriberGained(sub: SubscriberRow): Promise<void> 
     const total = await countActiveSubscribers()
     const mrr = total * MONTHLY_PRICE_KZT
     const source = attributionLabel(sub)
+    const promo = sub.promo_code?.trim()
+    const promoPart = promo ? `промокод ${promo}` : 'без промокода'
     await sendTelegramMessage(
-      `+1 подписчик (источник: ${source}), всего ${fmtNumber(total)}, MRR ${fmtKzt(mrr)}`,
+      `+1 подписчик (источник: ${source}, ${promoPart}), всего ${fmtNumber(total)}, MRR ${fmtKzt(mrr)}`,
     )
   } catch (error) {
     logServerError('analytics-telegram:gained', error)

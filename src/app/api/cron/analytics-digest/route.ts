@@ -5,7 +5,11 @@ import {
   almatyDayUtcBounds,
   yesterdayAlmatyDate,
 } from '@/lib/metrics-snapshot'
-import { notifyDailyAdSummary } from '@/lib/analytics-telegram'
+import {
+  aggregateTopPromos,
+  aggregateTopSources,
+  notifyDailyAdSummary,
+} from '@/lib/analytics-telegram'
 import { isPaidMedium } from '@/lib/ttp-analytics-ledger'
 import { logServerError } from '@/lib/safe-errors'
 
@@ -33,6 +37,7 @@ export async function GET(req: Request) {
       { data: newRows },
       { count: cancelled },
       { data: adRow },
+      { count: redemptions },
     ] = await Promise.all([
       db
         .from('subscribers')
@@ -41,7 +46,7 @@ export async function GET(req: Request) {
         .lt('subscribed_at', end),
       db
         .from('subscribers')
-        .select('utm_medium')
+        .select('utm_source, utm_medium, promo_code')
         .gte('subscribed_at', start)
         .lt('subscribed_at', end),
       db
@@ -55,6 +60,11 @@ export async function GET(req: Request) {
         .select('spend')
         .eq('date', date)
         .maybeSingle<{ spend: number | null }>(),
+      db
+        .from('redemptions')
+        .select('id', { count: 'exact', head: true })
+        .gte('redeemed_at', start)
+        .lt('redeemed_at', end),
     ])
 
     const paidNew = (newRows ?? []).filter((r) =>
@@ -70,6 +80,9 @@ export async function GET(req: Request) {
       spend,
       paidNew,
       cac,
+      topSources: aggregateTopSources(newRows ?? []),
+      topPromos: aggregateTopPromos(newRows ?? []),
+      redemptions: redemptions ?? 0,
     }
 
     await notifyDailyAdSummary(summary)

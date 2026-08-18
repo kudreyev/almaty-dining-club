@@ -46,7 +46,7 @@ export async function POST(req: NextRequest) {
     })
 
     if (result.cancelled && result.changed) {
-      void notifySubscriberLost({ reason })
+      void notifySubscriberLost({ reason, subscriber: result.subscriber })
     }
   } catch (error) {
     logServerError('webhooks/ttp/recurrent', error)

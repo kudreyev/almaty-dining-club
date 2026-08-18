@@ -2,10 +2,7 @@ import {
   notifySubscriberGained,
   notifySubscriptionRenewed,
 } from '@/lib/analytics-telegram'
-import {
-  attributionLabel,
-  type PaymentRecordResult,
-} from '@/lib/ttp-analytics-ledger'
+import type { PaymentRecordResult } from '@/lib/ttp-analytics-ledger'
 
 /** Telegram после успешного ledger-платежа (не дубликаты). */
 export function notifyLedgerPaymentResult(
@@ -14,11 +11,14 @@ export function notifyLedgerPaymentResult(
 ): void {
   if (result.duplicate) return
   if (result.created || result.reactivated) {
-    void notifySubscriberGained(result.subscriber)
+    void notifySubscriberGained(result.subscriber, {
+      amount,
+      reactivated: result.reactivated,
+    })
     return
   }
   void notifySubscriptionRenewed({
     amount,
-    source: attributionLabel(result.subscriber),
+    subscriber: result.subscriber,
   })
 }

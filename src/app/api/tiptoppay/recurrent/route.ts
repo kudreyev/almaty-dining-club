@@ -44,7 +44,10 @@ export async function POST(req: NextRequest) {
           jsonData: parseWebhookJsonData(p),
         })
         if (ledger.cancelled && ledger.changed) {
-          void notifySubscriberLost({ reason: p.Reason || status })
+          void notifySubscriberLost({
+            reason: p.Reason || status,
+            subscriber: ledger.subscriber,
+          })
         }
       } catch (ledgerError) {
         logServerError('api/tiptoppay/recurrent:ledger', ledgerError)

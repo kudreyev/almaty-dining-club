@@ -397,8 +397,39 @@ export async function applyRecurrentStatus(args: {
   return { subscriber: existing, changed: false, cancelled: false }
 }
 
-export function attributionLabel(sub: Pick<SubscriberRow, 'utm_source'>): string {
-  return sub.utm_source?.trim() || 'direct'
+export function attributionLabel(
+  sub: Pick<SubscriberRow, 'utm_source' | 'utm_medium' | 'utm_campaign'>,
+): string {
+  const source = sub.utm_source?.trim() || 'direct'
+  const medium = sub.utm_medium?.trim()
+  const campaign = sub.utm_campaign?.trim()
+  if (!medium && !campaign) return source
+  const parts = [source]
+  if (medium) parts.push(medium)
+  if (campaign) parts.push(campaign)
+  return parts.join(' / ')
+}
+
+/** Промокод подписчика по user_id (profiles.phone → subscribers). */
+export async function findSubscriberPromoByUserId(
+  userId: string,
+): Promise<string | null> {
+  const db = admin()
+  const { data: profile } = await db
+    .from('profiles')
+    .select('phone')
+    .eq('id', userId)
+    .maybeSingle<{ phone: string | null }>()
+
+  if (!profile?.phone?.trim()) return null
+
+  const { data: sub } = await db
+    .from('subscribers')
+    .select('promo_code')
+    .eq('phone', profile.phone.trim())
+    .maybeSingle<{ promo_code: string | null }>()
+
+  return sub?.promo_code?.trim() || null
 }
 
 export function isPaidMedium(utmMedium: string | null | undefined): boolean {

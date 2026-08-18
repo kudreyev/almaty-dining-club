@@ -13,6 +13,7 @@ import {
   recordStaffRedeemFailure,
 } from '@/lib/staff-redeem-rate-limit'
 import { notifyOfferRedeemed } from '@/lib/analytics-telegram'
+import { findSubscriberPromoByUserId } from '@/lib/ttp-analytics-ledger'
 import { logServerError } from '@/lib/safe-errors'
 
 async function requireStaffContext() {
@@ -158,9 +159,12 @@ export async function redeemTokenByCode(formData: FormData) {
     try {
       const { data: tokenMeta } = await admin
         .from('redeem_tokens')
-        .select('restaurant_id, offer_id, restaurants(name), offers(offer_title)')
+        .select(
+          'user_id, restaurant_id, offer_id, restaurants(name), offers(offer_title)',
+        )
         .eq('token_code', tokenCode)
         .maybeSingle<{
+          user_id: string
           restaurant_id: string
           offer_id: string
           restaurants: { name: string } | null
@@ -170,7 +174,10 @@ export async function redeemTokenByCode(formData: FormData) {
       const restaurantName =
         tokenMeta?.restaurants?.name?.trim() || 'заведение'
       const offerTitle = tokenMeta?.offers?.offer_title?.trim() || null
-      void notifyOfferRedeemed({ restaurantName, offerTitle })
+      const promoCode = tokenMeta?.user_id
+        ? await findSubscriberPromoByUserId(tokenMeta.user_id)
+        : null
+      void notifyOfferRedeemed({ restaurantName, offerTitle, promoCode })
     } catch (error) {
       logServerError('staff/redeem:telegram', error)
     }

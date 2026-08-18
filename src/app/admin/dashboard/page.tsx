@@ -7,6 +7,13 @@ import {
   aggregateMetricaBySource,
   SUPPORT_WHATSAPP_SOURCES,
 } from '@/lib/whatsapp-analytics'
+import {
+  listRecentPayments,
+  merchantPortalUrl,
+  paymentsWithoutRecurrent,
+  type TipTopPaymentRow,
+} from '@/lib/tiptoppay-ops'
+import { subscriptionStatusLabel } from '@/lib/labels'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { PRICE_KZT } from '@/lib/pricing'
@@ -165,6 +172,23 @@ type SupportWhatsappStats = {
   bySource: Array<{ source: string; clicks: number }>
 }
 
+type TipTopSubRow = {
+  id: string
+  user_id: string
+  status: 'inactive' | 'pending_payment' | 'active' | 'cancelled' | 'expired'
+  end_date: string | null
+  tiptop_subscription_id: string | null
+  created_at: string
+  plan_name: string
+}
+
+type TipTopOpsStats = {
+  withId: number
+  cancelled: number
+  missingId: number
+  rows: Array<TipTopSubRow & { phone: string | null }>
+}
+
 function emptyTipTopSteps(): Record<TipTopFunnelStep, number> {
   return {
     cta_click: 0,
@@ -300,6 +324,89 @@ async function loadMetricaTipTopGoals(daysAgo: number) {
       bySource,
     }
   }, `metrica_tiptop_${daysAgo}d`)
+}
+
+async function loadTipTopOpsSubscriptions(scope: CustomerMetricsScope) {
+  const supabase = createSupabaseAdminClient()
+  return safe(async () => {
+    // TipTop-подписки: plan_name monthly_tiptoppay ИЛИ уже есть tiptop_subscription_id.
+    // Два запроса + merge — PostgREST or() с null работает хрупко.
+    const byPlan = await scope.applySubscriptionExclusion(
+      supabase
+        .from('subscriptions')
+        .select(
+          'id, user_id, status, end_date, tiptop_subscription_id, created_at, plan_name',
+        )
+        .eq('plan_name', 'monthly_tiptoppay')
+        .order('created_at', { ascending: false })
+        .limit(100),
+    ).returns<TipTopSubRow[]>()
+    if (byPlan.error) throw byPlan.error
+
+    const byId = await scope.applySubscriptionExclusion(
+      supabase
+        .from('subscriptions')
+        .select(
+          'id, user_id, status, end_date, tiptop_subscription_id, created_at, plan_name',
+        )
+        .not('tiptop_subscription_id', 'is', null)
+        .order('created_at', { ascending: false })
+        .limit(100),
+    ).returns<TipTopSubRow[]>()
+    if (byId.error) throw byId.error
+
+    const byKey = new Map<string, TipTopSubRow>()
+    for (const row of [
+      ...scope.filterUserRows(byPlan.data ?? []),
+      ...scope.filterUserRows(byId.data ?? []),
+    ]) {
+      byKey.set(row.id, row)
+    }
+
+    const rows = Array.from(byKey.values()).sort((a, b) =>
+      b.created_at.localeCompare(a.created_at),
+    )
+
+    let withId = 0
+    let cancelled = 0
+    let missingId = 0
+    for (const row of rows) {
+      if (row.status === 'cancelled') cancelled++
+      if (row.tiptop_subscription_id) {
+        withId++
+      } else if (row.status === 'active' || row.status === 'cancelled') {
+        missingId++
+      }
+    }
+
+    const userIds = Array.from(new Set(rows.map((r) => r.user_id)))
+    const phoneById = new Map<string, string | null>()
+    if (userIds.length > 0) {
+      const profRes = await supabase
+        .from('profiles')
+        .select('id, phone')
+        .in('id', userIds)
+        .returns<ProfilePhone[]>()
+      if (profRes.error) throw profRes.error
+      for (const p of profRes.data ?? []) {
+        phoneById.set(p.id, p.phone)
+      }
+    }
+
+    return {
+      withId,
+      cancelled,
+      missingId,
+      rows: rows.map((r) => ({ ...r, phone: phoneById.get(r.user_id) ?? null })),
+    } satisfies TipTopOpsStats
+  }, 'tiptop_ops_subscriptions')
+}
+
+async function loadPaymentsWithoutRecurrent(days: number) {
+  return safe(async () => {
+    const payments = await listRecentPayments(days)
+    return paymentsWithoutRecurrent(payments)
+  }, `tiptop_payments_no_recurrent_${days}d`)
 }
 
 async function loadActiveSubscribers(scope: CustomerMetricsScope) {
@@ -541,6 +648,8 @@ export default async function AdminDashboardPage() {
     activeSubs,
     new7d,
     new30d,
+    tipTopOps,
+    paymentsNoRecurrent,
     tipTop7d,
     tipTop30d,
     supportWa7d,
@@ -553,6 +662,8 @@ export default async function AdminDashboardPage() {
     loadActiveSubscribers(scope),
     loadNewSubscriptions(scope, 7),
     loadNewSubscriptions(scope, 30),
+    loadTipTopOpsSubscriptions(scope),
+    loadPaymentsWithoutRecurrent(14),
     loadTipTopFunnel(scope, 7),
     loadTipTopFunnel(scope, 30),
     loadSupportWhatsapp(scope, 7),
@@ -639,9 +750,190 @@ export default async function AdminDashboardPage() {
         </div>
       </section>
 
-      {/* БЛОК 2 — TIPTOP-ВОРОНКА */}
+      {/* БЛОК 2 — TIPTOP-ОПЕРАЦИОНКА */}
       <section className="mb-10">
-        <h2 className="mb-1 text-lg font-semibold text-gray-800">2. TipTop-воронка</h2>
+        <h2 className="mb-1 text-lg font-semibold text-gray-800">2. TipTop-операционка</h2>
+        <p className="mb-3 text-sm text-gray-500">
+          Подписки с plan_name monthly_tiptoppay / tiptop_subscription_id. Без ID — нельзя
+          отменить через API. Платежи без рекуррента — Completed без Token и SubscriptionId
+          (TipTop API, 14 дней).
+        </p>
+
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <MetricCard
+            label="С TipTop ID"
+            value={tipTopOps.ok ? fmtNumber(tipTopOps.value.withId) : '—'}
+            hint="можно отменить в TipTop"
+          />
+          <MetricCard
+            label="Cancelled"
+            value={tipTopOps.ok ? fmtNumber(tipTopOps.value.cancelled) : '—'}
+            hint="автосписаний нет"
+          />
+          <MetricCard
+            label="Без TipTop ID"
+            value={tipTopOps.ok ? fmtNumber(tipTopOps.value.missingId) : '—'}
+            hint="active/cancelled без id"
+          />
+          <MetricCard
+            label="Платежи без рекуррента"
+            value={
+              paymentsNoRecurrent.ok
+                ? fmtNumber(paymentsNoRecurrent.value.length)
+                : '—'
+            }
+            hint="14 дней, Completed без Token"
+          />
+        </div>
+
+        <div className="mt-4">
+          <h3 className="mb-2 text-sm font-medium text-gray-600">
+            Подписки TipTop (последние)
+          </h3>
+          <Card padding="none" className="overflow-hidden">
+            {!tipTopOps.ok ? (
+              <p className="px-4 py-6 text-center text-base text-gray-400">— нет данных —</p>
+            ) : tipTopOps.value.rows.length === 0 ? (
+              <p className="px-4 py-6 text-center text-base text-gray-500">
+                Пока нет подписок TipTop.
+              </p>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full min-w-[720px] text-left text-base">
+                  <thead>
+                    <tr className="border-b border-gray-100 bg-gray-50/50">
+                      <th className="px-4 py-3 text-sm font-medium text-gray-500">Телефон</th>
+                      <th className="px-4 py-3 text-sm font-medium text-gray-500">Статус</th>
+                      <th className="px-4 py-3 text-sm font-medium text-gray-500">До</th>
+                      <th className="px-4 py-3 text-sm font-medium text-gray-500">
+                        tiptop_subscription_id
+                      </th>
+                      <th className="px-4 py-3 text-sm font-medium text-gray-500">TipTop</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-50">
+                    {tipTopOps.value.rows.slice(0, 40).map((row) => {
+                      const missing = !row.tiptop_subscription_id
+                      const statusColor =
+                        row.status === 'active'
+                          ? 'green'
+                          : row.status === 'cancelled'
+                            ? 'yellow'
+                            : 'default'
+                      return (
+                        <tr
+                          key={row.id}
+                          className={missing ? 'bg-amber-50/60' : undefined}
+                        >
+                          <td className="px-4 py-3 font-medium tabular-nums">
+                            {maskPhone(row.phone)}
+                          </td>
+                          <td className="px-4 py-3">
+                            <Badge color={statusColor}>
+                              {subscriptionStatusLabel(row.status)}
+                            </Badge>
+                          </td>
+                          <td className="px-4 py-3 text-gray-600">
+                            {row.end_date ? fmtDate(row.end_date) : '—'}
+                          </td>
+                          <td className="px-4 py-3 font-mono text-sm text-gray-700">
+                            {row.tiptop_subscription_id ?? '—'}
+                          </td>
+                          <td className="px-4 py-3">
+                            <a
+                              href={merchantPortalUrl()}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-sm text-primary underline underline-offset-2 hover:opacity-80"
+                              title={
+                                row.tiptop_subscription_id
+                                  ? `Найти в кабинете: ${row.tiptop_subscription_id}`
+                                  : 'Открыть кабинет TipTop'
+                              }
+                            >
+                              В TipTop
+                            </a>
+                          </td>
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </Card>
+        </div>
+
+        <div className="mt-4">
+          <h3 className="mb-2 text-sm font-medium text-gray-600">
+            Платежи без рекуррента (14 дней)
+          </h3>
+          <Card padding="none" className="overflow-hidden">
+            {!paymentsNoRecurrent.ok ? (
+              <p className="px-4 py-6 text-center text-base text-gray-400">
+                — TipTop API недоступен —
+              </p>
+            ) : paymentsNoRecurrent.value.length === 0 ? (
+              <p className="px-4 py-6 text-center text-base text-gray-500">
+                За 14 дней таких платежей нет.
+              </p>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full min-w-[720px] text-left text-base">
+                  <thead>
+                    <tr className="border-b border-gray-100 bg-gray-50/50">
+                      <th className="px-4 py-3 text-sm font-medium text-gray-500">Дата</th>
+                      <th className="px-4 py-3 text-sm font-medium text-gray-500">Txn</th>
+                      <th className="px-4 py-3 text-sm font-medium text-gray-500">Сумма</th>
+                      <th className="px-4 py-3 text-sm font-medium text-gray-500">Карта</th>
+                      <th className="px-4 py-3 text-sm font-medium text-gray-500">Apple Pay</th>
+                      <th className="px-4 py-3 text-sm font-medium text-gray-500">AccountId</th>
+                      <th className="px-4 py-3 text-sm font-medium text-gray-500">TipTop</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-50">
+                    {paymentsNoRecurrent.value.map((p: TipTopPaymentRow) => (
+                      <tr key={p.TransactionId}>
+                        <td className="px-4 py-3 text-gray-600">
+                          {p.CreatedDateIso
+                            ? fmtDate(p.CreatedDateIso.slice(0, 10))
+                            : '—'}
+                        </td>
+                        <td className="px-4 py-3 font-mono text-sm tabular-nums">
+                          {p.TransactionId}
+                        </td>
+                        <td className="px-4 py-3 tabular-nums">{fmtKzt(p.Amount)}</td>
+                        <td className="px-4 py-3 text-gray-700">{p.CardType ?? '—'}</td>
+                        <td className="px-4 py-3 text-gray-700">
+                          {p.ApplePay ? 'да' : 'нет'}
+                        </td>
+                        <td className="px-4 py-3 font-mono text-sm text-gray-600">
+                          {p.AccountId ? `${p.AccountId.slice(0, 8)}…` : '—'}
+                        </td>
+                        <td className="px-4 py-3">
+                          <a
+                            href={merchantPortalUrl()}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-sm text-primary underline underline-offset-2 hover:opacity-80"
+                            title={`Найти оплату №${p.TransactionId}`}
+                          >
+                            В TipTop
+                          </a>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </Card>
+        </div>
+      </section>
+
+      {/* БЛОК 3 — TIPTOP-ВОРОНКА */}
+      <section className="mb-10">
+        <h2 className="mb-1 text-lg font-semibold text-gray-800">3. Воронка оплаты</h2>
         <p className="mb-3 text-sm text-gray-500">
           Live-данные из analytics_events (SubscribeCTA → CheckoutModal). За 7 и 30 дней.
         </p>
@@ -714,118 +1006,6 @@ export default async function AdminDashboardPage() {
                         <td className="px-4 py-3 tabular-nums text-gray-600">{fmtPct(row.crPct)}</td>
                       </tr>
                     ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </Card>
-        </div>
-
-        <div className="mt-6">
-          <h3 className="mb-2 text-sm font-medium text-gray-600">
-            Саппорт WhatsApp (7 дней)
-          </h3>
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-            <MetricCard
-              label="Кликов в саппорт"
-              value={supportWa7d.ok ? fmtNumber(supportWa7d.value.total) : '—'}
-              hint="whatsapp_click, только support sources"
-            />
-          </div>
-          {supportWa7d.ok && supportWa7d.value.bySource.length > 0 ? (
-            <Card padding="none" className="mt-3 overflow-hidden">
-              <div className="overflow-x-auto">
-                <table className="w-full min-w-[400px] text-left text-base">
-                  <thead>
-                    <tr className="border-b border-gray-100 bg-gray-50/50">
-                      <th className="px-4 py-3 text-sm font-medium text-gray-500">source</th>
-                      <th className="px-4 py-3 text-sm font-medium text-gray-500">Клики</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-50">
-                    {supportWa7d.value.bySource.map((row) => (
-                      <tr key={row.source}>
-                        <td className="px-4 py-3 font-mono text-sm text-gray-900">{row.source}</td>
-                        <td className="px-4 py-3 tabular-nums">{fmtNumber(row.clicks)}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </Card>
-          ) : null}
-        </div>
-      </section>
-
-      {/* БЛОК 3 — МЕТРИКА */}
-      <section className="mb-10">
-        <h2 className="mb-1 text-lg font-semibold text-gray-800">3. Яндекс.Метрика</h2>
-        <p className="mb-3 text-sm text-gray-500">
-          Агрегаты из metrica_goals_daily (Слой 1). Обновляется cron раз в сутки (~03:00 Алматы).
-          Нужны JS-цели с идентификаторами cta_click / purchase.
-        </p>
-
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-          <MetricCard
-            label="cta_click (7д, Метрика)"
-            value={metrica7d.ok ? fmtNumber(metrica7d.value.cta) : '—'}
-            hint="официальная статистика"
-          />
-          <MetricCard
-            label="purchase (7д, Метрика)"
-            value={metrica7d.ok ? fmtNumber(metrica7d.value.payment) : '—'}
-            hint="официальная статистика"
-          />
-          <MetricCard
-            label="CR Метрика (7д)"
-            value={metrica7d.ok ? fmtPct(metrica7d.value.crPct) : '—'}
-            hint="purchase / cta"
-          />
-          <MetricCard
-            label="CR Live (7д)"
-            value={tipTop7d.ok ? fmtPct(tipTop7d.value.crPct) : '—'}
-            hint="analytics_events для сравнения"
-          />
-        </div>
-
-        <div className="mt-4">
-          <h3 className="mb-2 text-sm font-medium text-gray-600">
-            purchase по source (7 дней, Метрика)
-          </h3>
-          <Card padding="none" className="overflow-hidden">
-            {!metrica7d.ok ? (
-              <p className="px-4 py-6 text-center text-base text-gray-400">— нет данных —</p>
-            ) : metrica7d.value.bySource.length === 0 ? (
-              <p className="px-4 py-6 text-center text-base text-gray-500">
-                Нет данных Метрики за 7 дней. Создайте JS-цели TipTop и проверьте cron
-                metrica-sync / YANDEX_OAUTH_TOKEN.
-              </p>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full min-w-[480px] text-left text-base">
-                  <thead>
-                    <tr className="border-b border-gray-100 bg-gray-50/50">
-                      <th className="px-4 py-3 text-sm font-medium text-gray-500">source</th>
-                      <th className="px-4 py-3 text-sm font-medium text-gray-500">Достижения</th>
-                      <th className="px-4 py-3 text-sm font-medium text-gray-500">Доля</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-50">
-                    {metrica7d.value.bySource.map((row) => {
-                      const share =
-                        metrica7d.value.payment > 0
-                          ? Math.round((row.achievements / metrica7d.value.payment) * 100)
-                          : 0
-                      return (
-                        <tr key={row.source}>
-                          <td className="px-4 py-3 font-mono text-sm text-gray-900">
-                            {row.source}
-                          </td>
-                          <td className="px-4 py-3 tabular-nums">{fmtNumber(row.achievements)}</td>
-                          <td className="px-4 py-3 tabular-nums text-gray-600">{share}%</td>
-                        </tr>
-                      )
-                    })}
                   </tbody>
                 </table>
               </div>
@@ -956,6 +1136,95 @@ export default async function AdminDashboardPage() {
             </div>
           )}
         </Card>
+      </section>
+
+      {/* БЛОК 7 — WHATSAPP + МЕТРИКА (компактно) */}
+      <section className="mb-10">
+        <h2 className="mb-1 text-lg font-semibold text-gray-800">
+          7. WhatsApp и Метрика
+        </h2>
+        <p className="mb-3 text-sm text-gray-500">
+          Саппортные клики WhatsApp и сверка с Яндекс.Метрикой (cta_click / purchase).
+        </p>
+
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <MetricCard
+            label="Саппорт WA (7д)"
+            value={supportWa7d.ok ? fmtNumber(supportWa7d.value.total) : '—'}
+            hint="whatsapp_click, support sources"
+          />
+          <MetricCard
+            label="cta_click Метрика"
+            value={metrica7d.ok ? fmtNumber(metrica7d.value.cta) : '—'}
+            hint="7 дней"
+          />
+          <MetricCard
+            label="purchase Метрика"
+            value={metrica7d.ok ? fmtNumber(metrica7d.value.payment) : '—'}
+            hint="7 дней"
+          />
+          <MetricCard
+            label="CR Метрика / Live"
+            value={
+              metrica7d.ok && tipTop7d.ok
+                ? `${fmtPct(metrica7d.value.crPct)} / ${fmtPct(tipTop7d.value.crPct)}`
+                : '—'
+            }
+            hint="Метрика vs analytics_events"
+          />
+        </div>
+
+        {(supportWa7d.ok && supportWa7d.value.bySource.length > 0) ||
+        (metrica7d.ok && metrica7d.value.bySource.length > 0) ? (
+          <div className="mt-4 grid gap-4 md:grid-cols-2">
+            {supportWa7d.ok && supportWa7d.value.bySource.length > 0 ? (
+              <Card padding="none" className="overflow-hidden">
+                <p className="border-b border-gray-100 bg-gray-50/50 px-4 py-2 text-sm font-medium text-gray-600">
+                  Саппорт WA по source
+                </p>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-base">
+                    <tbody className="divide-y divide-gray-50">
+                      {supportWa7d.value.bySource.map((row) => (
+                        <tr key={row.source}>
+                          <td className="px-4 py-2 font-mono text-sm text-gray-900">
+                            {row.source}
+                          </td>
+                          <td className="px-4 py-2 tabular-nums text-right">
+                            {fmtNumber(row.clicks)}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </Card>
+            ) : null}
+            {metrica7d.ok && metrica7d.value.bySource.length > 0 ? (
+              <Card padding="none" className="overflow-hidden">
+                <p className="border-b border-gray-100 bg-gray-50/50 px-4 py-2 text-sm font-medium text-gray-600">
+                  purchase Метрика по source
+                </p>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-base">
+                    <tbody className="divide-y divide-gray-50">
+                      {metrica7d.value.bySource.map((row) => (
+                        <tr key={row.source}>
+                          <td className="px-4 py-2 font-mono text-sm text-gray-900">
+                            {row.source}
+                          </td>
+                          <td className="px-4 py-2 tabular-nums text-right">
+                            {fmtNumber(row.achievements)}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </Card>
+            ) : null}
+          </div>
+        ) : null}
       </section>
     </div>
   )

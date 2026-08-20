@@ -9,6 +9,7 @@ import { UtmCapture } from '@/components/analytics/utm-capture'
 import { PwaRegister } from '@/components/pwa-register'
 import { PwaInstallProvider } from '@/components/pwa/pwa-install-provider'
 import { PushClickTracker } from '@/components/pwa/push-click-tracker'
+import { Heartbeat } from '@/components/pwa/heartbeat'
 import { PwaAppBadge } from '@/components/pwa/pwa-app-badge'
 import { SessionKeepAlive } from '@/components/auth/session-keepalive'
 import { UserProvider } from '@/lib/auth/use-user'
@@ -28,7 +29,7 @@ export const viewport: Viewport = {
 
 export const metadata: Metadata = {
   title: 'Kudaclub — подписка на рестораны',
-  description: 'Подписка с офферами 2 за 1 и в подарок в ресторанах Казахстана.',
+  description: 'Подписка с офферами 1+1 и в подарок в ресторанах Казахстана.',
   applicationName: 'kudaclub',
   appleWebApp: {
     capable: true,
@@ -82,6 +83,7 @@ export default function RootLayout({
             <UtmCapture />
             <PwaRegister />
             <PushClickTracker />
+            <Heartbeat />
             <SessionKeepAlive />
             <PwaAppBadge />
             <div className="flex min-h-screen flex-col bg-[#fafaf9] text-gray-900">

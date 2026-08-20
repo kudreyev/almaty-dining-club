@@ -27,7 +27,7 @@ export function OfferAdminTypeAndSchedule({
         value={offerType}
         onChange={(event) => setOfferType(event.target.value)}
       >
-        <option value="2for1">2за1</option>
+        <option value="2for1">1+1</option>
         <option value="compliment">в подарок</option>
         <option value="kudafest_set">Сеты Kudafest</option>
       </Select>

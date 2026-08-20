@@ -154,7 +154,7 @@ export function FilterChipsBar({
               onClick={() => onToggleOffer('2for1')}
               onFocus={handleChipFocus}
             >
-              2 за 1
+              1+1
             </Chip>
 
             <Chip

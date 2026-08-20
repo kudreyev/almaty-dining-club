@@ -352,7 +352,7 @@ function renderCta({
 
 function formatTypeBadge(offerType: OfferType): { label: string; bg: string } {
   if (offerType === '2for1') {
-    return { label: '2 за 1', bg: '#D85A30' }
+    return { label: '1+1', bg: '#D85A30' }
   }
   if (offerType === 'kudafest_set') {
     return { label: 'Kudafest', bg: '#5B21B6' }

@@ -170,7 +170,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     : CITY_LABELS_PREPOSITIONAL[DEFAULT_CITY]
   const title = `${restaurant.restaurant_name} в ${cityPrepositional} — офферы Kudaclub`
   const descriptionParts = [
-    `${restaurant.restaurant_name} — 2 за 1 и подарки по подписке Kudaclub`,
+    `${restaurant.restaurant_name} — 1+1 и подарки по подписке Kudaclub`,
     cuisines ? `Кухня: ${cuisines}.` : null,
     restaurant.address ? `Адрес: ${restaurant.address}.` : null,
     'Подписка 1 990 ₸/мес — окупается первым визитом.',

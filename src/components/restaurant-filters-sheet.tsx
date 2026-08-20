@@ -244,7 +244,7 @@ export function RestaurantFiltersSheet({
               active={filters.offers.has('2for1')}
               onClick={() => onChange({ ...filters, offers: toggleOffer(filters.offers, '2for1') })}
             >
-              2 за 1
+              1+1
             </FilterChip>
             <FilterChip
               active={filters.offers.has('compliment')}

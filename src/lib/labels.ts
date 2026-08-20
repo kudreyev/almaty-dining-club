@@ -42,7 +42,7 @@ export function paymentStatusLabel(status: 'pending' | 'approved' | 'rejected') 
   }
   
   export function offerTypeLabel(type: '2for1' | 'compliment' | 'kudafest_set') {
-    if (type === '2for1') return '2за1'
+    if (type === '2for1') return '1+1'
     if (type === 'compliment') return 'в подарок'
     return 'Сеты Kudafest'
   }

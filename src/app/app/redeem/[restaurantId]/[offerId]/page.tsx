@@ -135,7 +135,7 @@ export default async function RedeemPage({ params, searchParams }: PageProps) {
         <div className="flex flex-wrap items-center gap-2">
           <Badge color="dark">
             {offer.offer_type === '2for1'
-              ? '2за1'
+              ? '1+1'
               : offer.offer_type === 'kudafest_set'
                 ? 'Kudafest'
                 : 'в подарок'}

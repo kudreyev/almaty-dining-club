@@ -204,21 +204,21 @@ export function formatKudafestBadgeDate(endDate: string): string {
 }
 
 export function formatOfferHeadline(offerType: OfferType, offerTitle: string): string {
-  if (offerType === '2for1') return `2за1 · ${offerTitle}`
+  if (offerType === '2for1') return `1+1 · ${offerTitle}`
   if (offerType === 'kudafest_set') return `Сеты Kudafest · ${offerTitle}`
   return `${offerTitle} в подарок`
 }
 
-/** Развёрнутый заголовок оффера с пробелами: «2 за 1 · {название}» / «{название} в подарок». */
+/** Развёрнутый заголовок оффера с пробелами: «1+1 · {название}» / «{название} в подарок». */
 export function formatOfferTitle(offerType: OfferType, offerTitle: string): string {
-  if (offerType === '2for1') return `2 за 1 · ${offerTitle}`
+  if (offerType === '2for1') return `1+1 · ${offerTitle}`
   if (offerType === 'kudafest_set') return `Сеты Kudafest · ${offerTitle}`
   return `${offerTitle} в подарок`
 }
 
 /** Лейбл плашки оффера на карточке заведения. */
 export function formatOfferChipLabel(offerType: OfferType, offerTitle: string): string {
-  if (offerType === '2for1') return `2 за 1 · ${offerTitle}`
+  if (offerType === '2for1') return `1+1 · ${offerTitle}`
   if (offerType === 'kudafest_set') return `Сеты Kudafest · ${offerTitle}`
   return `${offerTitle} в подарок`
 }
@@ -229,7 +229,7 @@ type OfferLike = {
   estimated_value?: number | null
 }
 
-/** Сначала 2-за-1, потом подарки, затем Kudafest; ограничено maxN. Возвращает только активные. */
+/** Сначала 1+1, потом подарки, затем Kudafest; ограничено maxN. Возвращает только активные. */
 export function pickTopOffers<T extends OfferLike>(offers: T[], maxN = 3): T[] {
   const active = offers.filter((offer) => offer.is_active)
   const twoFor1 = active.filter((offer) => offer.offer_type === '2for1')

@@ -29,7 +29,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const prepositional = CITY_LABELS_PREPOSITIONAL[city]
   return {
     title: `Kudaclub — подписка на рестораны в ${prepositional}`,
-    description: `Подписка с офферами 2 за 1 и в подарок в ресторанах в ${prepositional}.`,
+    description: `Подписка с офферами 1+1 и в подарок в ресторанах в ${prepositional}.`,
   }
 }
 

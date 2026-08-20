@@ -4,7 +4,7 @@ export default function manifest(): MetadataRoute.Manifest {
   return {
     name: 'kudaclub',
     short_name: 'kudaclub',
-    description: 'Подписка с офферами 2 за 1 и в подарок в ресторанах Казахстана.',
+    description: 'Подписка с офферами 1+1 и в подарок в ресторанах Казахстана.',
     start_url: '/app/me?utm_source=pwa',
     scope: '/',
     display: 'standalone',

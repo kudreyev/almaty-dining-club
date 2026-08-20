@@ -13,7 +13,7 @@ import { formatPriceKzt, formatPricePerMonth } from '@/lib/pricing'
 export const metadata: Metadata = {
   title: `Kudaclub — подписка ${formatPricePerMonth()}`,
   description:
-    'Подписка Kudaclub: 2-за-1 на главные блюда и подарки к заказу. Без купонов, без распечаток, без скидочных карт.',
+    'Подписка Kudaclub: 1+1 на главные блюда и подарки к заказу. Без купонов, без распечаток, без скидочных карт.',
 }
 
 const FAQ_ITEMS = [
@@ -26,7 +26,7 @@ const FAQ_ITEMS = [
     a: 'Список заведений открыт до оплаты — посмотри, подходит ли он тебе. Если передумаешь после оплаты, отмени подписку в личном кабинете, чтобы не платить дальше. Возврата за уже оплаченный период нет.',
   },
   {
-    q: 'Как работает 2 за 1?',
+    q: 'Как работает 1+1?',
     a: 'Закажи два одинаковых блюда — второе будет бесплатно. Конкретные условия зависят от ресторана и указаны в описании оффера.',
   },
   {
@@ -80,7 +80,7 @@ export default function PricingPage() {
           </h1>
 
           <p className="mx-auto mb-7 text-sm leading-[1.55] text-neutral-600">
-            2-за-1 на главные блюда и подарки к заказу. Без купонов, без
+            1+1 на главные блюда и подарки к заказу. Без купонов, без
             распечаток, без скидочных карт.
           </p>
 
@@ -103,7 +103,7 @@ export default function PricingPage() {
 
             {/* Math block */}
             <p className="mt-5 mb-[18px] rounded-md bg-neutral-100 px-3 py-2.5 text-[13px] leading-[1.55] text-neutral-600">
-              Подписка = 65 ₸ в день. Один поход в ресторан с 2-за-1 экономит
+              Подписка = 65 ₸ в день. Один поход в ресторан с 1+1 экономит
               ~2 500 ₸. Дальше — каждый последующий поход в плюс.
             </p>
 
@@ -115,7 +115,7 @@ export default function PricingPage() {
                   className="mt-[3px] shrink-0 text-success"
                   aria-hidden="true"
                 />
-                2-за-1 на блюда и подарки к заказу
+                1+1 на блюда и подарки к заказу
               </li>
               <li className="flex items-start gap-2.5 py-1.5 text-[13px] leading-[1.5] text-neutral-900">
                 <CheckCircle

@@ -454,7 +454,7 @@ export default function CheckoutModal({
                 : formatPricePerMonth(chargeAmount)}
             </h3>
             <ul className="mt-3 space-y-1.5 text-[13px] leading-[1.45] text-neutral-600">
-              <li>· Офферы 2 за 1 в заведениях-партнёрах</li>
+              <li>· Офферы 1+1 в заведениях-партнёрах</li>
               <li>· Подарки к заказу и спецпредложения</li>
               <li>· Отмена в любой момент в 2 клика</li>
             </ul>

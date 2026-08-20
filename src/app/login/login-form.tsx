@@ -156,7 +156,7 @@ export function LoginForm({
             style={{ fontSize: '13px', lineHeight: 1.5, marginTop: '8px' }}
           >
             На номер {formatPhoneForDisplay(subscriber) || subscriber} аккаунт не найден.
-            Чтобы получить доступ к 2-за-1, оформите подписку прямо здесь — оплата
+            Чтобы получить доступ к 1+1, оформите подписку прямо здесь — оплата
             картой, доступ откроется сразу.
           </p>
 

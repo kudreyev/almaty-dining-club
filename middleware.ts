@@ -1,6 +1,11 @@
 import { NextResponse, type NextRequest } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
-import { CITY_COOKIE, isCity } from '@/lib/cities'
+import {
+  CITY_COOKIE,
+  CITY_COOKIE_MAX_AGE,
+  isCity,
+} from '@/lib/cities'
+import { resolveFreeCity } from '@/lib/free-city'
 import { supabaseAuthCookieOptions } from '@/lib/supabase/auth-cookie-options'
 
 export async function middleware(request: NextRequest) {
@@ -35,6 +40,19 @@ export async function middleware(request: NextRequest) {
   // Обновляет access/refresh cookie на каждом заходе (критично для PWA после простоя).
   await supabase.auth.getUser()
 
+  // QR /free: сразу фиксируем город из utm_source / ?city= (каталог и header).
+  if (request.nextUrl.pathname === '/free') {
+    const city = resolveFreeCity(
+      request.nextUrl.searchParams.get('city'),
+      request.nextUrl.searchParams.get('utm_source'),
+    )
+    response.cookies.set(CITY_COOKIE, city, {
+      path: '/',
+      maxAge: CITY_COOKIE_MAX_AGE,
+      sameSite: 'lax',
+    })
+  }
+
   // Город — фильтр контента: при заходе на '/' с сохранённым городом ведём
   // сразу в его каталог; без cookie на '/' остаётся экран выбора города.
   if (request.nextUrl.pathname === '/') {
@@ -43,7 +61,6 @@ export async function middleware(request: NextRequest) {
       const redirectUrl = request.nextUrl.clone()
       redirectUrl.pathname = `/${cityCookie}`
       const redirect = NextResponse.redirect(redirectUrl)
-      // Переносим обновлённые auth-cookie на редирект-ответ.
       for (const cookie of response.cookies.getAll()) {
         redirect.cookies.set(cookie)
       }

@@ -6,12 +6,10 @@ import { loadHomeRestaurants } from '@/lib/home/load-home-restaurants'
 import { getBrandKey } from '@/lib/brand'
 import { pluralizeRu } from '@/lib/ru-plural'
 import { parseUtmFromSearchParams } from '@/lib/utm'
+import { resolveFreeCity } from '@/lib/free-city'
 import {
   CITY_LABELS,
   CITY_LABELS_PREPOSITIONAL,
-  DEFAULT_CITY,
-  isCity,
-  type City,
 } from '@/lib/cities'
 import type { Metadata } from 'next'
 
@@ -29,25 +27,6 @@ type PageProps = {
 }
 
 const DEFAULT_MEMBER_DISCOUNT_PERCENT = 50
-
-/**
- * Город для /free:
- * 1) ?city=astana|almaty
- * 2) utm_source=qr_astana → Астана; qr / qr_almaty / остальное → Алматы
- */
-function resolveFreeCity(
-  cityParam: string | undefined,
-  utmSource: string | null,
-): City {
-  if (isCity(cityParam)) return cityParam
-
-  const src = (utmSource ?? '').trim().toLowerCase()
-  if (src === 'qr_astana' || src === 'qr-astana') return 'astana'
-  if (src === 'qr_almaty' || src === 'qr-almaty' || src === 'qr') {
-    return 'almaty'
-  }
-  return DEFAULT_CITY
-}
 
 /** utm_source=qr_{venue_slug} → slug (не city-маркеры). */
 function parseQrVenueSlug(utmSource: string | null): string | null {

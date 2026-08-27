@@ -11,9 +11,9 @@ import type { Metadata } from 'next'
 export const dynamic = 'force-dynamic'
 
 export const metadata: Metadata = {
-  title: 'kudaclub — первый месяц бесплатно',
+  title: 'kudaclub — первый месяц 1 ₸',
   description:
-    'Подписка на скидки в ресторанах Алматы. Первый месяц бесплатно — оформите по QR.',
+    'Подписка на скидки в ресторанах Алматы. Первый месяц 1 ₸ — оформите по QR.',
   robots: { index: false, follow: false },
 }
 
@@ -49,7 +49,7 @@ function memberDiscountPercent(
 export default async function FreePage({ searchParams }: PageProps) {
   const sp = await searchParams
   const utm = parseUtmFromSearchParams(sp)
-  // /free — лендинг триала; без promo в URL подставляем FREE30 (как в QR).
+  // /free — лендинг 1 ₸; без promo в URL подставляем FREE30 (как в QR).
   const promoCode = utm.promo_code ?? 'FREE30'
   const venueSlug = parseQrVenueSlug(utm.utm_source)
 
@@ -103,7 +103,7 @@ export default async function FreePage({ searchParams }: PageProps) {
             {headline}
           </h1>
           <p className="mt-3 text-sm leading-[1.55] text-neutral-600">
-            kudaclub — подписка на скидки. Первый месяц бесплатно
+            kudaclub — подписка на скидки. Первый месяц 1 ₸
           </p>
 
           <div className="mt-7 text-left">

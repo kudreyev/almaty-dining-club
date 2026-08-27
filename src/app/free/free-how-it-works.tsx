@@ -19,9 +19,9 @@ function buildSteps(venuesCount: number): ReadonlyArray<{
   return [
     {
       n: 1,
-      title: 'Оформите бесплатный месяц',
+      title: 'Оформите за 1 ₸',
       description:
-        'Укажите телефон и привяжите карту. Первый месяц — бесплатно, дальше можно отменить в 2 клика.',
+        'Укажите телефон и оплатите 1 ₸. Первый месяц — 1 ₸, дальше можно отменить в 2 клика.',
     },
     {
       n: 2,
@@ -31,12 +31,12 @@ function buildSteps(venuesCount: number): ReadonlyArray<{
     {
       n: 3,
       title: 'Покажите код официанту',
-      description: `Второе блюдо бесплатно или подарок к заказу. Подписка окупается с первого визита (${formatPriceKzt()}/мес после триала).`,
+      description: `Второе блюдо бесплатно или подарок к заказу. Подписка окупается с первого визита (${formatPriceKzt()}/мес со второго месяца).`,
     },
   ]
 }
 
-/** Три шага на промо-странице /free (акцент на бесплатный месяц). */
+/** Три шага на промо-странице /free (акцент на первый месяц 1 ₸). */
 export function FreeHowItWorks({ venuesCount }: FreeHowItWorksProps) {
   const steps = buildSteps(venuesCount)
 

@@ -60,7 +60,7 @@ type AppliedPromo = {
 export type CheckoutFormProps = {
   user: CheckoutUser
   source: string
-  /** default — обычный чекаут; trial — промо «первый месяц бесплатно». */
+  /** default — обычный чекаут; trial — промо «первый месяц 1 ₸» (/free). */
   variant?: 'default' | 'trial'
   /** Автоприменить промокод при монтировании (например FREE30 с /free). */
   initialPromoCode?: string | null
@@ -142,8 +142,6 @@ export function CheckoutForm({
     appliedPromo != null &&
     appliedPromo.applies_to === 'first_month' &&
     appliedPromo.first_amount !== appliedPromo.recurrent_amount
-  const isFreeFirstMonth =
-    isTrial && hasFirstMonthPromo && chargeAmount <= 1
 
   useEffect(() => {
     trackGoal('checkout_open', { source })
@@ -431,19 +429,13 @@ export function CheckoutForm({
     }
   }, [appliedPromo, launchWidget, phoneE164, phoneValid, source])
 
-  const offerTitle = isFreeFirstMonth
-    ? 'Первый месяц бесплатно'
-    : hasFirstMonthPromo
-      ? formatFirstMonthPromoOffer(chargeAmount, recurrentAmount)
-      : formatPricePerMonth(chargeAmount)
+  const offerTitle = hasFirstMonthPromo
+    ? formatFirstMonthPromoOffer(chargeAmount, recurrentAmount)
+    : formatPricePerMonth(chargeAmount)
 
   const submitLabel = busy
     ? 'Открываем оплату…'
-    : isFreeFirstMonth
-      ? 'Получить бесплатно'
-      : `Оплатить ${formatPriceKzt(chargeAmount)}`
-
-  const consentAction = isFreeFirstMonth ? '«Получить бесплатно»' : '«Оплатить»'
+    : `Оплатить ${formatPriceKzt(chargeAmount)}`
 
   return (
     <div className={className}>
@@ -570,7 +562,7 @@ export function CheckoutForm({
             </button>
           </form>
           <p className="mt-3 text-[11px] leading-[1.45] text-neutral-400">
-            Нажимая {consentAction}, вы принимаете{' '}
+            Нажимая «Оплатить», вы принимаете{' '}
             <a
               href="/offer"
               target="_blank"
@@ -589,11 +581,9 @@ export function CheckoutForm({
               политику обработки данных
             </a>
             .
-            {isFreeFirstMonth
-              ? ` Первый месяц бесплатно, далее ${formatPriceKzt(recurrentAmount)} ежемесячно. Для активации нужна привязка карты, отмена в любой момент в 2 клика.`
-              : hasFirstMonthPromo
-                ? ` Списание ${formatPriceKzt(chargeAmount)} сейчас, далее ${formatPriceKzt(recurrentAmount)} ежемесячно, отмена в любой момент в 2 клика.`
-                : ` Списание ${formatPriceKzt(chargeAmount)} ежемесячно, отмена в любой момент в 2 клика.`}
+            {hasFirstMonthPromo
+              ? ` Списание ${formatPriceKzt(chargeAmount)} сейчас, далее ${formatPriceKzt(recurrentAmount)} ежемесячно, отмена в любой момент в 2 клика.`
+              : ` Списание ${formatPriceKzt(chargeAmount)} ежемесячно, отмена в любой момент в 2 клика.`}
           </p>
         </>
       )}

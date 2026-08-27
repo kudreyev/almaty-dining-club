@@ -6,16 +6,16 @@ import { loadHomeRestaurants } from '@/lib/home/load-home-restaurants'
 import { getBrandKey } from '@/lib/brand'
 import { pluralizeRu } from '@/lib/ru-plural'
 import { parseUtmFromSearchParams } from '@/lib/utm'
+import {
+  CITY_LABELS,
+  CITY_LABELS_PREPOSITIONAL,
+  DEFAULT_CITY,
+  isCity,
+  type City,
+} from '@/lib/cities'
 import type { Metadata } from 'next'
 
 export const dynamic = 'force-dynamic'
-
-export const metadata: Metadata = {
-  title: 'kudaclub — первый месяц 1 ₸',
-  description:
-    'Подписка на скидки в ресторанах Алматы. Первый месяц 1 ₸ — оформите по QR.',
-  robots: { index: false, follow: false },
-}
 
 type PageProps = {
   searchParams: Promise<{
@@ -24,15 +24,46 @@ type PageProps = {
     utm_source?: string
     utm_medium?: string
     utm_campaign?: string
+    city?: string
   }>
 }
 
 const DEFAULT_MEMBER_DISCOUNT_PERCENT = 50
 
-/** utm_source=qr_{venue_slug} → slug заведения. */
+/**
+ * Город для /free:
+ * 1) ?city=astana|almaty
+ * 2) utm_source=qr_astana → Астана; qr / qr_almaty / остальное → Алматы
+ */
+function resolveFreeCity(
+  cityParam: string | undefined,
+  utmSource: string | null,
+): City {
+  if (isCity(cityParam)) return cityParam
+
+  const src = (utmSource ?? '').trim().toLowerCase()
+  if (src === 'qr_astana' || src === 'qr-astana') return 'astana'
+  if (src === 'qr_almaty' || src === 'qr-almaty' || src === 'qr') {
+    return 'almaty'
+  }
+  return DEFAULT_CITY
+}
+
+/** utm_source=qr_{venue_slug} → slug (не city-маркеры). */
 function parseQrVenueSlug(utmSource: string | null): string | null {
   if (!utmSource) return null
-  const match = /^qr_(.+)$/i.exec(utmSource.trim())
+  const raw = utmSource.trim()
+  const lower = raw.toLowerCase()
+  if (
+    lower === 'qr' ||
+    lower === 'qr_almaty' ||
+    lower === 'qr_astana' ||
+    lower === 'qr-almaty' ||
+    lower === 'qr-astana'
+  ) {
+    return null
+  }
+  const match = /^qr_(.+)$/i.exec(raw)
   const slug = match?.[1]?.trim()
   return slug || null
 }
@@ -46,15 +77,31 @@ function memberDiscountPercent(
   return has2for1 ? 50 : DEFAULT_MEMBER_DISCOUNT_PERCENT
 }
 
+export async function generateMetadata({
+  searchParams,
+}: PageProps): Promise<Metadata> {
+  const sp = await searchParams
+  const utm = parseUtmFromSearchParams(sp)
+  const city = resolveFreeCity(sp.city, utm.utm_source)
+  const inCity = CITY_LABELS_PREPOSITIONAL[city]
+
+  return {
+    title: 'kudaclub — первый месяц 1 ₸',
+    description: `Подписка на скидки в ресторанах в ${inCity}. Первый месяц 1 ₸ — оформите по QR.`,
+    robots: { index: false, follow: false },
+  }
+}
+
 export default async function FreePage({ searchParams }: PageProps) {
   const sp = await searchParams
   const utm = parseUtmFromSearchParams(sp)
-  // /free — лендинг 1 ₸; без promo в URL подставляем FREE30 (как в QR).
   const promoCode = utm.promo_code ?? 'FREE30'
+  const city = resolveFreeCity(sp.city, utm.utm_source)
   const venueSlug = parseQrVenueSlug(utm.utm_source)
 
-  const { restaurantsWithStatus } = await loadHomeRestaurants('almaty')
+  const { restaurantsWithStatus } = await loadHomeRestaurants(city)
   const venuesCount = restaurantsWithStatus.length
+  const cityLabel = CITY_LABELS[city]
 
   const matchedVenue = venueSlug
     ? restaurantsWithStatus.find((r) => r.slug === venueSlug) ?? null
@@ -68,13 +115,12 @@ export default async function FreePage({ searchParams }: PageProps) {
 
   const headline = matchedVenue
     ? `В ${matchedVenue.restaurant_name} — скидка ${memberDiscountPercent(matchedVenue.offers)}% для участников kudaclub`
-    : `Скидки в ${venuesCount} ${venuesWord} Алматы`
+    : `Скидки в ${venuesCount} ${venuesWord} ${cityLabel}`
 
   const checkoutSource = matchedVenue
     ? `free-qr-${matchedVenue.slug}`
-    : 'free-page'
+    : `free-page-${city}`
 
-  // Уникальные бренды для сетки логотипов (первый филиал / фото).
   const seenBrands = new Set<string>()
   const logoVenues: FreeVenueLogo[] = []
   for (const r of restaurantsWithStatus) {
@@ -95,6 +141,7 @@ export default async function FreePage({ searchParams }: PageProps) {
         utmSource={utm.utm_source}
         venueSlug={matchedVenue?.slug ?? null}
         promoCode={promoCode}
+        city={city}
       />
 
       <section className="px-5 pt-10 pb-8 md:pt-14 md:pb-10">
@@ -112,10 +159,10 @@ export default async function FreePage({ searchParams }: PageProps) {
         </div>
       </section>
 
-      <FreeVenuesLogoGrid venues={logoVenues} />
+      <FreeVenuesLogoGrid venues={logoVenues} cityLabel={cityLabel} />
 
       <div className="bg-neutral-50">
-        <FreeHowItWorks venuesCount={venuesCount} />
+        <FreeHowItWorks venuesCount={venuesCount} cityLabel={cityLabel} />
       </div>
     </>
   )

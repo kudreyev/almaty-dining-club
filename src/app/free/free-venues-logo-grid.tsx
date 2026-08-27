@@ -10,10 +10,14 @@ export type FreeVenueLogo = {
 
 type FreeVenuesLogoGridProps = {
   venues: FreeVenueLogo[]
+  cityLabel: string
 }
 
 /** Сетка логотипов/обложек партнёров (уникальные бренды). */
-export function FreeVenuesLogoGrid({ venues }: FreeVenuesLogoGridProps) {
+export function FreeVenuesLogoGrid({
+  venues,
+  cityLabel,
+}: FreeVenuesLogoGridProps) {
   if (venues.length === 0) return null
 
   return (
@@ -23,7 +27,7 @@ export function FreeVenuesLogoGrid({ venues }: FreeVenuesLogoGridProps) {
           Партнёры
         </p>
         <h2 className="mt-2 text-center text-xl font-semibold tracking-tight text-neutral-900 sm:text-2xl">
-          Заведения kudaclub в Алматы
+          Заведения kudaclub в {cityLabel}
         </h2>
 
         <ul className="mt-7 grid grid-cols-3 gap-3 sm:grid-cols-4 sm:gap-4 md:grid-cols-5">

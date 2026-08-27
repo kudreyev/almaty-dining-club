@@ -1,7 +1,9 @@
 -- Промокод FREE30: первый месяц 1 ₸ (100% скидка → floor 1 ₸) для QR Алматы.
 -- Запускать в SQL Editor Supabase.
 --
--- QR-ссылки: https://kudaclub.kz/free?promo=FREE30&utm_source=qr_{venue_slug}
+-- QR-ссылки (одна на город):
+--   Алматы: https://kudaclub.kz/free?promo=FREE30&utm_source=qr
+--   Астана: https://kudaclub.kz/free?promo=FREE30&utm_source=qr_astana
 
 delete from public.promo_codes where lower(code) = lower('FREE30');
 

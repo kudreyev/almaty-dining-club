@@ -51,10 +51,15 @@ OTP и чекбокс согласия **не** входят в воронку (
 | `home-trial-upgrade` | Trial → paid |
 | `venue-cta-{slug}` | Баннер на странице заведения |
 | `offer-card-{slug}-{offerId}` | Пейволл из карточки оффера |
-| `free-page` | `/free` без venue в utm |
+| `free-page` | `/free` без venue в utm (legacy) |
+| `free-page-almaty` | `/free` Алматы |
+| `free-page-astana` | `/free` Астана |
 | `free-qr-{slug}` | `/free?utm_source=qr_{slug}` |
 
-QR-ссылки: `/free?promo=FREE30&utm_source=qr_{venue}`.
+QR-ссылки (одна на город, без слагов заведений):
+
+- Алматы: `/free?promo=FREE30&utm_source=qr`
+- Астана: `/free?promo=FREE30&utm_source=qr_astana`
 
 ## Meta Pixel / CAPI
 

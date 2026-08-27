@@ -3,9 +3,13 @@ import { formatPriceKzt } from '@/lib/pricing'
 
 type FreeHowItWorksProps = {
   venuesCount: number
+  cityLabel: string
 }
 
-function buildSteps(venuesCount: number): ReadonlyArray<{
+function buildSteps(
+  venuesCount: number,
+  cityLabel: string,
+): ReadonlyArray<{
   n: number
   title: string
   description: string
@@ -26,7 +30,7 @@ function buildSteps(venuesCount: number): ReadonlyArray<{
     {
       n: 2,
       title: 'Выберите заведение',
-      description: `${venuesCount} ${restaurantWord} Алматы — стейки, кофе, азиатская кухня.`,
+      description: `${venuesCount} ${restaurantWord} ${cityLabel} — стейки, кофе, азиатская кухня.`,
     },
     {
       n: 3,
@@ -37,8 +41,8 @@ function buildSteps(venuesCount: number): ReadonlyArray<{
 }
 
 /** Три шага на промо-странице /free (акцент на первый месяц 1 ₸). */
-export function FreeHowItWorks({ venuesCount }: FreeHowItWorksProps) {
-  const steps = buildSteps(venuesCount)
+export function FreeHowItWorks({ venuesCount, cityLabel }: FreeHowItWorksProps) {
+  const steps = buildSteps(venuesCount, cityLabel)
 
   return (
     <section className="px-5 py-10 md:py-14">

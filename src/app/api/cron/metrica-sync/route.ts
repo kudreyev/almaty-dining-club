@@ -51,6 +51,7 @@ const TRACKED_GOAL_NAMES = [
   'payment_fail',
   'payment_abandoned',
   'promo_applied',
+  'free_page_view',
   // PWA install + Web Push
   'pwa_prompt_shown',
   'pwa_prompt_accepted',

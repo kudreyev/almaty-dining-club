@@ -17,7 +17,7 @@ OTP и чекбокс согласия **не** входят в воронку (
 | Goal | Где | Params |
 |---|---|---|
 | `cta_click` | `SubscribeCTA` | `source` |
-| `checkout_open` | `CheckoutModal` mount (+ Pixel InitiateCheckout) | `source` |
+| `checkout_open` | `CheckoutForm` mount (+ Pixel InitiateCheckout) | `source` |
 | `phone_filled` | валидный номер введён | `source` |
 | `pay_click` | кнопка «Оплатить» | `source` |
 | `widget_open` | TipTop Widget start | `source` |
@@ -25,11 +25,14 @@ OTP и чекбокс согласия **не** входят в воронку (
 | `payment_fail` | ошибка оплаты | `source` |
 | `payment_abandoned` | закрыл модалку после виджета без оплаты | `source` |
 | `promo_applied` | промокод успешно применён в чекауте | `source`, `promo_code`, `first_amount`, `applies_to` |
+| `free_page_view` | просмотр `/free` (QR → промо) | `utm_source?`, `venue_slug?`, `promo_code?` |
 
 Компоненты:
 
 - `src/components/checkout/subscribe-cta.tsx` — CTA
-- `src/components/checkout/checkout-modal.tsx` — чекаут + Meta Pixel
+- `src/components/checkout/checkout-form.tsx` — форма чекаута (модалка и `/free`)
+- `src/components/checkout/checkout-modal.tsx` — оболочка модалки + Meta Pixel
+- `src/app/free/` — QR-лендинг; воронка: `free_page_view` → `checkout_open` → …
 
 Каждый `trackGoal()` дублируется в `POST /api/track` → `analytics_events`.
 
@@ -48,6 +51,10 @@ OTP и чекбокс согласия **не** входят в воронку (
 | `home-trial-upgrade` | Trial → paid |
 | `venue-cta-{slug}` | Баннер на странице заведения |
 | `offer-card-{slug}-{offerId}` | Пейволл из карточки оффера |
+| `free-page` | `/free` без venue в utm |
+| `free-qr-{slug}` | `/free?utm_source=qr_{slug}` |
+
+QR-ссылки: `/free?promo=FREE30&utm_source=qr_{venue}`.
 
 ## Meta Pixel / CAPI
 
@@ -92,6 +99,7 @@ OTP и чекбокс согласия **не** входят в воронку (
 7. `payment_fail`
 8. `payment_abandoned`
 9. `promo_applied`
+10. `free_page_view`
 
 Старые цели `checkout_opened` / `phone_submitted` / `otp_verified` / `widget_opened` /
 `payment_success` из воронки убрать (или оставить архивными, не в новой воронке).

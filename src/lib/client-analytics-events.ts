@@ -17,6 +17,8 @@ export const CLIENT_ANALYTICS_EVENTS = [
   'payment_fail',
   'payment_abandoned',
   'promo_applied',
+  // QR / промо-лендинг /free
+  'free_page_view',
   // Legacy имена (старые клиенты / исторические записи) — принимаем, в воронку не ставим.
   'checkout_opened',
   'phone_submitted',

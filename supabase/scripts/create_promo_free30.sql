@@ -1,0 +1,26 @@
+-- Промокод FREE30: первый месяц бесплатно (100%) для QR-кампании Алматы.
+-- Запускать в SQL Editor Supabase.
+--
+-- QR-ссылки: https://kudaclub.kz/free?promo=FREE30&utm_source=qr_{venue_slug}
+
+delete from public.promo_codes where lower(code) = lower('FREE30');
+
+insert into public.promo_codes (
+  code,
+  discount_percent,
+  fixed_amount,
+  applies_to,
+  max_uses,
+  expires_at,
+  campaign_tag,
+  is_active
+) values (
+  'FREE30',
+  100,
+  null,
+  'first_month',
+  null,
+  null,
+  'qr_almaty',
+  true
+);

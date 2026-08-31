@@ -39,13 +39,23 @@ describe('computePromoAmounts', () => {
     ).toEqual({ first_amount: 1490, recurrent_amount: 1990 })
   })
 
-  it('never returns zero or negative', () => {
+  it('floors to processor minimum (30 ₸)', () => {
     expect(
       computePromoAmounts(100, {
         discount_percent: null,
         fixed_amount: 999,
         applies_to: 'forever',
       }),
-    ).toEqual({ first_amount: 1, recurrent_amount: 1 })
+    ).toEqual({ first_amount: 30, recurrent_amount: 30 })
+  })
+
+  it('applies 100% promo as first month at minimum charge', () => {
+    expect(
+      computePromoAmounts(1990, {
+        discount_percent: 100,
+        fixed_amount: null,
+        applies_to: 'first_month',
+      }),
+    ).toEqual({ first_amount: 30, recurrent_amount: 1990 })
   })
 })

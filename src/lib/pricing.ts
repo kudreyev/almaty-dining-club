@@ -15,6 +15,9 @@ function resolvePriceKzt(): number {
 /** Цена подписки в тенге (число). */
 export const PRICE_KZT = resolvePriceKzt()
 
+/** Минимальная сумма списания в TipTop (комиссия процессинга). */
+export const MIN_CHECKOUT_AMOUNT_KZT = 30
+
 /** «1 990 ₸» */
 export function formatPriceKzt(amount: number = PRICE_KZT): string {
   return `${amount.toLocaleString('ru-RU')} ₸`

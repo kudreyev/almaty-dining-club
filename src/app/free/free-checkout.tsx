@@ -8,7 +8,7 @@ type FreeCheckoutProps = {
   promoCode: string | null
 }
 
-/** Инлайн-чекаут на /free: первый месяц 1 ₸ (телефон + кнопка + согласие). */
+/** Инлайн-чекаут на /free: первый месяц 30 ₸ (телефон + кнопка + согласие). */
 export function FreeCheckout({ source, promoCode }: FreeCheckoutProps) {
   const { user } = useUser()
 

@@ -60,7 +60,7 @@ type AppliedPromo = {
 export type CheckoutFormProps = {
   user: CheckoutUser
   source: string
-  /** default — обычный чекаут; trial — промо «первый месяц 1 ₸» (/free). */
+  /** default — обычный чекаут; trial — промо первого месяца на /free (мин. 30 ₸). */
   variant?: 'default' | 'trial'
   /** Автоприменить промокод при монтировании (например FREE30 с /free). */
   initialPromoCode?: string | null

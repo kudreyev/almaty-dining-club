@@ -1,5 +1,5 @@
 import { pluralizeRu } from '@/lib/ru-plural'
-import { formatPriceKzt } from '@/lib/pricing'
+import { MIN_CHECKOUT_AMOUNT_KZT, formatPriceKzt } from '@/lib/pricing'
 
 type FreeHowItWorksProps = {
   venuesCount: number
@@ -20,12 +20,13 @@ function buildSteps(
     'ресторанов',
   ])
 
+  const trialPrice = formatPriceKzt(MIN_CHECKOUT_AMOUNT_KZT)
+
   return [
     {
       n: 1,
-      title: 'Оформите за 1 ₸',
-      description:
-        'Укажите телефон и оплатите 1 ₸. Первый месяц — 1 ₸, дальше можно отменить в 2 клика.',
+      title: `Оформите за ${trialPrice}`,
+      description: `Укажите телефон и оплатите ${trialPrice}. Первый месяц — ${trialPrice}, дальше можно отменить в 2 клика.`,
     },
     {
       n: 2,
@@ -40,7 +41,7 @@ function buildSteps(
   ]
 }
 
-/** Три шага на промо-странице /free (акцент на первый месяц 1 ₸). */
+/** Три шага на промо-странице /free (акцент на первый месяц по минимуму процессинга). */
 export function FreeHowItWorks({ venuesCount, cityLabel }: FreeHowItWorksProps) {
   const steps = buildSteps(venuesCount, cityLabel)
 

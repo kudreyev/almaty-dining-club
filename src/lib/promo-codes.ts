@@ -3,7 +3,7 @@
  */
 
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
-import { PRICE_KZT } from '@/lib/pricing'
+import { MIN_CHECKOUT_AMOUNT_KZT, PRICE_KZT } from '@/lib/pricing'
 
 export type PromoAppliesTo = 'first_month' | 'forever'
 
@@ -84,7 +84,7 @@ export function computePromoAmounts(
     discounted = Math.round(baseAmount - Number(promo.fixed_amount))
   }
 
-  discounted = Math.max(1, discounted)
+  discounted = Math.max(MIN_CHECKOUT_AMOUNT_KZT, discounted)
 
   if (promo.applies_to === 'forever') {
     return { first_amount: discounted, recurrent_amount: discounted }

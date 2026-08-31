@@ -11,6 +11,10 @@ import {
   CITY_LABELS,
   CITY_LABELS_PREPOSITIONAL,
 } from '@/lib/cities'
+import {
+  MIN_CHECKOUT_AMOUNT_KZT,
+  formatPriceKzt,
+} from '@/lib/pricing'
 import type { Metadata } from 'next'
 
 export const dynamic = 'force-dynamic'
@@ -63,10 +67,11 @@ export async function generateMetadata({
   const utm = parseUtmFromSearchParams(sp)
   const city = resolveFreeCity(sp.city, utm.utm_source)
   const inCity = CITY_LABELS_PREPOSITIONAL[city]
+  const trialPrice = formatPriceKzt(MIN_CHECKOUT_AMOUNT_KZT)
 
   return {
-    title: 'kudaclub — первый месяц 1 ₸',
-    description: `Подписка на скидки в ресторанах в ${inCity}. Первый месяц 1 ₸ — оформите по QR.`,
+    title: `kudaclub — первый месяц ${trialPrice}`,
+    description: `Подписка на скидки в ресторанах в ${inCity}. Первый месяц ${trialPrice} — оформите по QR.`,
     robots: { index: false, follow: false },
   }
 }
@@ -81,6 +86,7 @@ export default async function FreePage({ searchParams }: PageProps) {
   const { restaurantsWithStatus } = await loadHomeRestaurants(city)
   const venuesCount = restaurantsWithStatus.length
   const cityLabel = CITY_LABELS[city]
+  const trialPrice = formatPriceKzt(MIN_CHECKOUT_AMOUNT_KZT)
 
   const matchedVenue = venueSlug
     ? restaurantsWithStatus.find((r) => r.slug === venueSlug) ?? null
@@ -129,7 +135,7 @@ export default async function FreePage({ searchParams }: PageProps) {
             {headline}
           </h1>
           <p className="mt-3 text-sm leading-[1.55] text-neutral-600">
-            kudaclub — подписка на скидки. Первый месяц 1 ₸
+            kudaclub — подписка на скидки. Первый месяц {trialPrice}
           </p>
 
           <div className="mt-7 text-left">

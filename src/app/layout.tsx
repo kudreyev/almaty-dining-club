@@ -16,6 +16,7 @@ import {
   buildMetaPixelBootstrapScript,
   sanitizeMetaPixelId,
 } from '@/lib/meta-pixel-bootstrap'
+import { SITE_DESCRIPTION, SITE_TITLE, SITE_URL, pageMetadata } from '@/lib/seo'
 
 const inter = Inter({
   subsets: ['latin', 'cyrillic'],
@@ -27,18 +28,9 @@ export const viewport: Viewport = {
 }
 
 export const metadata: Metadata = {
-  title: 'KudaClub: 1+1 в кафе и ресторанах Алматы бесплатно',
-  description:
-    'Бесплатные предложения 1+1, напитки и десерты в лучших заведениях Алматы. Без подписки и приложения.',
+  metadataBase: new URL(SITE_URL),
+  ...pageMetadata({ title: SITE_TITLE, description: SITE_DESCRIPTION }),
   applicationName: 'kudaclub',
-  openGraph: {
-    title: 'KudaClub: 1+1 в кафе и ресторанах Алматы бесплатно',
-    description:
-      'Бесплатные предложения 1+1, напитки и десерты в лучших заведениях Алматы. Без подписки и приложения.',
-    siteName: 'KudaClub',
-    locale: 'ru_RU',
-    type: 'website',
-  },
   appleWebApp: {
     capable: true,
     title: 'kudaclub',

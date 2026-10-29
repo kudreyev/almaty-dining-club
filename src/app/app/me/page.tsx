@@ -1,6 +1,5 @@
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
-import { cookies } from 'next/headers'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { LogoutButton } from '@/components/logout-button'
 import { offerTypeLabel } from '@/lib/labels'
@@ -17,7 +16,7 @@ import { LifetimeSavings } from '@/components/me/lifetime-savings'
 import { NewVenuesBlock } from '@/components/me/new-venues-block'
 import { loadNewestRestaurants } from '@/lib/home/load-newest-restaurants'
 import { getGuestAccess, getUserSavings } from '@/lib/guest-access'
-import { CITY_COOKIE, DEFAULT_CITY, isCity } from '@/lib/cities'
+import { getCurrentCity } from '@/lib/current-city'
 
 type Redemption = {
   id: string
@@ -49,8 +48,7 @@ export default async function MePage() {
   const user = access.user
   const supabase = await createSupabaseServerClient()
 
-  const cityCookie = (await cookies()).get(CITY_COOKIE)?.value
-  const city = isCity(cityCookie) ? cityCookie : DEFAULT_CITY
+  const city = await getCurrentCity()
 
   const [{ data: profile }, { data: redemptions }, { data: lastTokens }, newestVenues, savings] =
     await Promise.all([

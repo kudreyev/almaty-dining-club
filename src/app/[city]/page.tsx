@@ -12,7 +12,10 @@ import {
   HomeFaq,
   WhyFreeSection,
 } from '@/components/home/free-model-sections'
+import { SavingsCounter } from '@/components/home/savings-counter'
 import { getGuestAccess, getUserSavings } from '@/lib/guest-access'
+import { getDisplayedSavingsStats } from '@/lib/savings-stats'
+import { cityDescription, cityTitle, pageMetadata } from '@/lib/seo'
 import { loadHomeRestaurants } from '@/lib/home/load-home-restaurants'
 import { pickPopularOffers } from '@/lib/home/popular-offers'
 import { pluralizeRu } from '@/lib/ru-plural'
@@ -28,24 +31,30 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const { city } = await params
   if (!isCity(city)) return {}
 
-  const genitive = CITY_LABELS_GENITIVE[city]
-  const title = `KudaClub: 1+1 в кафе и ресторанах ${genitive} бесплатно`
-  const description = `Бесплатные предложения 1+1, напитки и десерты в лучших заведениях ${genitive}. Без подписки и приложения.`
-  return {
-    title,
-    description,
-    openGraph: { title, description, type: 'website', siteName: 'KudaClub', locale: 'ru_RU' },
-  }
+  const venuesCount = await loadHomeRestaurants(city)
+    .then((data) => data.restaurantsWithStatus.length)
+    .catch(() => null)
+  return pageMetadata({
+    title: cityTitle(city),
+    description: cityDescription(city, venuesCount),
+    path: `/${city}`,
+  })
 }
 
 export default async function CityCatalogPage({ params }: PageProps) {
   const { city } = await params
   if (!isCity(city)) notFound()
 
-  const [access, restaurantsData] = await Promise.all([
+  const [access, restaurantsData, savingsStats] = await Promise.all([
     getGuestAccess(),
     loadHomeRestaurants(city),
+    getDisplayedSavingsStats(city),
   ])
+  const savingsCounter = savingsStats ? (
+    <div className="pb-4 md:pb-6">
+      <SavingsCounter {...savingsStats} />
+    </div>
+  ) : null
 
   const { restaurantsWithStatus, cuisineOptions } = restaurantsData
   const totalVenues = restaurantsWithStatus.length
@@ -86,6 +95,7 @@ export default async function CityCatalogPage({ params }: PageProps) {
           savingsAmountKzt={savings.amountKzt}
           hasRedemptions={savings.hasRedemptions}
         />
+        {savingsCounter}
         <PopularOffers offers={popularOffers} />
         {catalog}
         <ForVenuesSection />
@@ -96,6 +106,7 @@ export default async function CityCatalogPage({ params }: PageProps) {
   return (
     <>
       <HeroGuest city={city} />
+      {savingsCounter}
       <HowItWorks />
       <PopularOffers offers={popularOffers} />
       {catalog}

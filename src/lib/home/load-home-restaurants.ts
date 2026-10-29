@@ -1,3 +1,4 @@
+import { cache } from 'react'
 import { createSupabasePublicClient } from '@/lib/supabase/public'
 import {
   DEFAULT_TZ,
@@ -37,9 +38,12 @@ export type HomeRestaurantsResult = {
 
 /**
  * Загружает каталог активных ресторанов заданного города с фото, часами,
- * оффером и предвычисленным openStatus. Используется в каталоге (/[city]).
+ * оффером и предвычисленным openStatus. Используется в каталоге (/[city]);
+ * в пределах одного запроса метаданные и страница делят один результат.
  */
-export async function loadHomeRestaurants(city: City): Promise<HomeRestaurantsResult> {
+export const loadHomeRestaurants = cache(loadHomeRestaurantsUncached)
+
+async function loadHomeRestaurantsUncached(city: City): Promise<HomeRestaurantsResult> {
   const supabase = createSupabasePublicClient()
   const now = new Date()
   const today = getTodayDateStringInTz(now, DEFAULT_TZ)

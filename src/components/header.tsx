@@ -5,16 +5,20 @@ import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { LogoutButton } from '@/components/logout-button'
 import { MobileMenu } from '@/components/mobile-menu'
 import { CitySelector } from '@/components/city-selector'
+import { CityHint } from '@/components/city-hint'
 import { GoalLink } from '@/components/analytics/goal-link'
-import { CITY_COOKIE, DEFAULT_CITY, isCity } from '@/lib/cities'
+import { CITY_HINT_COOKIE, isCity } from '@/lib/cities'
+import { getCurrentCity, getManualCity } from '@/lib/current-city'
 
 export async function Header() {
   let user: User | null = null
   let role: 'user' | 'admin' | null = null
 
   const cookieStore = await cookies()
-  const cityCookie = cookieStore.get(CITY_COOKIE)?.value
-  const city = isCity(cityCookie) ? cityCookie : DEFAULT_CITY
+  const city = await getCurrentCity()
+  const hintCity = cookieStore.get(CITY_HINT_COOKIE)?.value
+  const showCityHint = isCity(hintCity) && hintCity === city && !(await getManualCity())
+  const loginHref = `/login?next=${encodeURIComponent(`/${city}`)}`
 
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL
   const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
@@ -95,14 +99,14 @@ export async function Header() {
           {!user ? (
             <>
               <Link
-                href="/login"
+                href={loginHref}
                 className="hidden text-[13px] font-medium transition-colors hover:text-neutral-900 md:inline-flex"
                 style={{ color: '#8a8a8a' }}
               >
                 Войти
               </Link>
               <GoalLink
-                href="/login"
+                href={loginHref}
                 goal="login_cta_click"
                 source="header"
                 className="inline-flex items-center justify-center rounded-lg bg-[#D85A30] px-3.5 py-[7px] text-[13px] font-medium text-white transition-opacity hover:opacity-95"
@@ -132,9 +136,11 @@ export async function Header() {
             navLinks={navLinks}
             adminLinks={adminLinks}
             isLoggedIn={!!user}
+            loginHref={loginHref}
           />
         </div>
       </div>
+      {showCityHint ? <CityHint city={city} /> : null}
     </header>
   )
 }

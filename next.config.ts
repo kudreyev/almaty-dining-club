@@ -7,11 +7,13 @@ const nextConfig: NextConfig = {
       { protocol: 'https', hostname: '*.supabase.in', pathname: '/storage/v1/object/public/**' },
     ],
   },
+  // title/description/og всегда в <head>, а не стримятся в <body>: Яндекс и превью
+  // мессенджеров читают только исходный HTML.
+  htmlLimitedBots: /.*/,
   // Сервис бесплатный: старые страницы оплаты ведут на главную (query сохраняется).
-  // /free обрабатывает middleware — там город из QR.
+  // /free и /pricing обрабатывает middleware — там нужен город пользователя.
   async redirects() {
     return [
-      '/pricing',
       '/how-it-works',
       '/activate',
       '/payment',

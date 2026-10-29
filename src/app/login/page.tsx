@@ -1,9 +1,8 @@
 import type { Metadata } from 'next'
-import { cookies } from 'next/headers'
 import { LoginForm } from './login-form'
 import { normalizeKZPhone } from '@/lib/kz-phone'
 import { tryOptionalNext } from '@/lib/sanitize-next-redirect'
-import { CITY_COOKIE, DEFAULT_CITY, isCity } from '@/lib/cities'
+import { getCurrentCity } from '@/lib/current-city'
 
 export const metadata: Metadata = {
   title: 'Вход и регистрация — KudaClub',
@@ -21,9 +20,7 @@ export default async function LoginPage({
   searchParams: Promise<{ next?: string; phone?: string }>
 }) {
   const { next, phone } = await searchParams
-  const cookieStore = await cookies()
-  const cityCookie = cookieStore.get(CITY_COOKIE)?.value
-  const city = isCity(cityCookie) ? cityCookie : DEFAULT_CITY
+  const city = await getCurrentCity()
 
   return (
     <LoginForm

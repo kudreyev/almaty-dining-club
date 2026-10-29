@@ -6,18 +6,15 @@ import { getGuestAccess } from '@/lib/guest-access'
 import {
   filterCatalogActiveOffers,
   getTodayDateStringInTz,
+  pickTopOffers,
   formatOfferUsableHoursStatus,
   getOfferUsableHours,
   type OfferType,
   type OfferUsableHour,
 } from '@/lib/offers'
 import { DEFAULT_TZ } from '@/lib/opening-hours'
-import {
-  CITY_LABELS,
-  CITY_LABELS_PREPOSITIONAL,
-  DEFAULT_CITY,
-  isCity,
-} from '@/lib/cities'
+import { CITY_LABELS, DEFAULT_CITY, isCity } from '@/lib/cities'
+import { pageMetadata, restaurantDescription, restaurantTitle } from '@/lib/seo'
 import { RestaurantNavBar } from '@/components/restaurant/restaurant-nav-bar'
 import { RestaurantHeroGallery } from '@/components/restaurant/restaurant-hero-gallery'
 import { RestaurantHero } from '@/components/restaurant/restaurant-hero'
@@ -88,47 +85,27 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
   const { data: restaurant } = await supabase
     .from('restaurants')
-    .select('restaurant_name, address, city, cuisine, cuisine_2, cuisine_3')
+    .select('restaurant_name, address, offers ( offer_type, offer_title, is_active, end_date )')
     .eq('slug', slug)
     .eq('is_active', true)
     .single<{
       restaurant_name: string
-      address: string
-      city: string
-      cuisine: string
-      cuisine_2: string | null
-      cuisine_3: string | null
+      address: string | null
+      offers: Pick<Offer, 'offer_type' | 'offer_title' | 'is_active' | 'end_date'>[] | null
     }>()
 
   if (!restaurant) {
-    return { title: 'Заведение не найдено — Kudaclub' }
+    return { title: 'Заведение не найдено — KudaClub' }
   }
 
-  const cuisines = [restaurant.cuisine, restaurant.cuisine_2, restaurant.cuisine_3]
-    .filter(Boolean)
-    .join(', ')
+  const today = getTodayDateStringInTz(new Date(), DEFAULT_TZ)
+  const [mainOffer] = pickTopOffers(filterCatalogActiveOffers(restaurant.offers ?? [], today), 1)
 
-  const cityPrepositional = isCity(restaurant.city)
-    ? CITY_LABELS_PREPOSITIONAL[restaurant.city]
-    : CITY_LABELS_PREPOSITIONAL[DEFAULT_CITY]
-  const title = `${restaurant.restaurant_name} в ${cityPrepositional} — 1+1 бесплатно с KudaClub`
-  const descriptionParts = [
-    `${restaurant.restaurant_name} — 1+1 и подарки с KudaClub бесплатно.`,
-    cuisines ? `Кухня: ${cuisines}.` : null,
-    restaurant.address ? `Адрес: ${restaurant.address}.` : null,
-    'Без подписки и приложения.',
-  ].filter(Boolean) as string[]
-  const description = descriptionParts.join(' ').slice(0, 200)
-
-  return {
-    title,
-    description,
-    openGraph: {
-      title,
-      description,
-      type: 'website',
-    },
-  }
+  return pageMetadata({
+    title: restaurantTitle(restaurant.restaurant_name, mainOffer ?? null),
+    description: restaurantDescription(restaurant.restaurant_name, restaurant.address, mainOffer ?? null),
+    path: `/r/${slug}`,
+  })
 }
 
 export default async function RestaurantPage({ params }: PageProps) {

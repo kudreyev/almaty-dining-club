@@ -1,11 +1,11 @@
 import type { MetadataRoute } from 'next'
+import { SITE_DESCRIPTION } from '@/lib/seo'
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
     name: 'kudaclub',
     short_name: 'kudaclub',
-    description:
-      'Бесплатные предложения 1+1, напитки и десерты в лучших заведениях Алматы. Без подписки и приложения.',
+    description: SITE_DESCRIPTION,
     start_url: '/app/me?utm_source=pwa',
     scope: '/',
     display: 'standalone',

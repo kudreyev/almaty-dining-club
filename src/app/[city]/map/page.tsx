@@ -1,5 +1,7 @@
+import type { Metadata } from 'next'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
+import { cityMapDescription, cityMapTitle, pageMetadata } from '@/lib/seo'
 import { createSupabasePublicClient } from '@/lib/supabase/public'
 import {
   filterCatalogActiveOffers,
@@ -19,6 +21,20 @@ type Offer = {
   offer_title: string
   is_active: boolean
   end_date?: string | null
+}
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ city: string }>
+}): Promise<Metadata> {
+  const { city } = await params
+  if (!isCity(city)) return {}
+  return pageMetadata({
+    title: cityMapTitle(city),
+    description: cityMapDescription(city),
+    path: `/${city}/map`,
+  })
 }
 
 type RestaurantLocation = {

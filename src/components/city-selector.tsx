@@ -1,18 +1,15 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
-import { CITIES, CITY_COOKIE, CITY_COOKIE_MAX_AGE, CITY_LABELS, type City } from '@/lib/cities'
-
-function setCityCookie(city: City) {
-  document.cookie = `${CITY_COOKIE}=${city}; path=/; max-age=${CITY_COOKIE_MAX_AGE}; samesite=lax`
-}
+import { CITIES, CITY_LABELS, type City } from '@/lib/cities'
+import { rememberCity } from '@/lib/city-cookie-client'
 
 export function CitySelector({ current }: { current: City }) {
   const router = useRouter()
 
   const handleChange = (city: City) => {
     if (city === current) return
-    setCityCookie(city)
+    rememberCity(city)
     router.push(`/${city}`)
     router.refresh()
   }

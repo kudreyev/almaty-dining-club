@@ -10,10 +10,12 @@ export function MobileMenu({
   navLinks,
   adminLinks,
   isLoggedIn,
+  loginHref,
 }: {
   navLinks: NavLink[]
   adminLinks: NavLink[]
   isLoggedIn: boolean
+  loginHref: string
 }) {
   const [open, setOpen] = useState(false)
 
@@ -69,7 +71,7 @@ export function MobileMenu({
               <>
                 <div className="my-2 h-px bg-gray-100" />
                 <GoalLink
-                  href="/login"
+                  href={loginHref}
                   goal="login_cta_click"
                   source="mobile-menu"
                   onClick={() => setOpen(false)}
@@ -78,7 +80,7 @@ export function MobileMenu({
                   Получить доступ бесплатно
                 </GoalLink>
                 <Link
-                  href="/login"
+                  href={loginHref}
                   onClick={() => setOpen(false)}
                   className="rounded-lg px-3 py-2.5 text-center text-sm font-medium transition-colors hover:bg-gray-50"
                   style={{ color: '#8a8a8a' }}

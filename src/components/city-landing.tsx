@@ -1,21 +1,11 @@
 'use client'
 
-import { useRouter } from 'next/navigation'
-import { CITIES, CITY_COOKIE, CITY_COOKIE_MAX_AGE, CITY_LABELS, type City } from '@/lib/cities'
+import Link from 'next/link'
+import { CITIES, CITY_LABELS } from '@/lib/cities'
+import { rememberCity } from '@/lib/city-cookie-client'
 
-function setCityCookie(city: City) {
-  document.cookie = `${CITY_COOKIE}=${city}; path=/; max-age=${CITY_COOKIE_MAX_AGE}; samesite=lax`
-}
-
+/** «/» для поисковых роботов (люди уходят в свой город редиректом из middleware). */
 export function CityLanding() {
-  const router = useRouter()
-
-  const choose = (city: City) => {
-    setCityCookie(city)
-    router.push(`/${city}`)
-    router.refresh()
-  }
-
   return (
     <main className="mx-auto flex min-h-[calc(100dvh-3.5rem)] max-w-2xl flex-col items-center justify-center px-5 py-12 text-center">
       <div className="mb-2 text-2xl font-semibold tracking-tight text-neutral-900">
@@ -30,10 +20,10 @@ export function CityLanding() {
 
       <div className="mt-8 grid w-full grid-cols-1 gap-4 sm:grid-cols-2">
         {CITIES.map((city) => (
-          <button
+          <Link
             key={city}
-            type="button"
-            onClick={() => choose(city)}
+            href={`/${city}`}
+            onClick={() => rememberCity(city)}
             className="group flex flex-col items-center justify-center rounded-2xl border border-gray-200 bg-white px-6 py-8 text-center transition-all hover:border-accent hover:shadow-md focus:outline-none focus:ring-2 focus:ring-accent/40"
           >
             <svg
@@ -54,7 +44,7 @@ export function CityLanding() {
             <span className="mt-3 text-lg font-semibold text-neutral-900">
               {CITY_LABELS[city]}
             </span>
-          </button>
+          </Link>
         ))}
       </div>
     </main>

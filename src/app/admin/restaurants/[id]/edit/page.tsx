@@ -48,6 +48,7 @@ type RestaurantRecord = {
   external_reviews_count: number | null
   phone: string | null
   whatsapp_phone: string | null
+  daily_limit: number | null
   is_active: boolean
 }
 
@@ -76,6 +77,7 @@ export default async function AdminRestaurantEditPage({ params, searchParams }: 
         external_reviews_count,
         phone,
         whatsapp_phone,
+        daily_limit,
         is_active
       `)
       .eq('id', id)
@@ -139,6 +141,15 @@ export default async function AdminRestaurantEditPage({ params, searchParams }: 
             placeholder="Ужины, Свидания, Винная карта"
           />
           <Input name="instagram_url" label="Instagram" defaultValue={r.instagram_url ?? ''} />
+          <Input
+            name="daily_limit"
+            type="number"
+            min={1}
+            label="Лимит кодов в день на заведение"
+            placeholder="Без лимита"
+            defaultValue={r.daily_limit == null ? '' : String(r.daily_limit)}
+            hint="Пусто — без лимита. Считается по всем офферам заведения вместе."
+          />
 
           <fieldset className="rounded-xl border border-gray-200 p-4">
             <legend className="px-2 text-sm font-medium text-gray-700">Информация из 2GIS</legend>

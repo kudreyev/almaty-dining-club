@@ -25,7 +25,7 @@ export function CityLanding() {
         Выберите город
       </h1>
       <p className="mt-2 text-sm text-gray-500">
-        Покажем заведения и офферы в вашем городе. Подписка действует во всех городах.
+        Покажем заведения и предложения 2-за-1 в вашем городе. Бесплатно, без подписки.
       </p>
 
       <div className="mt-8 grid w-full grid-cols-1 gap-4 sm:grid-cols-2">

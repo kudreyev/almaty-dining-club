@@ -33,7 +33,7 @@ export function UtmCapture() {
   return null
 }
 
-/** Читает атрибуцию из cookie (для TipTop metadata). */
+/** Читает атрибуцию из cookie на клиенте. */
 export function readUtmFromCookie(): {
   utm_source?: string
   utm_medium?: string

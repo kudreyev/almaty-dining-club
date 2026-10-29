@@ -34,24 +34,15 @@ const METRICA_COUNTER_ID = 109119099
 // именем — добавьте её сюда. Цели, отсутствующие в Метрике, пропускаются с
 // логом в server-side error (не падает весь sync).
 const TRACKED_GOAL_NAMES = [
-  'whatsapp_click',
-  'subscribe_click_home',
-  'trial_to_paid_click',
+  // Воронка гостя: вход → код → использование
+  'login_cta_click',
+  'signup_completed',
   'offer_get_click',
+  'code_requested',
   'offer_redeemed',
-  'subscription_activated',
+  'partner_cta_click',
+  'whatsapp_click',
   'sort_mode_switch',
-  // TipTop checkout funnel (без OTP/чекбокса)
-  'cta_click',
-  'checkout_open',
-  'phone_filled',
-  'pay_click',
-  'widget_open',
-  'purchase',
-  'payment_fail',
-  'payment_abandoned',
-  'promo_applied',
-  'free_page_view',
   // PWA install + Web Push
   'pwa_prompt_shown',
   'pwa_prompt_accepted',

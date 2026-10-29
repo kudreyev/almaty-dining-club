@@ -1,5 +1,8 @@
-import { formatPriceKzt } from '@/lib/pricing'
 import { pluralizeRu } from '@/lib/ru-plural'
+
+function formatKzt(amount: number): string {
+  return `${new Intl.NumberFormat('ru-RU').format(Math.round(amount))} ₸`
+}
 
 type Props = {
   amountKzt: number
@@ -18,7 +21,7 @@ export function LifetimeSavings({ amountKzt, redemptionsCount }: Props) {
     <section className="mb-6 rounded-2xl border border-neutral-200 bg-white px-5 py-5 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
       <p className="text-[13px] font-medium text-neutral-500">За всё время</p>
       <p className="mt-1 text-2xl font-semibold tracking-tight text-neutral-900">
-        Вы сэкономили {formatPriceKzt(amountKzt)}
+        Вы сэкономили {formatKzt(amountKzt)}
       </p>
       {redemptionsCount > 0 ? (
         <p className="mt-1.5 text-[12px] leading-[1.4] text-neutral-400">
@@ -26,7 +29,7 @@ export function LifetimeSavings({ amountKzt, redemptionsCount }: Props) {
         </p>
       ) : (
         <p className="mt-1.5 text-[12px] leading-[1.4] text-neutral-400">
-          Активируйте оффер — экономия появится здесь
+          Получите первый код — экономия появится здесь
         </p>
       )}
     </section>

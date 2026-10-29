@@ -5,12 +5,7 @@ import {
   almatyDayUtcBounds,
   yesterdayAlmatyDate,
 } from '@/lib/metrics-snapshot'
-import {
-  aggregateTopPromos,
-  aggregateTopSources,
-  notifyDailyAdSummary,
-} from '@/lib/analytics-telegram'
-import { isPaidMedium } from '@/lib/ttp-analytics-ledger'
+import { notifyDailyAdSummary } from '@/lib/analytics-telegram'
 import { logServerError } from '@/lib/safe-errors'
 
 /**
@@ -33,28 +28,23 @@ export async function GET(req: Request) {
 
   try {
     const [
-      { count: newSubs },
-      { data: newRows },
-      { count: cancelled },
+      { count: signups },
+      { count: codesIssued },
       { data: adRow },
       { count: redemptions },
     ] = await Promise.all([
       db
-        .from('subscribers')
+        .from('analytics_events')
         .select('id', { count: 'exact', head: true })
-        .gte('subscribed_at', start)
-        .lt('subscribed_at', end),
+        .eq('event_name', 'signup_completed')
+        .gte('created_at', start)
+        .lt('created_at', end),
       db
-        .from('subscribers')
-        .select('utm_source, utm_medium, promo_code')
-        .gte('subscribed_at', start)
-        .lt('subscribed_at', end),
-      db
-        .from('subscribers')
+        .from('analytics_events')
         .select('id', { count: 'exact', head: true })
-        .eq('status', 'cancelled')
-        .gte('cancelled_at', start)
-        .lt('cancelled_at', end),
+        .eq('event_name', 'code_requested')
+        .gte('created_at', start)
+        .lt('created_at', end),
       db
         .from('daily_ad_stats')
         .select('spend')
@@ -67,22 +57,15 @@ export async function GET(req: Request) {
         .lt('redeemed_at', end),
     ])
 
-    const paidNew = (newRows ?? []).filter((r) =>
-      isPaidMedium(r.utm_medium as string | null),
-    ).length
     const spend = adRow?.spend ?? null
-    const cac = spend != null && paidNew > 0 ? spend / paidNew : null
-
+    const signupCount = signups ?? 0
     const summary = {
       date,
-      newSubs: newSubs ?? 0,
-      cancelled: cancelled ?? 0,
-      spend,
-      paidNew,
-      cac,
-      topSources: aggregateTopSources(newRows ?? []),
-      topPromos: aggregateTopPromos(newRows ?? []),
+      signups: signupCount,
+      codesIssued: codesIssued ?? 0,
       redemptions: redemptions ?? 0,
+      spend,
+      costPerSignup: spend != null && signupCount > 0 ? spend / signupCount : null,
     }
 
     await notifyDailyAdSummary(summary)

@@ -46,6 +46,17 @@ export function trackGoal(goalName: string, params?: Record<string, unknown>): v
   }
 }
 
+/** Только цель Метрики: для событий, которые сервер уже записал в analytics_events. */
+export function reachMetricaGoal(goalName: string, params?: Record<string, unknown>): void {
+  if (typeof window === 'undefined' || !window.ym || !YM_ID) return
+
+  try {
+    window.ym(Number(YM_ID), 'reachGoal', goalName, params)
+  } catch (error) {
+    console.error('[Metrica] Failed to track goal:', error)
+  }
+}
+
 export function setUserParams(params: Record<string, unknown>): void {
   if (typeof window === 'undefined' || !window.ym || !YM_ID) return
 

@@ -9,10 +9,7 @@ type WhatsappSupportLinkProps = Omit<ComponentProps<'a'>, 'onClick'> & {
   onClick?: ComponentProps<'a'>['onClick']
 }
 
-/**
- * Саппортная wa.me-ссылка: трекает только goal в Метрике, без Meta Pixel
- * InitiateCheckout (т.к. это не подписной CTA).
- */
+/** Саппортная wa.me-ссылка: трекает только goal в Метрике. */
 export function WhatsappSupportLink({
   source,
   onClick,

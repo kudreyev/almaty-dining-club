@@ -2,7 +2,6 @@
 
 import {
   ResponsiveContainer,
-  LineChart,
   Line,
   BarChart,
   Bar,
@@ -21,73 +20,49 @@ function shortDate(iso: string): string {
 }
 
 export function AnalyticsCharts({ series }: { series: AnalyticsSeries }) {
-  const activeData = series.dates.map((date, i) => ({
+  const codesData = series.dates.map((date, i) => ({
     date: shortDate(date),
-    active: series.activeByDay[i] ?? 0,
+    codes: series.codesByDay[i] ?? 0,
+    redemptions: series.redemptionsByDay[i] ?? 0,
   }))
 
-  const newCancelData = series.dates.map((date, i) => ({
-    date: shortDate(date),
-    new: series.newByDay[i] ?? 0,
-    cancelled: series.cancelledByDay[i] ?? 0,
-  }))
-
-  const spendNewData = series.dates.map((date, i) => ({
+  const spendSignupsData = series.dates.map((date, i) => ({
     date: shortDate(date),
     spend: series.spendByDay[i] ?? 0,
-    new: series.newByDayAll[i] ?? 0,
+    signups: series.signupsByDay[i] ?? 0,
   }))
 
   return (
     <div className="grid gap-6 lg:grid-cols-1">
-      <ChartCard title="Активные подписчики">
+      <ChartCard title="Коды vs использования">
         <ResponsiveContainer width="100%" height={260}>
-          <LineChart data={activeData}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-            <XAxis dataKey="date" tick={{ fontSize: 11 }} />
-            <YAxis allowDecimals={false} tick={{ fontSize: 11 }} />
-            <Tooltip />
-            <Line
-              type="monotone"
-              dataKey="active"
-              name="Активные"
-              stroke="#D85A30"
-              strokeWidth={2}
-              dot={false}
-            />
-          </LineChart>
-        </ResponsiveContainer>
-      </ChartCard>
-
-      <ChartCard title="Новые vs отмены">
-        <ResponsiveContainer width="100%" height={260}>
-          <BarChart data={newCancelData}>
+          <BarChart data={codesData}>
             <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
             <XAxis dataKey="date" tick={{ fontSize: 11 }} />
             <YAxis allowDecimals={false} tick={{ fontSize: 11 }} />
             <Tooltip />
             <Legend />
-            <Bar dataKey="new" name="Новые" fill="#16a34a" radius={[4, 4, 0, 0]} />
+            <Bar dataKey="codes" name="Коды" fill="#2563eb" radius={[4, 4, 0, 0]} />
             <Bar
-              dataKey="cancelled"
-              name="Отмены"
-              fill="#dc2626"
+              dataKey="redemptions"
+              name="Использования"
+              fill="#16a34a"
               radius={[4, 4, 0, 0]}
             />
           </BarChart>
         </ResponsiveContainer>
       </ChartCard>
 
-      <ChartCard title="Расход vs новые подписчики">
+      <ChartCard title="Расход vs регистрации">
         <ResponsiveContainer width="100%" height={280}>
-          <ComposedChart data={spendNewData}>
+          <ComposedChart data={spendSignupsData}>
             <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
             <XAxis dataKey="date" tick={{ fontSize: 11 }} />
             <YAxis
               yAxisId="left"
               allowDecimals={false}
               tick={{ fontSize: 11 }}
-              label={{ value: 'Новые', angle: -90, position: 'insideLeft', fontSize: 11 }}
+              label={{ value: 'Регистрации', angle: -90, position: 'insideLeft', fontSize: 11 }}
             />
             <YAxis
               yAxisId="right"
@@ -99,9 +74,9 @@ export function AnalyticsCharts({ series }: { series: AnalyticsSeries }) {
             <Legend />
             <Bar
               yAxisId="left"
-              dataKey="new"
-              name="Новые"
-              fill="#2563eb"
+              dataKey="signups"
+              name="Регистрации"
+              fill="#D85A30"
               radius={[4, 4, 0, 0]}
             />
             <Line
@@ -109,7 +84,7 @@ export function AnalyticsCharts({ series }: { series: AnalyticsSeries }) {
               type="monotone"
               dataKey="spend"
               name="Расход"
-              stroke="#D85A30"
+              stroke="#1a1a1a"
               strokeWidth={2}
               dot={false}
             />

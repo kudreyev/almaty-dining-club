@@ -37,8 +37,7 @@ export type HomeRestaurantsResult = {
 
 /**
  * Загружает каталог активных ресторанов заданного города с фото, часами,
- * оффером и предвычисленным openStatus. Используется в каталоге (/[city]) и
- * в кабинете для бывших/неактивных подписчиков (/app/me) — экран реактивации.
+ * оффером и предвычисленным openStatus. Используется в каталоге (/[city]).
  */
 export async function loadHomeRestaurants(city: City): Promise<HomeRestaurantsResult> {
   const supabase = createSupabasePublicClient()
@@ -62,6 +61,7 @@ export async function loadHomeRestaurants(city: City): Promise<HomeRestaurantsRe
         offer_terms_short,
         estimated_value,
         cooldown_days,
+        dish_photo_url,
         end_date,
         is_active
       ),

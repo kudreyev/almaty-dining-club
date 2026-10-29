@@ -1,27 +1,22 @@
 import { createCustomerMetricsScope } from '@/lib/customer-metrics'
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
-import { computeWhatsappConversion } from '@/lib/whatsapp-analytics'
 
 export type WeeklyDigestContext = {
   week_ending: string
   snapshots: Array<{
     date: string
-    active_subscribers: number
-    new_subs_24h: number
-    whatsapp_clicks_24h: number
+    members_total: number
+    new_members_24h: number
+    codes_issued_24h: number
     redemptions_24h: number
-    mrr_kzt: number
+    whatsapp_clicks_24h: number
   }>
-  whatsapp_conversion_7d: {
-    subscribe_clicks: number
-    new_subscriptions: number
-    proxy_conversion_pct: number | null
-    by_source: Array<{
-      source: string
-      clicks: number
-      attributed_subs: number
-      conversion_pct: number | null
-    }>
+  funnel_7d: {
+    signups: number
+    codes_requested: number
+    redemptions: number
+    guests_with_code: number
+    guests_redeemed: number
   }
   top_restaurants_7d: Array<{ name: string; uses: number }>
 }
@@ -44,23 +39,19 @@ export async function buildWeeklyDigestContext(): Promise<WeeklyDigestContext> {
   const sinceDate = isoDateUtc(-7)
   const sinceTs = isoTimestamp(-7)
 
-  const [snapshotsRes, clicksRes, subsRes, redemptionsRes] = await Promise.all([
+  const [snapshotsRes, eventsRes, redemptionsRes] = await Promise.all([
     admin
       .from('metrics_daily_snapshot')
       .select(
-        'date, active_subscribers, new_subs_24h, whatsapp_clicks_24h, redemptions_24h, mrr_kzt',
+        'date, members_total, new_members_24h, codes_issued_24h, redemptions_24h, whatsapp_clicks_24h',
       )
       .gte('date', sinceDate)
       .order('date', { ascending: true }),
     admin
       .from('analytics_events')
-      .select('user_id, created_at, meta')
-      .eq('event_name', 'whatsapp_click')
+      .select('event_name, user_id')
+      .in('event_name', ['signup_completed', 'code_requested'])
       .gte('created_at', sinceTs),
-    scope
-      .applySubscriptionExclusion(
-        admin.from('subscriptions').select('user_id, created_at').gte('created_at', sinceTs),
-      ),
     scope.applyUserIdExclusion(
       admin
         .from('redemptions')
@@ -70,17 +61,15 @@ export async function buildWeeklyDigestContext(): Promise<WeeklyDigestContext> {
   ])
 
   if (snapshotsRes.error) throw snapshotsRes.error
-  if (clicksRes.error) throw clicksRes.error
-  if (subsRes.error) throw subsRes.error
+  if (eventsRes.error) throw eventsRes.error
   if (redemptionsRes.error) throw redemptionsRes.error
 
-  const conversion = computeWhatsappConversion({
-    clicks: scope.filterNullableUserRows(clicksRes.data ?? []),
-    newSubscriptions: scope.filterUserRows(subsRes.data ?? []),
-  })
+  const events = scope.filterNullableUserRows(eventsRes.data ?? [])
+  const codeEvents = events.filter((e) => e.event_name === 'code_requested')
+  const redemptions = scope.filterUserRows(redemptionsRes.data ?? [])
 
   const counts = new Map<string, number>()
-  for (const row of scope.filterUserRows(redemptionsRes.data ?? [])) {
+  for (const row of redemptions) {
     counts.set(row.restaurant_id, (counts.get(row.restaurant_id) ?? 0) + 1)
   }
 
@@ -105,35 +94,22 @@ export async function buildWeeklyDigestContext(): Promise<WeeklyDigestContext> {
     }))
   }
 
-  const snapshots = (snapshotsRes.data ?? []).map((row) => ({
-    date: row.date,
-    active_subscribers: row.active_subscribers,
-    new_subs_24h: row.new_subs_24h,
-    whatsapp_clicks_24h: row.whatsapp_clicks_24h,
-    redemptions_24h: row.redemptions_24h,
-    mrr_kzt: row.mrr_kzt,
-  }))
-
   return {
     week_ending: isoDateUtc(-1),
-    snapshots,
-    whatsapp_conversion_7d: {
-      subscribe_clicks: conversion.subscribeClicks,
-      new_subscriptions: conversion.newSubscriptions,
-      proxy_conversion_pct: conversion.proxyConversionPct,
-      by_source: conversion.bySource.map((row) => ({
-        source: row.source,
-        clicks: row.clicks,
-        attributed_subs: row.attributedSubs,
-        conversion_pct: row.conversionPct,
-      })),
+    snapshots: snapshotsRes.data ?? [],
+    funnel_7d: {
+      signups: events.filter((e) => e.event_name === 'signup_completed').length,
+      codes_requested: codeEvents.length,
+      redemptions: redemptions.length,
+      guests_with_code: new Set(codeEvents.map((e) => e.user_id)).size,
+      guests_redeemed: new Set(redemptions.map((r) => r.user_id)).size,
     },
     top_restaurants_7d: topRestaurants,
   }
 }
 
 export function buildWeeklyDigestPrompt(ctx: WeeklyDigestContext): string {
-  return `Ты — продуктовый аналитик Kudaclub (подписка на скидки в ресторанах Алматы, 1990 ₸/мес).
+  return `Ты — продуктовый аналитик KudaClub: бесплатный для гостей сервис предложений 2-за-1 в кафе и ресторанах Алматы. Зарабатываем на заведениях-партнёрах, которым приводим гостей.
 
 Вот агрегированные данные за неделю (JSON). Все числа уже посчитаны — не пересчитывай их.
 

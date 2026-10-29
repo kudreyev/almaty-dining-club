@@ -2,12 +2,10 @@ import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { logServerError } from '@/lib/safe-errors'
-import {
-  getCurrentUserSubscription,
-  isSubscriptionCurrentlyActive,
-} from '@/lib/subscription'
+import { getGuestAccess } from '@/lib/guest-access'
 import {
   resolveOfferCooldownDays,
+  getOfferAvailableAgainAt,
   filterCatalogActiveOffers,
   getTodayDateStringInTz,
   formatOfferUsableHoursStatus,
@@ -27,7 +25,7 @@ import { RestaurantHeroGallery } from '@/components/restaurant/restaurant-hero-g
 import { RestaurantHero } from '@/components/restaurant/restaurant-hero'
 import { RestaurantOffersList } from '@/components/restaurant/restaurant-offers-list'
 import { RestaurantHowToUse } from '@/components/restaurant/restaurant-how-to-use'
-import { RestaurantSubscribeBanner } from '@/components/restaurant/restaurant-subscribe-banner'
+import { RestaurantSignupBanner } from '@/components/restaurant/restaurant-signup-banner'
 import { MetaPixelViewContent } from '@/components/analytics/meta-pixel-view-content'
 import { RestaurantAddressContacts } from '@/components/restaurant/restaurant-address-contacts'
 import type { RestaurantHour } from '@/lib/opening-hours'
@@ -92,11 +90,11 @@ const SELECT_RESTAURANT = `
   restaurant_hours ( day_of_week, is_closed, open_time, close_time, close_next_day )
 `
 
-async function loadCooldownDaysLeft(
+async function loadAvailableAgain(
   supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
   userId: string,
   offers: Pick<Offer, 'id' | 'cooldown_days'>[]
-): Promise<Record<string, number>> {
+): Promise<Record<string, string>> {
   const offerIds = offers.map((o) => o.id)
   const maxCooldownDays = offers.reduce(
     (acc, o) => Math.max(acc, resolveOfferCooldownDays(o.cooldown_days)),
@@ -104,8 +102,7 @@ async function loadCooldownDaysLeft(
   )
   if (maxCooldownDays <= 0) return {}
 
-  const earliest = new Date()
-  earliest.setDate(earliest.getDate() - maxCooldownDays)
+  const earliest = new Date(Date.now() - maxCooldownDays * 24 * 60 * 60 * 1000)
 
   const { data: redemptions } = await supabase
     .from('redemptions')
@@ -123,18 +120,35 @@ async function loadCooldownDaysLeft(
     }
   }
 
-  const result: Record<string, number> = {}
-  const nowTs = new Date().getTime()
+  const result: Record<string, string> = {}
+  const nowTs = Date.now()
   for (const offer of offers) {
     const lastRedeemedAt = lastByOffer.get(offer.id)
     if (!lastRedeemedAt) continue
-    const cooldownDays = resolveOfferCooldownDays(offer.cooldown_days)
-    const lastTs = new Date(lastRedeemedAt).getTime()
-    const elapsedDays = (nowTs - lastTs) / (1000 * 60 * 60 * 24)
-    const remaining = cooldownDays - elapsedDays
-    if (remaining > 0) {
-      result[offer.id] = Math.max(1, Math.ceil(remaining))
+    const availableAt = getOfferAvailableAgainAt(lastRedeemedAt, offer.cooldown_days)
+    if (availableAt.getTime() > nowTs) {
+      result[offer.id] = availableAt.toISOString()
     }
+  }
+  return result
+}
+
+async function loadSoldOut(
+  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
+  offerIds: string[]
+): Promise<Record<string, boolean>> {
+  if (offerIds.length === 0) return {}
+  const { data, error } = await supabase.rpc('offer_daily_availability', {
+    p_offer_ids: offerIds,
+  })
+  if (error) {
+    logServerError('r/[slug]/daily-availability', error)
+    return {}
+  }
+  const rows = (data ?? []) as Array<{ offer_id: string; sold_out: boolean }>
+  const result: Record<string, boolean> = {}
+  for (const row of rows) {
+    if (row.sold_out) result[row.offer_id] = true
   }
   return result
 }
@@ -168,12 +182,12 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const cityPrepositional = isCity(restaurant.city)
     ? CITY_LABELS_PREPOSITIONAL[restaurant.city]
     : CITY_LABELS_PREPOSITIONAL[DEFAULT_CITY]
-  const title = `${restaurant.restaurant_name} в ${cityPrepositional} — офферы Kudaclub`
+  const title = `${restaurant.restaurant_name} в ${cityPrepositional} — 2-за-1 бесплатно с KudaClub`
   const descriptionParts = [
-    `${restaurant.restaurant_name} — 1+1 и подарки по подписке Kudaclub`,
+    `${restaurant.restaurant_name} — 2-за-1 и подарки с KudaClub бесплатно.`,
     cuisines ? `Кухня: ${cuisines}.` : null,
     restaurant.address ? `Адрес: ${restaurant.address}.` : null,
-    'Подписка 1 990 ₸/мес — окупается первым визитом.',
+    'Без подписки и приложения.',
   ].filter(Boolean) as string[]
   const description = descriptionParts.join(' ').slice(0, 200)
 
@@ -205,7 +219,7 @@ export default async function RestaurantPage({ params }: PageProps) {
     offersResult,
     photosResult,
     primaryLocationResult,
-    { user, subscription },
+    access,
   ] = await Promise.all([
     supabase
       .from('offers')
@@ -233,7 +247,7 @@ export default async function RestaurantPage({ params }: PageProps) {
       .order('sort_order', { ascending: true })
       .limit(1)
       .maybeSingle<PrimaryLocation>(),
-    getCurrentUserSubscription(),
+    getGuestAccess(),
   ])
 
   const now = new Date()
@@ -241,12 +255,14 @@ export default async function RestaurantPage({ params }: PageProps) {
   const offers = filterCatalogActiveOffers(offersResult.data ?? [], today)
   const offersError = offersResult.error
   const primaryLocation = primaryLocationResult.data
-  const hasSubscription = isSubscriptionCurrentlyActive(subscription)
+  const isMember = access.kind === 'member'
 
-  const cooldownDaysLeftByOfferId =
-    hasSubscription && user && offers.length > 0
-      ? await loadCooldownDaysLeft(supabase, user.id, offers)
-      : {}
+  const [availableAgainByOfferId, soldOutByOfferId] = await Promise.all([
+    isMember && offers.length > 0
+      ? loadAvailableAgain(supabase, access.user.id, offers)
+      : Promise.resolve({} as Record<string, string>),
+    loadSoldOut(supabase, offers.map((offer) => offer.id)),
+  ])
 
   if (offersError) {
     logServerError('r/[slug]/offers', offersError)
@@ -254,7 +270,7 @@ export default async function RestaurantPage({ params }: PageProps) {
       <main className="mx-auto max-w-3xl">
         <h1 className="px-5 py-10 text-2xl font-medium">{restaurant.restaurant_name}</h1>
         <p className="px-5 text-sm text-red-600">
-          Не удалось загрузить офферы.
+          Не удалось загрузить предложения.
         </p>
       </main>
     )
@@ -300,16 +316,6 @@ export default async function RestaurantPage({ params }: PageProps) {
     ? `https://static-maps.yandex.ru/1.x/?lang=ru_RU&ll=${lng},${lat}&z=17&l=map&size=650,400&pt=${lng},${lat},pm2orm`
     : null
 
-  const maxSavings = offers.reduce<number>((acc, offer) => {
-    if (typeof offer.estimated_value === 'number' && offer.estimated_value > 0) {
-      return Math.max(acc, offer.estimated_value)
-    }
-    return acc
-  }, 0)
-  const maxSavingsLabel = maxSavings > 0
-    ? `${new Intl.NumberFormat('ru-RU').format(Math.round(maxSavings / 100) * 100)} ₸`
-    : null
-
   return (
     <>
       <MetaPixelViewContent
@@ -318,7 +324,7 @@ export default async function RestaurantPage({ params }: PageProps) {
       />
       <RestaurantNavBar
         shareTitle={restaurant.restaurant_name}
-        shareText={`${restaurant.restaurant_name} — офферы Kudaclub`}
+        shareText={`${restaurant.restaurant_name} — 2-за-1 бесплатно с KudaClub`}
       />
 
       <main className="mx-auto max-w-3xl pb-10">
@@ -351,7 +357,7 @@ export default async function RestaurantPage({ params }: PageProps) {
             className="font-medium text-neutral-900"
             style={{ fontSize: '18px', marginBottom: '16px' }}
           >
-            Офферы по подписке
+            Предложения
           </h2>
 
           <RestaurantOffersList
@@ -377,18 +383,18 @@ export default async function RestaurantPage({ params }: PageProps) {
             restaurantId={restaurant.id}
             restaurantSlug={restaurant.slug}
             restaurantName={restaurant.restaurant_name}
-            hasSubscription={hasSubscription}
-            cooldownDaysLeftByOfferId={cooldownDaysLeftByOfferId}
+            isMember={isMember}
+            availableAgainByOfferId={availableAgainByOfferId}
+            soldOutByOfferId={soldOutByOfferId}
           />
         </section>
 
         <RestaurantHowToUse />
 
-        {!hasSubscription ? (
-          <RestaurantSubscribeBanner
+        {!isMember ? (
+          <RestaurantSignupBanner
             restaurantName={restaurant.restaurant_name}
             restaurantSlug={restaurant.slug}
-            maxSavingsLabel={maxSavingsLabel}
           />
         ) : null}
 

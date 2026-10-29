@@ -2,8 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import SubscribeCTA from '@/components/checkout/subscribe-cta'
-import { formatPriceKzt } from '@/lib/pricing'
+import { GoalLink } from '@/components/analytics/goal-link'
 
 type NavLink = { href: string; label: string }
 
@@ -69,13 +68,15 @@ export function MobileMenu({
             {!isLoggedIn ? (
               <>
                 <div className="my-2 h-px bg-gray-100" />
-                <SubscribeCTA
+                <GoalLink
+                  href="/login"
+                  goal="login_cta_click"
                   source="mobile-menu"
                   onClick={() => setOpen(false)}
                   className="rounded-lg bg-accent px-3 py-2.5 text-center text-sm font-medium text-white"
                 >
-                  Попробовать за {formatPriceKzt()}
-                </SubscribeCTA>
+                  Получить доступ бесплатно
+                </GoalLink>
                 <Link
                   href="/login"
                   onClick={() => setOpen(false)}

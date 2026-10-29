@@ -1,4 +1,4 @@
-/** UTM / promo attribution для TipTop JsonData и cookie. */
+/** UTM / promo attribution: cookie kc_utm (уходит в meta signup_completed). */
 
 export const UTM_COOKIE_NAME = 'kc_utm'
 export const UTM_COOKIE_MAX_AGE_SEC = 30 * 24 * 60 * 60 // 30 дней

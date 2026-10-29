@@ -1,8 +1,6 @@
 // src/lib/auth/whatsapp-otp-challenge.ts
 // Общие хелперы WhatsApp-OTP challenge: cookie-хранилище одноразового кода и
-// параметров верификации. Используются и во «Входе» (src/app/login/actions.ts),
-// и в чекауте подписки (src/lib/checkout/otp-actions.ts), чтобы verifyOtp
-// работал одинаково для обоих флоу (общие имена cookie + один алгоритм хэша).
+// параметров верификации для входа/регистрации (src/app/login/actions.ts).
 
 import { createHash, randomInt } from 'node:crypto'
 import { cookies } from 'next/headers'

@@ -3,17 +3,53 @@
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
-import {
-  getCurrentUserSubscription,
-  isSubscriptionCurrentlyActive,
-} from '@/lib/subscription'
-import { DEFAULT_TZ } from '@/lib/opening-hours'
-import { getOfferUsableHours, isOfferUsableNow, resolveOfferCooldownDays } from '@/lib/offers'
-import { generateRedeemCode } from '@/lib/crypto-random'
+import { getGuestAccess } from '@/lib/guest-access'
+import { DAILY_LIMIT_REACHED_TEXT } from '@/lib/offers'
+import { logServerError } from '@/lib/safe-errors'
 
 export type ExtendRedeemState =
   | { error?: string; ok?: boolean; expiresAt?: string }
   | null
+
+type ExtendRpcResult = {
+  ok: boolean
+  reason?:
+    | 'login_required'
+    | 'not_found'
+    | 'already_used'
+    | 'already_extended'
+    | 'extend_window_closed'
+    | 'daily_limit'
+  expires_at?: string
+}
+
+type IssueRpcResult = {
+  ok: boolean
+  reason?:
+    | 'login_required'
+    | 'phone_not_verified'
+    | 'offer_unavailable'
+    | 'active_token'
+    | 'usable_hours'
+    | 'cooldown'
+    | 'daily_limit'
+    | 'server_error'
+  available_at?: string
+  token_id?: string
+}
+
+const EXTEND_ERRORS: Record<NonNullable<ExtendRpcResult['reason']>, string> = {
+  login_required: 'Войдите в аккаунт.',
+  not_found: 'Код не найден.',
+  already_used: 'Код уже использован.',
+  already_extended: 'Продление уже применялось.',
+  extend_window_closed: 'Время для продления истекло (прошёл час с выдачи).',
+  daily_limit: DAILY_LIMIT_REACHED_TEXT,
+}
+
+function redeemPath(restaurantId: string, offerId: string) {
+  return `/app/redeem/${restaurantId}/${offerId}`
+}
 
 export async function extendRedeemToken(
   _prev: ExtendRedeemState,
@@ -26,77 +62,26 @@ export async function extendRedeemToken(
     return { error: 'Некорректный запрос.' }
   }
 
-  const { user, subscription } = await getCurrentUserSubscription()
-  if (!user) {
-    return { error: 'Войдите в аккаунт.' }
-  }
-  if (!isSubscriptionCurrentlyActive(subscription)) {
-    return { error: 'Нужна активная подписка.' }
-  }
-
   const supabase = await createSupabaseServerClient()
-  const nowIso = new Date().toISOString()
+  const { data, error } = await supabase.rpc('extend_redeem_token', {
+    p_token_id: tokenId,
+  })
 
-  const { data: row, error: fetchError } = await supabase
-    .from('redeem_tokens')
-    .select(
-      'id, used_at, extended_once, extend_deadline_at, restaurant_id, offer_id'
-    )
-    .eq('id', tokenId)
-    .eq('user_id', user.id)
-    .eq('status', 'active')
-    .maybeSingle<{
-      id: string
-      used_at: string | null
-      extended_once: boolean
-      extend_deadline_at: string
-      restaurant_id: string
-      offer_id: string
-    }>()
-
-  if (fetchError || !row) {
-    return { error: 'Код не найден.' }
-  }
-  if (
-    restaurantId &&
-    offerId &&
-    (row.restaurant_id !== restaurantId || row.offer_id !== offerId)
-  ) {
-    return { error: 'Некорректный запрос.' }
-  }
-  if (row.used_at != null) {
-    return { error: 'Код уже использован.' }
-  }
-  if (row.extended_once) {
-    return { error: 'Продление уже применялось.' }
-  }
-  if (nowIso > row.extend_deadline_at) {
-    return { error: 'Время для продления истекло (прошёл час с выдачи).' }
-  }
-
-  const newExpires = new Date()
-  newExpires.setMinutes(newExpires.getMinutes() + 10)
-
-  const { error: updateError } = await supabase
-    .from('redeem_tokens')
-    .update({
-      expires_at: newExpires.toISOString(),
-      extended_once: true,
-    })
-    .eq('id', tokenId)
-    .eq('user_id', user.id)
-    .is('used_at', null)
-    .eq('extended_once', false)
-
-  if (updateError) {
+  if (error) {
+    logServerError('redeem/extend', error)
     return { error: 'Не удалось продлить. Попробуйте снова.' }
   }
 
-  if (restaurantId && offerId) {
-    revalidatePath(`/app/redeem/${restaurantId}/${offerId}`)
+  const result = data as ExtendRpcResult | null
+  if (!result?.ok || !result.expires_at) {
+    return { error: EXTEND_ERRORS[result?.reason ?? 'not_found'] }
   }
 
-  return { ok: true, expiresAt: newExpires.toISOString() }
+  if (restaurantId && offerId) {
+    revalidatePath(redeemPath(restaurantId, offerId))
+  }
+
+  return { ok: true, expiresAt: result.expires_at }
 }
 
 export async function generateRedeemToken(formData: FormData) {
@@ -107,112 +92,34 @@ export async function generateRedeemToken(formData: FormData) {
     redirect('/almaty')
   }
 
-  const backUrl = `/app/redeem/${restaurantId}/${offerId}`
+  const backUrl = redeemPath(restaurantId, offerId)
 
-  const { user, subscription } = await getCurrentUserSubscription()
-
-  if (!user) {
-    redirect('/login')
-  }
-
-  if (!isSubscriptionCurrentlyActive(subscription)) {
-    redirect('/pricing')
+  const access = await getGuestAccess()
+  if (access.kind !== 'member') {
+    redirect(`/login?next=${encodeURIComponent(backUrl)}`)
   }
 
   const supabase = await createSupabaseServerClient()
-  const nowIso = new Date().toISOString()
-
-  // 1) Уже есть активный токен
-  const { data: activeTokens, error: activeTokensError } = await supabase
-    .from('redeem_tokens')
-    .select('id')
-    .eq('user_id', user.id)
-    .eq('status', 'active')
-    .is('used_at', null)
-    .gt('expires_at', nowIso)
-    .order('created_at', { ascending: false })
-    .limit(1)
-
-  if (activeTokensError) {
-    redirect(`${backUrl}?error=server_error`)
-  }
-
-  if (activeTokens && activeTokens.length > 0) {
-    redirect(`${backUrl}?error=active_token`)
-  }
-
-  const { data: offerForRedeem, error: offerRedeemError } = await supabase
-    .from('offers')
-    .select(`
-      cooldown_days,
-      offer_usable_hours ( day_of_week, is_unavailable, from_time, to_time, to_next_day )
-    `)
-    .eq('id', offerId)
-    .eq('restaurant_id', restaurantId)
-    .eq('is_active', true)
-    .maybeSingle<{
-      cooldown_days: number | null
-      offer_usable_hours: Array<{
-        day_of_week: number
-        is_unavailable: boolean
-        from_time: string | null
-        to_time: string | null
-        to_next_day: boolean
-      }> | null
-    }>()
-
-  if (offerRedeemError || !offerForRedeem) {
-    redirect(`${backUrl}?error=server_error`)
-  }
-
-  if (!isOfferUsableNow(getOfferUsableHours(offerForRedeem), new Date(), DEFAULT_TZ)) {
-    redirect(`${backUrl}?error=usable_hours`)
-  }
-
-  const cooldownDays = resolveOfferCooldownDays(offerForRedeem.cooldown_days)
-
-  // 2) Cooldown по офферу: 1 раз в N дней
-  const cooldownStart = new Date()
-  cooldownStart.setDate(cooldownStart.getDate() - cooldownDays)
-
-  const { data: recentRedemptions, error: recentRedemptionsError } = await supabase
-    .from('redemptions')
-    .select('id')
-    .eq('user_id', user.id)
-    .eq('offer_id', offerId)
-    .gte('redeemed_at', cooldownStart.toISOString())
-    .order('redeemed_at', { ascending: false })
-    .limit(1)
-
-  if (recentRedemptionsError) {
-    redirect(`${backUrl}?error=server_error`)
-  }
-
-  if (recentRedemptions && recentRedemptions.length > 0) {
-    redirect(`${backUrl}?error=cooldown_offer`)
-  }
-
-  const issuedAt = new Date()
-  const expiresAt = new Date(issuedAt.getTime() + 10 * 60 * 1000)
-  const extendDeadlineAt = new Date(issuedAt.getTime() + 60 * 60 * 1000)
-
-  const tokenCode = generateRedeemCode()
-
-  const { error: insertError } = await supabase.from('redeem_tokens').insert({
-    user_id: user.id,
-    restaurant_id: restaurantId,
-    offer_id: offerId,
-    token_code: tokenCode,
-    status: 'active',
-    issued_at: issuedAt.toISOString(),
-    expires_at: expiresAt.toISOString(),
-    extend_deadline_at: extendDeadlineAt.toISOString(),
-    extended_once: false,
-    used_at: null,
+  const { data, error } = await supabase.rpc('issue_redeem_token', {
+    p_restaurant_id: restaurantId,
+    p_offer_id: offerId,
   })
 
-  if (insertError) {
+  if (error) {
+    logServerError('redeem/issue', error)
     redirect(`${backUrl}?error=server_error`)
+  }
+
+  const result = data as IssueRpcResult | null
+  if (!result?.ok) {
+    const reason = result?.reason ?? 'server_error'
+    if (reason === 'login_required' || reason === 'phone_not_verified') {
+      redirect(`/login?next=${encodeURIComponent(backUrl)}`)
+    }
+    if (reason === 'cooldown' && result?.available_at) {
+      redirect(`${backUrl}?error=cooldown&until=${encodeURIComponent(result.available_at)}`)
+    }
+    redirect(`${backUrl}?error=${reason}`)
   }
 
   revalidatePath(backUrl)

@@ -13,7 +13,7 @@ import {
   recordStaffRedeemFailure,
 } from '@/lib/staff-redeem-rate-limit'
 import { notifyOfferRedeemed } from '@/lib/analytics-telegram'
-import { findSubscriberPromoByUserId } from '@/lib/ttp-analytics-ledger'
+import { logAnalyticsEvent } from '@/lib/analytics'
 import { logServerError } from '@/lib/safe-errors'
 
 async function requireStaffContext() {
@@ -154,32 +154,44 @@ export async function redeemTokenByCode(formData: FormData) {
     redirect('/staff/redeem?error=redemption_failed')
   }
 
-  // Telegram: только реальное использование, не идемпотентный повтор клика.
+  // Аналитика и Telegram: только реальное использование, не идемпотентный повтор клика.
   if (!result.idempotent) {
     try {
       const { data: tokenMeta } = await admin
         .from('redeem_tokens')
         .select(
-          'user_id, restaurant_id, offer_id, restaurants(name), offers(offer_title)',
+          'id, user_id, restaurant_id, offer_id, restaurants(restaurant_name), offers(offer_title)',
         )
         .eq('token_code', tokenCode)
+        .eq('restaurant_id', restaurantId)
         .maybeSingle<{
+          id: string
           user_id: string
           restaurant_id: string
           offer_id: string
-          restaurants: { name: string } | null
+          restaurants: { restaurant_name: string } | null
           offers: { offer_title: string } | null
         }>()
 
+      if (tokenMeta) {
+        await logAnalyticsEvent({
+          event_name: 'code_redeemed',
+          user_id: tokenMeta.user_id,
+          meta: {
+            restaurant_id: tokenMeta.restaurant_id,
+            offer_id: tokenMeta.offer_id,
+            token_id: tokenMeta.id,
+            staff_user_id: staffUserId,
+          },
+        })
+      }
+
       const restaurantName =
-        tokenMeta?.restaurants?.name?.trim() || 'заведение'
+        tokenMeta?.restaurants?.restaurant_name?.trim() || 'заведение'
       const offerTitle = tokenMeta?.offers?.offer_title?.trim() || null
-      const promoCode = tokenMeta?.user_id
-        ? await findSubscriberPromoByUserId(tokenMeta.user_id)
-        : null
-      void notifyOfferRedeemed({ restaurantName, offerTitle, promoCode })
+      void notifyOfferRedeemed({ restaurantName, offerTitle })
     } catch (error) {
-      logServerError('staff/redeem:telegram', error)
+      logServerError('staff/redeem:analytics', error)
     }
   }
 

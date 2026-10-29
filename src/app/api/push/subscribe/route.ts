@@ -1,9 +1,8 @@
 // POST /api/push/subscribe — upsert Web Push подписки текущего залогиненного
-// активного подписчика (profiles.id → push_subscriptions.subscriber_id).
+// пользователя (profiles.id → push_subscriptions.subscriber_id).
 
 import { NextResponse } from 'next/server'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
-import { isSubscriptionCurrentlyActive } from '@/lib/subscription'
 import { logServerError } from '@/lib/safe-errors'
 
 export const runtime = 'nodejs'
@@ -24,19 +23,6 @@ export async function POST(request: Request) {
 
     if (!user) {
       return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
-    }
-
-    const { data: subscriptions } = await supabase
-      .from('subscriptions')
-      .select('status, start_date, end_date')
-      .eq('user_id', user.id)
-      .in('status', ['active', 'cancelled'])
-      .order('created_at', { ascending: false })
-      .limit(1)
-
-    const latest = subscriptions?.[0] ?? null
-    if (!isSubscriptionCurrentlyActive(latest)) {
-      return NextResponse.json({ error: 'subscription_required' }, { status: 403 })
     }
 
     const body = (await request.json()) as Body

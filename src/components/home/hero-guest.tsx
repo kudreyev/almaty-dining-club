@@ -1,95 +1,49 @@
-import SubscribeCTA from '@/components/checkout/subscribe-cta'
-import { CITY_LABELS, CITY_LABELS_GENITIVE, type City } from '@/lib/cities'
-import {
-  formatPriceKzt,
-  SUBSCRIPTIONS_CLOSED_MESSAGE,
-  SUBSCRIPTIONS_OPEN,
-} from '@/lib/pricing'
+import { GoalLink } from '@/components/analytics/goal-link'
+import { CITY_LABELS_GENITIVE, type City } from '@/lib/cities'
 
 type HeroGuestProps = {
-  venuesCount: number
   city: City
 }
 
-export function HeroGuest({ venuesCount, city }: HeroGuestProps) {
+export function HeroGuest({ city }: HeroGuestProps) {
   return (
     <section className="px-5">
       <div className="mx-auto max-w-3xl py-8 text-center md:py-12">
         <span className="inline-block rounded-full bg-primary-light px-3 py-1 text-xs text-primary-dark">
-          От создателей Kudafest · {CITY_LABELS[city]}
+          От создателей Kudafest
         </span>
 
         <h1 className="mt-5 text-3xl font-semibold leading-[1.15] tracking-[-0.02em] text-neutral-900 md:text-5xl">
-          Подписка на скидки в ресторанах{' '}
-          <span style={{ color: '#D85A30' }}>{CITY_LABELS_GENITIVE[city]}</span>
+          2-за-1 в лучших местах {CITY_LABELS_GENITIVE[city]}.{' '}
+          <span style={{ color: '#D85A30' }}>Бесплатно.</span>
         </h1>
 
-        <p className="mx-auto mt-4 max-w-[520px] text-sm text-neutral-700 md:text-base">
-          Платите <span className="font-semibold">{formatPriceKzt()} в месяц</span> — и в{' '}
-          {venuesCount} заведениях получаете второе блюдо бесплатно или подарок
-          к заказу.
-        </p>
-
-        <p className="mx-auto mt-3 max-w-[480px] text-sm text-neutral-500">
-          Как абонемент в спортзал — только для ресторанов.
+        <p className="mx-auto mt-4 max-w-[540px] text-sm text-neutral-700 md:text-base">
+          Второе блюдо, напиток или десерт в подарок в кафе и ресторанах города.
+          Без подписки, без оплаты, без приложения.
         </p>
 
         <div className="mt-7 flex flex-col items-stretch gap-3 sm:flex-row sm:items-center sm:justify-center">
-          <SubscribeCTA
+          <GoalLink
+            href="/login"
+            goal="login_cta_click"
             source="home-hero"
             className="inline-flex items-center justify-center rounded-lg bg-primary px-6 py-3.5 text-base font-medium text-white transition-colors hover:bg-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2"
           >
-            Попробовать за {formatPriceKzt()}
-          </SubscribeCTA>
+            Получить доступ бесплатно
+          </GoalLink>
           <a
-            href="#venues"
+            href="#popular"
             className="inline-flex items-center justify-center rounded-lg border border-neutral-300 bg-white px-6 py-3.5 text-base font-medium text-neutral-900 transition-colors hover:border-neutral-400 hover:bg-neutral-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-300 focus-visible:ring-offset-2"
           >
-            Смотреть заведения
+            Смотреть предложения
           </a>
         </div>
 
-        <p className="mt-2 text-center text-[11px] text-neutral-500">
-          {SUBSCRIPTIONS_OPEN
-            ? 'Оплата картой онлайн — доступ открывается сразу'
-            : SUBSCRIPTIONS_CLOSED_MESSAGE}
+        <p className="mt-3 text-center text-xs text-neutral-500">
+          Регистрация по номеру телефона за 30 секунд.
         </p>
-
-        <ul className="mt-5 flex flex-col items-center gap-2 text-xs text-neutral-500 sm:flex-row sm:flex-wrap sm:justify-center sm:gap-x-6 sm:gap-y-2">
-          <li className="inline-flex items-center gap-1.5">
-            <CheckIcon />
-            1 визит окупает подписку
-          </li>
-          <li className="inline-flex items-center gap-1.5">
-            <CheckIcon />
-            Оплата картой онлайн
-          </li>
-          <li className="inline-flex items-center gap-1.5">
-            <CheckIcon />
-            Отмена в любой момент
-          </li>
-        </ul>
       </div>
     </section>
-  )
-}
-
-function CheckIcon() {
-  return (
-    <svg
-      width={14}
-      height={14}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="#0F6E56"
-      strokeWidth={2}
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-      className="shrink-0"
-    >
-      <circle cx={12} cy={12} r={10} />
-      <path d="m9 12 2 2 4-4" />
-    </svg>
   )
 }

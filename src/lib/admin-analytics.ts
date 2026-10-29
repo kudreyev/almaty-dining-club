@@ -1,14 +1,12 @@
 /**
- * Агрегации для /admin/analytics из subscribers + payments + daily_ad_stats.
+ * Агрегации для /admin/analytics: регистрации (profiles с телефоном),
+ * выданные коды (redeem_tokens), использования (redemptions), расход (daily_ad_stats).
  */
 
+import { createCustomerMetricsScope } from '@/lib/customer-metrics'
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
-import { MONTHLY_PRICE_KZT, almatyDayUtcBounds } from '@/lib/metrics-snapshot'
-import { isPaidMedium } from '@/lib/ttp-analytics-ledger'
+import { almatyDayUtcBounds } from '@/lib/metrics-snapshot'
 
-export { MONTHLY_PRICE_KZT }
-
-export const CAC_STOP_THRESHOLD = 4000
 export const PERIOD_OPTIONS = [7, 30, 90] as const
 export type AnalyticsPeriodDays = (typeof PERIOD_OPTIONS)[number]
 
@@ -41,53 +39,40 @@ function eachDateInclusive(from: string, to: string): string[] {
   return out
 }
 
-type SubRow = {
-  id: string
-  status: string
-  subscribed_at: string
-  cancelled_at: string | null
-  utm_source: string | null
-  utm_medium: string | null
+function countInRange(timestamps: string[], start: string, end: string): number {
+  let n = 0
+  for (const ts of timestamps) {
+    if (ts >= start && ts < end) n += 1
+  }
+  return n
 }
 
 export type AnalyticsRealtime = {
-  active: number
-  mrr: number
-  newToday: number
-  new7d: number
-  cancelled30d: number
-  churn30d: number | null
-  /** Использований офферов за сегодня (Алматы). */
+  members: number
+  signupsToday: number
+  signups7d: number
+  codesToday: number
   redemptionsToday: number
+  /** Уникальные гости с использованием за 30 дней. */
+  activeGuests30d: number
 }
 
 export type AnalyticsEfficiency = {
   spend: number
-  paidNew: number
-  cac: number | null
-  visits: number
-  newTotal: number
-  landingCr: number | null
-  organicShare: number | null
-  /** Использований офферов за выбранный период. */
-  redemptionsPeriod: number
-}
-
-export type ChannelRow = {
-  utm_source: string
-  subscribers: number
-  share: number
-  cac: number | null
-  isPaid: boolean
+  signups: number
+  costPerSignup: number | null
+  codes: number
+  redemptions: number
+  /** Использования / выданные коды за период. */
+  codeToRedeem: number | null
 }
 
 export type AnalyticsSeries = {
   dates: string[]
-  activeByDay: number[]
-  newByDay: number[]
-  cancelledByDay: number[]
+  signupsByDay: number[]
+  codesByDay: number[]
+  redemptionsByDay: number[]
   spendByDay: number[]
-  newByDayAll: number[]
 }
 
 export type AdminAnalyticsData = {
@@ -96,7 +81,6 @@ export type AdminAnalyticsData = {
   periodTo: string
   realtime: AnalyticsRealtime
   efficiency: AnalyticsEfficiency
-  channels: ChannelRow[]
   series: AnalyticsSeries
 }
 
@@ -104,142 +88,92 @@ export async function loadAdminAnalytics(
   periodDays: AnalyticsPeriodDays,
 ): Promise<AdminAnalyticsData> {
   const db = createSupabaseAdminClient()
+  const scope = await createCustomerMetricsScope(db)
   const today = almatyNowDate()
   const periodTo = today
   const periodFrom = addDaysIso(today, -(periodDays - 1))
 
   const todayBounds = almatyDayUtcBounds(today)
   const d7Start = almatyDayUtcBounds(addDaysIso(today, -6)).start
-  const d30StartDate = addDaysIso(today, -29)
-  const d30Start = almatyDayUtcBounds(d30StartDate).start
+  const d30Start = almatyDayUtcBounds(addDaysIso(today, -29)).start
   const periodStart = almatyDayUtcBounds(periodFrom).start
-  const periodEndExclusive = almatyDayUtcBounds(addDaysIso(periodTo, 1)).start
+  const periodEnd = almatyDayUtcBounds(addDaysIso(periodTo, 1)).start
+  const windowStart = periodStart < d30Start ? periodStart : d30Start
 
-  const [
-    { data: subsData },
-    { data: adStats },
-    { count: redemptionsTodayCount },
-    { count: redemptionsPeriodCount },
-  ] = await Promise.all([
-    db
-      .from('subscribers')
-      .select('id, status, subscribed_at, cancelled_at, utm_source, utm_medium')
-      .order('subscribed_at', { ascending: true })
-      .limit(20000),
-    db
-      .from('daily_ad_stats')
-      .select('date, spend, visits, goal_click_pay')
-      .gte('date', periodFrom)
-      .lte('date', periodTo),
-    db
-      .from('redemptions')
-      .select('id', { count: 'exact', head: true })
-      .gte('redeemed_at', todayBounds.start)
-      .lt('redeemed_at', todayBounds.end),
-    db
-      .from('redemptions')
-      .select('id', { count: 'exact', head: true })
-      .gte('redeemed_at', periodStart)
-      .lt('redeemed_at', periodEndExclusive),
-  ])
+  const [membersRes, signupsRes, tokensRes, redemptionsRes, adsRes] =
+    await Promise.all([
+      db
+        .from('profiles')
+        .select('id', { count: 'exact', head: true })
+        .not('phone', 'is', null)
+        .eq('user_kind', 'customer'),
+      db
+        .from('profiles')
+        .select('created_at')
+        .not('phone', 'is', null)
+        .eq('user_kind', 'customer')
+        .gte('created_at', windowStart)
+        .limit(20000),
+      scope.applyUserIdExclusion(
+        db
+          .from('redeem_tokens')
+          .select('issued_at')
+          .gte('issued_at', windowStart)
+          .limit(50000),
+      ),
+      scope.applyUserIdExclusion(
+        db
+          .from('redemptions')
+          .select('user_id, redeemed_at')
+          .gte('redeemed_at', windowStart)
+          .limit(50000),
+      ),
+      db
+        .from('daily_ad_stats')
+        .select('date, spend')
+        .gte('date', periodFrom)
+        .lte('date', periodTo),
+    ])
 
-  const rows = (subsData ?? []) as SubRow[]
-  const ads = (adStats ?? []) as Array<{
-    date: string
-    spend: number | null
-    visits: number | null
-    goal_click_pay: number | null
+  if (membersRes.error) throw membersRes.error
+  if (signupsRes.error) throw signupsRes.error
+  if (tokensRes.error) throw tokensRes.error
+  if (redemptionsRes.error) throw redemptionsRes.error
+  if (adsRes.error) throw adsRes.error
+
+  const signupTs = (signupsRes.data ?? []).map((r) => r.created_at as string)
+  const tokenTs = (tokensRes.data ?? []).map((r) => r.issued_at as string)
+  const redemptionRows = (redemptionsRes.data ?? []) as Array<{
+    user_id: string
+    redeemed_at: string
   }>
+  const redemptionTs = redemptionRows.map((r) => r.redeemed_at)
+  const ads = (adsRes.data ?? []) as Array<{ date: string; spend: number | null }>
 
-  const active = rows.filter((r) => r.status === 'active').length
-
-  const newToday = rows.filter(
-    (r) =>
-      r.subscribed_at >= todayBounds.start &&
-      r.subscribed_at < todayBounds.end,
-  ).length
-  const new7d = rows.filter((r) => r.subscribed_at >= d7Start).length
-  const cancelled30d = rows.filter(
-    (r) => r.cancelled_at != null && r.cancelled_at >= d30Start,
-  ).length
-
-  const activeAt30Start = rows.filter((r) => {
-    if (r.subscribed_at >= d30Start) return false
-    if (!r.cancelled_at) return r.status === 'active' || r.status === 'past_due'
-    return r.cancelled_at >= d30Start
-  }).length
-  const churnDenom = activeAt30Start > 0 ? activeAt30Start : Math.max(active, 1)
-  const churn30d = cancelled30d / churnDenom
-
-  const newInPeriod = rows.filter(
-    (r) =>
-      r.subscribed_at >= periodStart && r.subscribed_at < periodEndExclusive,
-  )
-  const paidNew = newInPeriod.filter((r) => isPaidMedium(r.utm_medium)).length
-  const organicNew = newInPeriod.filter((r) => !isPaidMedium(r.utm_medium)).length
-  const newTotal = newInPeriod.length
+  const activeGuests30d = new Set(
+    redemptionRows.filter((r) => r.redeemed_at >= d30Start).map((r) => r.user_id),
+  ).size
 
   const spend = ads.reduce((s, r) => s + (Number(r.spend) || 0), 0)
-  const visits = ads.reduce((s, r) => s + (Number(r.visits) || 0), 0)
-  const cac = paidNew > 0 ? spend / paidNew : null
-  const landingCr = visits > 0 ? newTotal / visits : null
-  const organicShare = newTotal > 0 ? organicNew / newTotal : null
-
-  const bySource = new Map<string, { count: number; paid: boolean }>()
-  for (const r of newInPeriod) {
-    const key = (r.utm_source?.trim() || 'direct').slice(0, 64)
-    const prev = bySource.get(key) ?? {
-      count: 0,
-      paid: isPaidMedium(r.utm_medium),
-    }
-    prev.count += 1
-    prev.paid = prev.paid || isPaidMedium(r.utm_medium)
-    bySource.set(key, prev)
-  }
-
-  const channels: ChannelRow[] = [...bySource.entries()]
-    .map(([utm_source, v]) => ({
-      utm_source,
-      subscribers: v.count,
-      share: newTotal > 0 ? v.count / newTotal : 0,
-      // Spend по аккаунту целиком — CAC показываем только для paid-каналов.
-      cac: v.paid && paidNew > 0 ? spend / paidNew : null,
-      isPaid: v.paid,
-    }))
-    .sort((a, b) => b.subscribers - a.subscribers)
+  const signups = countInRange(signupTs, periodStart, periodEnd)
+  const codes = countInRange(tokenTs, periodStart, periodEnd)
+  const redemptions = countInRange(redemptionTs, periodStart, periodEnd)
 
   const dates = eachDateInclusive(periodFrom, periodTo)
-  const newByDay: number[] = []
-  const cancelledByDay: number[] = []
-  const spendByDay: number[] = []
-  const newByDayAll: number[] = []
-  const activeByDay: number[] = []
   const spendMap = new Map(ads.map((a) => [a.date, Number(a.spend) || 0]))
-
+  const series: AnalyticsSeries = {
+    dates,
+    signupsByDay: [],
+    codesByDay: [],
+    redemptionsByDay: [],
+    spendByDay: [],
+  }
   for (const date of dates) {
-    const bounds = almatyDayUtcBounds(date)
-    const news = rows.filter(
-      (r) => r.subscribed_at >= bounds.start && r.subscribed_at < bounds.end,
-    )
-    newByDayAll.push(news.length)
-    newByDay.push(news.length)
-    cancelledByDay.push(
-      rows.filter(
-        (r) =>
-          r.cancelled_at != null &&
-          r.cancelled_at >= bounds.start &&
-          r.cancelled_at < bounds.end,
-      ).length,
-    )
-    spendByDay.push(spendMap.get(date) ?? 0)
-
-    activeByDay.push(
-      rows.filter((r) => {
-        if (r.subscribed_at >= bounds.end) return false
-        if (!r.cancelled_at) return true
-        return r.cancelled_at >= bounds.end
-      }).length,
-    )
+    const { start, end } = almatyDayUtcBounds(date)
+    series.signupsByDay.push(countInRange(signupTs, start, end))
+    series.codesByDay.push(countInRange(tokenTs, start, end))
+    series.redemptionsByDay.push(countInRange(redemptionTs, start, end))
+    series.spendByDay.push(spendMap.get(date) ?? 0)
   }
 
   return {
@@ -247,32 +181,21 @@ export async function loadAdminAnalytics(
     periodFrom,
     periodTo,
     realtime: {
-      active,
-      mrr: active * MONTHLY_PRICE_KZT,
-      newToday,
-      new7d,
-      cancelled30d,
-      churn30d,
-      redemptionsToday: redemptionsTodayCount ?? 0,
+      members: membersRes.count ?? 0,
+      signupsToday: countInRange(signupTs, todayBounds.start, todayBounds.end),
+      signups7d: countInRange(signupTs, d7Start, todayBounds.end),
+      codesToday: countInRange(tokenTs, todayBounds.start, todayBounds.end),
+      redemptionsToday: countInRange(redemptionTs, todayBounds.start, todayBounds.end),
+      activeGuests30d,
     },
     efficiency: {
       spend,
-      paidNew,
-      cac,
-      visits,
-      newTotal,
-      landingCr,
-      organicShare,
-      redemptionsPeriod: redemptionsPeriodCount ?? 0,
+      signups,
+      costPerSignup: signups > 0 ? spend / signups : null,
+      codes,
+      redemptions,
+      codeToRedeem: codes > 0 ? redemptions / codes : null,
     },
-    channels,
-    series: {
-      dates,
-      activeByDay,
-      newByDay,
-      cancelledByDay,
-      spendByDay,
-      newByDayAll,
-    },
+    series,
   }
 }

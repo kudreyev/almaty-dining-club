@@ -3,18 +3,20 @@ import { notFound } from 'next/navigation'
 import { VenuesSection } from '@/components/home/venues-section'
 import { HomeMobileControls } from '@/components/home/home-mobile-controls'
 import { HeroGuest } from '@/components/home/hero-guest'
-import { HeroSubscriber } from '@/components/home/hero-subscriber'
+import { HeroMember } from '@/components/home/hero-member'
 import { HowItWorks } from '@/components/home/how-it-works'
-import { EconomicsSection } from '@/components/home/economics-section'
-import { FinalCta } from '@/components/sections/final-cta'
-import { getHomePageUserState, getUserSavings } from '@/lib/subscription'
-import { loadHomeRestaurants } from '@/lib/home/load-home-restaurants'
-import { pluralizeRu } from '@/lib/ru-plural'
+import { PopularOffers } from '@/components/home/popular-offers'
 import {
-  CITY_LABELS_GENITIVE,
-  CITY_LABELS_PREPOSITIONAL,
-  isCity,
-} from '@/lib/cities'
+  ForVenuesSection,
+  FormerSubscribersSection,
+  HomeFaq,
+  WhyFreeSection,
+} from '@/components/home/free-model-sections'
+import { getGuestAccess, getUserSavings } from '@/lib/guest-access'
+import { loadHomeRestaurants } from '@/lib/home/load-home-restaurants'
+import { pickPopularOffers } from '@/lib/home/popular-offers'
+import { pluralizeRu } from '@/lib/ru-plural'
+import { CITY_LABELS_GENITIVE, isCity } from '@/lib/cities'
 
 export const dynamic = 'force-dynamic'
 
@@ -26,10 +28,13 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const { city } = await params
   if (!isCity(city)) return {}
 
-  const prepositional = CITY_LABELS_PREPOSITIONAL[city]
+  const genitive = CITY_LABELS_GENITIVE[city]
+  const title = `KudaClub: 2-за-1 в кафе и ресторанах ${genitive} бесплатно`
+  const description = `Бесплатные предложения 2-за-1, напитки и десерты в лучших заведениях ${genitive}. Без подписки и приложения.`
   return {
-    title: `Kudaclub — подписка на рестораны в ${prepositional}`,
-    description: `Подписка с офферами 1+1 и в подарок в ресторанах в ${prepositional}.`,
+    title,
+    description,
+    openGraph: { title, description, type: 'website', siteName: 'KudaClub', locale: 'ru_RU' },
   }
 }
 
@@ -37,8 +42,8 @@ export default async function CityCatalogPage({ params }: PageProps) {
   const { city } = await params
   if (!isCity(city)) notFound()
 
-  const [userState, restaurantsData] = await Promise.all([
-    getHomePageUserState(),
+  const [access, restaurantsData] = await Promise.all([
+    getGuestAccess(),
     loadHomeRestaurants(city),
   ])
 
@@ -52,67 +57,52 @@ export default async function CityCatalogPage({ params }: PageProps) {
   const cityName = CITY_LABELS_GENITIVE[city]
   const venuesSectionTitle =
     totalVenues > 0 ? `${totalVenues} ${venuesWord} ${cityName}` : `Заведения ${cityName}`
+  const popularOffers = pickPopularOffers(restaurantsWithStatus)
 
-  const isSubscriber = userState.kind === 'paid' || userState.kind === 'trial'
+  const catalog = (
+    <div id="venues" className="mx-auto max-w-6xl px-5 py-8 md:py-12">
+      <VenuesSection
+        restaurants={restaurantsWithStatus}
+        cuisineOptions={cuisineOptions}
+        city={city}
+        title={venuesSectionTitle}
+      />
 
-  if (isSubscriber) {
-    const savings = await getUserSavings(userState.user.id)
+      <HomeMobileControls
+        cuisineOptions={cuisineOptions}
+        applyCount={restaurantsWithStatus.length}
+        city={city}
+      />
+    </div>
+  )
+
+  if (access.kind === 'member') {
+    const savings = await getUserSavings(access.user.id)
 
     return (
       <>
-        <HeroSubscriber
-          planType={userState.kind === 'trial' ? 'trial' : 'paid'}
-          endDate={userState.endDate}
-          daysLeft={userState.kind === 'trial' ? userState.daysLeft : undefined}
+        <HeroMember
+          isFounder={access.isFounder}
           savingsAmountKzt={savings.amountKzt}
           hasRedemptions={savings.hasRedemptions}
         />
-
-        <div id="venues" className="mx-auto max-w-6xl px-5 pb-12 pt-2 md:pb-16">
-          <VenuesSection
-            restaurants={restaurantsWithStatus}
-            cuisineOptions={cuisineOptions}
-            city={city}
-            title={venuesSectionTitle}
-          />
-
-          <HomeMobileControls
-            cuisineOptions={cuisineOptions}
-            applyCount={restaurantsWithStatus.length}
-            city={city}
-          />
-        </div>
+        <PopularOffers offers={popularOffers} />
+        {catalog}
+        <ForVenuesSection />
       </>
     )
   }
 
   return (
     <>
-      <HeroGuest venuesCount={totalVenues} city={city} />
-
-      <HowItWorks venuesCount={totalVenues} city={city} />
-
-      <div
-        id="venues"
-        className="mx-auto max-w-6xl px-5 py-8 md:py-12"
-      >
-        <VenuesSection
-          restaurants={restaurantsWithStatus}
-          cuisineOptions={cuisineOptions}
-          city={city}
-          title={venuesSectionTitle}
-        />
-
-        <HomeMobileControls
-          cuisineOptions={cuisineOptions}
-          applyCount={restaurantsWithStatus.length}
-          city={city}
-        />
-      </div>
-
-      <EconomicsSection />
-
-      <FinalCta />
+      <HeroGuest city={city} />
+      <HowItWorks />
+      <PopularOffers offers={popularOffers} />
+      {catalog}
+      <WhyFreeSection />
+      <FormerSubscribersSection />
+      <ForVenuesSection />
+      <HomeFaq />
     </>
   )
 }

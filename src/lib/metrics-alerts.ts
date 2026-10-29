@@ -1,21 +1,5 @@
 import type { MetricsDailySnapshotRow } from '@/lib/metrics-snapshot'
 
-const ACTIVATION_ERROR_SOURCES = ['activate-error', 'activate-card-error'] as const
-
-function sourceClicks(
-  snapshot: MetricsDailySnapshotRow,
-  source: string,
-): number {
-  return snapshot.whatsapp_clicks_by_source[source] ?? 0
-}
-
-function sumSourceClicks(
-  snapshot: MetricsDailySnapshotRow,
-  sources: readonly string[],
-): number {
-  return sources.reduce((sum, s) => sum + sourceClicks(snapshot, s), 0)
-}
-
 /**
  * Правила алертов Слоя 3 — сравнение вчера vs позавчера (по снимкам).
  * Возвращает массив строк для Telegram; пустой — всё в норме.
@@ -28,35 +12,25 @@ export function buildMetricsAlerts(
   const dateLabel = current.date
 
   if (previous) {
-    const prevWa = previous.whatsapp_clicks_24h
-    const currWa = current.whatsapp_clicks_24h
-    if (prevWa > 0 && currWa < prevWa * 0.5) {
+    if (current.new_members_24h === 0 && previous.new_members_24h > 0) {
       alerts.push(
-        `⚠️ Клики WhatsApp упали более чем в 2 раза (${dateLabel}): ${prevWa} → ${currWa}`,
+        `🚨 За ${dateLabel} — 0 новых регистраций (день ранее: ${previous.new_members_24h})`,
       )
     }
 
-    if (current.new_subs_24h === 0 && previous.new_subs_24h > 0) {
+    const prevCodes = previous.codes_issued_24h
+    if (prevCodes >= 10 && current.codes_issued_24h < prevCodes * 0.5) {
       alerts.push(
-        `🚨 За ${dateLabel} — 0 новых подписок (день ранее: ${previous.new_subs_24h})`,
+        `⚠️ Выдано кодов вдвое меньше (${dateLabel}): ${prevCodes} → ${current.codes_issued_24h}`,
       )
     }
-  } else if (current.new_subs_24h === 0) {
-    alerts.push(`🚨 За ${dateLabel} — 0 новых подписок (нет данных за предыдущий день для сравнения)`)
-  }
-
-  const activationErrors = sumSourceClicks(current, ACTIVATION_ERROR_SOURCES)
-  if (activationErrors > 5) {
+  } else if (current.new_members_24h === 0) {
     alerts.push(
-      `🛠 Ошибки активации в WhatsApp за ${dateLabel}: ${activationErrors} кликов (activate-error / activate-card-error) — проверьте /activate`,
+      `🚨 За ${dateLabel} — 0 новых регистраций (нет данных за предыдущий день для сравнения)`,
     )
   }
 
   return alerts
-}
-
-export function formatMetricsAlertMessage(alerts: string[]): string {
-  return ['Kudaclub · ежедневные алерты', '', ...alerts].join('\n')
 }
 
 function fmtNumber(n: number): string {
@@ -90,17 +64,12 @@ export function formatDailyDigestMessage(args: {
   const lines = [
     `Kudaclub · сводка за ${snapshot.date}`,
     '',
-    `Активных: ${fmtNumber(snapshot.active_subscribers)} (paid: ${fmtNumber(snapshot.active_paid_subscribers)})${fmtDelta(snapshot.active_subscribers, prev?.active_subscribers)}`,
-    `MRR: ${fmtNumber(snapshot.mrr_kzt)} ₸`,
-    `Новых подписок: ${fmtNumber(snapshot.new_subs_24h)} (paid: ${fmtNumber(snapshot.new_paid_subs_24h)})${fmtDelta(snapshot.new_subs_24h, prev?.new_subs_24h)}`,
-    `WhatsApp-кликов: ${fmtNumber(snapshot.whatsapp_clicks_24h)}${fmtDelta(snapshot.whatsapp_clicks_24h, prev?.whatsapp_clicks_24h)}`,
+    `Гостей с телефоном: ${fmtNumber(snapshot.members_total)}${fmtDelta(snapshot.members_total, prev?.members_total)}`,
+    `Новых регистраций: ${fmtNumber(snapshot.new_members_24h)}${fmtDelta(snapshot.new_members_24h, prev?.new_members_24h)}`,
+    `Выдано кодов: ${fmtNumber(snapshot.codes_issued_24h)}${fmtDelta(snapshot.codes_issued_24h, prev?.codes_issued_24h)}`,
     `Использований офферов: ${fmtNumber(snapshot.redemptions_24h)}${fmtDelta(snapshot.redemptions_24h, prev?.redemptions_24h)}`,
-    `Истекают в 7 дней: ${fmtNumber(snapshot.expiring_next_7d)}`,
+    `WhatsApp-кликов: ${fmtNumber(snapshot.whatsapp_clicks_24h)}${fmtDelta(snapshot.whatsapp_clicks_24h, prev?.whatsapp_clicks_24h)}`,
   ]
-
-  if (snapshot.retention_30d_pct != null) {
-    lines.push(`Retention 30d: ${snapshot.retention_30d_pct}%`)
-  }
 
   const topSources = topWhatsappSources(snapshot.whatsapp_clicks_by_source)
   if (topSources.length > 0) {

@@ -288,3 +288,31 @@ export function formatOfferCooldownText(cooldownDays?: number | null): string {
   }
   return `Доступно раз в ${days} ${ruDayWordAfterNumber(days)}`
 }
+
+export const DAILY_LIMIT_REACHED_TEXT = 'На сегодня коды закончились, загляните завтра'
+
+/** Момент, когда оффер снова доступен после последнего использования. */
+export function getOfferAvailableAgainAt(
+  lastRedeemedAt: string | Date,
+  cooldownDays?: number | null,
+): Date {
+  const days = resolveOfferCooldownDays(cooldownDays)
+  return new Date(new Date(lastRedeemedAt).getTime() + days * 24 * 60 * 60 * 1000)
+}
+
+/** «Снова можно с 5 ноября, 14:30» (время заведения). */
+export function formatOfferAvailableAgain(availableAt: string | Date, tz = DEFAULT_TZ): string {
+  const date = new Date(availableAt)
+  const day = new Intl.DateTimeFormat('ru-RU', {
+    day: 'numeric',
+    month: 'long',
+    timeZone: tz,
+  }).format(date)
+  const time = new Intl.DateTimeFormat('ru-RU', {
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+    timeZone: tz,
+  }).format(date)
+  return `Снова можно с ${day}, ${time}`
+}

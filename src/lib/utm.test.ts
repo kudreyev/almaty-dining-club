@@ -4,7 +4,6 @@ import {
   parseUtmFromJsonData,
   parseUtmFromSearchParams,
 } from '@/lib/utm'
-import { parseAmount } from '@/lib/ttp-webhook-utils'
 
 describe('utm attribution', () => {
   it('parses search params', () => {
@@ -38,13 +37,5 @@ describe('utm attribution', () => {
         metadata: { utm_source: 'google', promo_code: 'X' },
       }),
     ).toMatchObject({ utm_source: 'google', promo_code: 'X' })
-  })
-})
-
-describe('ttp webhook utils', () => {
-  it('parses amount with comma', () => {
-    expect(parseAmount('1990')).toBe(1990)
-    expect(parseAmount('1 990')).toBe(1990)
-    expect(parseAmount('1990,50')).toBe(1990.5)
   })
 })

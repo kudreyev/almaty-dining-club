@@ -1,224 +1,90 @@
 # Конвенции аналитики
 
-Источник правды для трекинга конверсий Kudaclub: основная воронка —
-in-app TipTop Pay (`SubscribeCTA` → `CheckoutModal`). WhatsApp-ссылки
-остались только для саппорта и activation-ошибок.
+KudaClub бесплатен для гостей. Основная воронка — от клика «Получить доступ»
+до подтверждения кода персоналом. Платёжная воронка TipTop удалена
+(см. [payments-archive.md](./payments-archive.md)).
 
-## Основная воронка TipTop Pay
+## Воронка гостя
 
 ```
-cta_click → checkout_open → phone_filled → pay_click
-  → widget_open → purchase | payment_fail | payment_abandoned
+login_cta_click → signup_completed → offer_get_click → code_requested → code_redeemed
 ```
 
-OTP и чекбокс согласия **не** входят в воронку (OTP только для входа в кабинет).
-Опционально: `promo_applied` при успешном применении промокода (не шаг воронки).
+| Событие | Где пишется | Канал | Params / meta |
+|---|---|---|---|
+| `login_cta_click` | `GoalLink` на кнопках «Получить доступ» | Метрика + `analytics_events` | `source` |
+| `signup_completed` | `verifyWhatsAppLoginCode` — первое подтверждение телефона | `analytics_events` (сервер) + цель Метрики (клиент) | `utm_*`, `promo_code` из cookie `kc_utm` |
+| `offer_get_click` | кнопка «Получить код» в карточке оффера | Метрика + `analytics_events` | `restaurant_id`, `offer_id`, `is_member` |
+| `code_requested` | RPC `issue_redeem_token` (SQL) | `analytics_events` (сервер) + цель Метрики (клиент, один раз на код) | `restaurant_id`, `offer_id`, `token_id` |
+| `code_redeemed` | `redeemTokenByCode` (staff) | `analytics_events` (сервер) | `restaurant_id`, `offer_id`, `token_id`, `staff_user_id` |
+| `offer_redeemed` | клиент гостя увидел, что код погашен | Метрика + `analytics_events` | `restaurant_id`, `offer_id`, `restaurant_slug`, `offer_type` |
+| `partner_cta_click` | «Стать партнёром» | Метрика + `analytics_events` | `source` |
 
-| Goal | Где | Params |
-|---|---|---|
-| `cta_click` | `SubscribeCTA` | `source` |
-| `checkout_open` | `CheckoutForm` mount (+ Pixel InitiateCheckout) | `source` |
-| `phone_filled` | валидный номер введён | `source` |
-| `pay_click` | кнопка «Оплатить» | `source` |
-| `widget_open` | TipTop Widget start | `source` |
-| `purchase` | `/api/checkout/complete` подтвердил оплату (+ Pixel Purchase) | `source` |
-| `payment_fail` | ошибка оплаты | `source` |
-| `payment_abandoned` | закрыл модалку после виджета без оплаты | `source` |
-| `promo_applied` | промокод успешно применён в чекауте | `source`, `promo_code`, `first_amount`, `applies_to` |
-| `free_page_view` | просмотр `/free` (QR → промо) | `utm_source?`, `venue_slug?`, `promo_code?` |
-
-Компоненты:
-
-- `src/components/checkout/subscribe-cta.tsx` — CTA
-- `src/components/checkout/checkout-form.tsx` — форма чекаута (модалка и `/free`)
-- `src/components/checkout/checkout-modal.tsx` — оболочка модалки + Meta Pixel
-- `src/app/free/` — QR-лендинг; воронка: `free_page_view` → `checkout_open` → …
-
-Каждый `trackGoal()` дублируется в `POST /api/track` → `analytics_events`.
+Серверные события: `src/lib/analytics.ts` (`logAnalyticsEvent`).
+Клиент: `trackGoal()` (Метрика + `POST /api/track`) и `reachMetricaGoal()` (только Метрика —
+для событий, которые сервер уже записал). Allowlist `/api/track`:
+`src/lib/client-analytics-events.ts`.
 
 ### Source-идентификаторы CTA
 
 | `source` | UI-место |
 |---|---|
 | `home-hero` | Главная, hero |
-| `home-final` | Финальный CTA-блок |
-| `pricing` | `/pricing` |
-| `header` | Шапка (desktop) |
+| `header` | Шапка |
 | `mobile-menu` | Мобильное меню |
-| `me-no-sub` | `/app/me`, нет подписки |
-| `me-expired` | `/app/me`, истекла |
-| `login-no-account` | `/login`, нет аккаунта |
-| `home-trial-upgrade` | Trial → paid |
-| `venue-cta-{slug}` | Баннер на странице заведения |
-| `offer-card-{slug}-{offerId}` | Пейволл из карточки оффера |
-| `free-page` | `/free` без venue в utm (legacy) |
-| `free-page-almaty` | `/free` Алматы |
-| `free-page-astana` | `/free` Астана |
-| `free-qr-{slug}` | `/free?utm_source=qr_{slug}` |
+| `restaurant-banner` | Баннер на странице заведения |
+| `home-venues` | Блок «Для заведений» (partner_cta_click) |
 
-QR-ссылки (одна на город, без слагов заведений):
+QR-ссылки в заведениях (`/free?utm_source=qr…`) редиректят в каталог города
+с сохранением utm; город берётся из `utm_source` / `?city=`.
 
-- Алматы: `/free?promo=FREE30&utm_source=qr`
-- Астана: `/free?promo=FREE30&utm_source=qr_astana`
+## Meta Pixel
 
-## Meta Pixel / CAPI
+Только `ViewContent` (страница заведения), `AddToCart` (клик «Получить код»),
+`CompleteRegistration` (первая регистрация). Purchase/CAPI удалены.
 
-### TipTop-чекаут
+## Яндекс.Метрика — цели
 
-| Событие | Когда | eventID |
-|---|---|---|
-| `InitiateCheckout` | `checkout_open` | `checkout_{source}_{unix}` |
-| `Purchase` (Pixel) | `purchase` (после complete) | `purchase_tiptop_{externalId}` |
-| `Purchase` (CAPI) | webhook Pay | тот же `purchase_tiptop_{InvoiceId}` |
+JavaScript-цели с идентификаторами как в коде: `login_cta_click`, `signup_completed`,
+`offer_get_click`, `code_requested`, `offer_redeemed`, `partner_cta_click`,
+`whatsapp_click`, `sort_mode_switch`, PWA/push-цели. Cron `metrica-sync` синкает их
+(`TRACKED_GOAL_NAMES`). Старые цели оплаты (`cta_click`, `checkout_open`, `purchase`, …)
+можно архивировать в Метрике.
 
-- `externalId` виджета = `sub_{ts}_{phoneTail}` → в webhook приходит как `InvoiceId`.
-- AccountId виджета = телефон `+7XXXXXXXXXX` (не UUID).
-- CAPI шлётся **только** для установочных платежей (`InvoiceId` начинается с `sub_`), рекурренты пропускаются.
-- Pixel и CAPI дедупятся Meta по общему `eventID`.
-- Value: `PRICE` KZT (env, по умолчанию 1990).
+## Goal `whatsapp_click` (саппорт)
 
-Хелперы: `src/lib/meta-purchase.ts`, клиент: `src/lib/meta-pixel-client.ts`,
-сервер: `src/lib/meta-capi.ts`.
+`WhatsappSupportLink` (`src/components/analytics/whatsapp-support-link.tsx`):
+`footer-support`, `support-page`, `support-phone`.
 
-### Activation-ссылки (legacy / gifts / trial)
-
-`/activate` → paid: CAPI + redirect на `/app/me?activated=true&purchase_event_id=…`
-→ `MeMetrica` стреляет Pixel `Purchase` / `StartTrial` с тем же eventID.
-Не смешивать с TipTop `purchase_tiptop_*`.
-
-### Trial upgrade CTA
-
-`TrialUpgradeLink` — Pixel `InitiateCheckout` (открывает чекаут через `SubscribeCTA`).
-
-## Яндекс.Метрика — чеклист целей
-
-В кабинете Метрики создать **JavaScript-цели** (тип «JavaScript-событие»)
-с идентификаторами точно как в коде:
-
-1. `cta_click`
-2. `checkout_open`
-3. `phone_filled`
-4. `pay_click`
-5. `widget_open`
-6. `purchase`
-7. `payment_fail`
-8. `payment_abandoned`
-9. `promo_applied`
-10. `free_page_view`
-
-Старые цели `checkout_opened` / `phone_submitted` / `otp_verified` / `widget_opened` /
-`payment_success` из воронки убрать (или оставить архивными, не в новой воронке).
-
-Затем собрать многошаговую воронку в UI Метрики по новым целям.
-Cron `metrica-sync` трекает эти имена (`TRACKED_GOAL_NAMES`).
-
-Опционально оставить цель `whatsapp_click` для саппортных ссылок.
-
-## Goal `whatsapp_click` (только саппорт)
-
-Срабатывает на клик по wa.me через `WhatsappSupportLink`
-(`src/components/analytics/whatsapp-support-link.tsx`). Meta Pixel не вызывается.
-
-| `source` | UI-место |
-|---|---|
-| `footer-support` | Футер |
-| `support-page` | `/support` |
-| `support-phone` | `/support`, номер |
-| `activate-error` | `/activate`, ошибки |
-| `activate-already-used` | `/activate`, уже использована |
-| `activate-card-error` | `ActivateCard` errors |
-| `activate-card-intro` | `ActivateCard` intro |
-
-`WhatsappGoalLink` в коде есть, но подписные CTA на него больше не завязаны.
-
-## Live-трекинг в Supabase (Слой 2)
-
-| Источник | Задержка | Назначение |
-|---|---|---|
-| Яндекс.Метрика | часы / cron | официальная статистика, воронки в UI |
-| `analytics_events` | мгновенно | live-дашборд TipTop |
+## Live-трекинг в Supabase
 
 ```sql
-select created_at, event_name, meta->>'source' as source, meta->>'page' as page
+select created_at, event_name, user_id, meta
 from public.analytics_events
-where event_name in (
-  'cta_click', 'checkout_open', 'phone_filled', 'pay_click',
-  'widget_open', 'purchase', 'payment_fail', 'payment_abandoned'
-)
+where event_name in ('signup_completed', 'code_requested', 'code_redeemed')
 order by created_at desc
 limit 50;
 ```
 
-Allowlist: `src/lib/client-analytics-events.ts`.
+Вебхуки TipTop после отключения оплат: `event_name = 'tiptop_webhook_ignored'`.
 
-## Checkout без OTP до оплаты
+## Cron-снимки и алерты
 
-1. `POST /api/checkout/start` → `pending_checkouts` + httpOnly token
-2. Виджет TipTop (`AccountId` = телефон)
-3. Pay-вебхук → user + subscription + ledger + WhatsApp Utility
-4. `POST /api/checkout/complete` (поллинг) → сессия, только если `status=paid`
+Каждую ночь (03:30 Алматы) `/api/cron/daily-snapshot` считает за вчера
+`members_total`, `new_members_24h`, `codes_issued_24h`, `redemptions_24h`,
+WhatsApp-клики → `metrics_daily_snapshot` → сводка и алерты в Telegram
+(0 регистраций, вдвое меньше кодов).
 
-Если телефон уже с активной подпиской (`existing_account`) — сессию не выдаём, только OTP-вход.
+`/api/cron/analytics-digest` (09:00): регистрации, коды, использования, расход на рекламу,
+цена регистрации.
 
-## Cron-снимки и алерты (Слой 3)
+`/api/cron/weekly-digest` (пн 04:00): LLM-разбор недели по воронке гостя.
 
-Каждую ночь (03:30 Алматы) `/api/cron/daily-snapshot`:
+Env: `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`, `CRON_SECRET`, `OPENAI_API_KEY`.
 
-1. Считает метрики за **вчера** (календарный день Алматы).
-2. Upsert в `metrics_daily_snapshot`.
-3. Ежедневная сводка в Telegram.
-4. Алерты (в т.ч. падение WA-кликов саппорта, ноль подписок).
+## Дашборды
 
-Env: `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`, `CRON_SECRET`.
-
-## Weekly LLM digest (Слой 4)
-
-Каждый **понедельник 04:00 Алматы** `/api/cron/weekly-digest`.
-
-Env: `OPENAI_API_KEY`, `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`, `CRON_SECRET`.
-
-```bash
-curl -s https://kudaclub.kz/api/cron/weekly-digest \
-  -H "Authorization: Bearer $CRON_SECRET" | jq
-```
-
-## Расширение
-
-Добавление нового подписного CTA:
-
-1. Подобрать `source` и зафиксировать в таблице выше.
-2. Обернуть в `SubscribeCTA` с этим `source` (не WhatsApp).
-3. Если новый `trackGoal` — добавить имя в `CLIENT_ANALYTICS_EVENTS`
-   и при необходимости в `TRACKED_GOAL_NAMES` (`metrica-sync`).
-
-## Analytics ledger + /admin/analytics
-
-Источник правды по подписчикам TipTop (отдельно от продуктового `subscriptions`):
-
-| Таблица | Назначение |
-|---|---|
-| `subscribers` | status, UTM, promo_code, subscribed_at / cancelled_at |
-| `payments` | success/fail/refunded, идемпотентность по `ttp_transaction_id` |
-| `daily_ad_stats` | spend/impressions/clicks (FB) + visits/goal (Метрика) |
-| `pending_checkouts` | лиды до оплаты + one-time token автологина |
-
-Вебхуки (HMAC `Content-HMAC`, ответ `{code:0}`):
-
-- `POST /api/webhooks/ttp/pay` (+ `/api/tiptoppay/pay`)
-- `POST /api/webhooks/ttp/fail`
-- `POST /api/webhooks/ttp/recurrent` (+ `/api/tiptoppay/recurrent`)
-- `POST /api/tiptoppay/refund`
-
-UTM: `UtmCapture` пишет cookie `kc_utm` → `CheckoutModal` / `checkout/start` → pending + TipTop `metadata` → `JsonData` в вебхуке.
-
-Cron:
-
-| Path | Алматы | Что |
-|---|---|---|
-| `/api/cron/ad-stats` | 07:00 | FB + Метрика → `daily_ad_stats` |
-| `/api/cron/analytics-digest` | 09:00 | Telegram: новые/отмены/расход/CAC |
-
-Дашборд: `/admin/analytics` (`requireAdmin`, `robots: noindex`).
-CAC = расход / новые с `utm_medium=paid`; порог стопа — 4000 ₸.
+- `/admin/dashboard` — гости, воронка 7 дней, активность 30 дней, страховка TipTop.
+- `/admin/analytics` — регистрации/коды/использования/расход по дням.
 
 Ежедневный ритуал команды: [analytics-daily-ritual.md](./analytics-daily-ritual.md).

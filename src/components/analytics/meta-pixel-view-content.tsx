@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useRef } from 'react'
-import { META_SUBSCRIPTION_PRICE_KZT, trackMetaPixel } from '@/lib/meta-pixel-client'
+import { trackMetaPixel } from '@/lib/meta-pixel-client'
 
 type MetaPixelViewContentProps = {
   restaurantName: string
@@ -21,8 +21,6 @@ export function MetaPixelViewContent({
       content_name: restaurantName,
       content_category: 'restaurant',
       content_ids: [restaurantSlug],
-      value: META_SUBSCRIPTION_PRICE_KZT,
-      currency: 'KZT',
     })
   }, [restaurantName, restaurantSlug])
 

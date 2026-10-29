@@ -1,21 +1,19 @@
 'use client'
 
-import { useCallback, useState } from 'react'
 import { Clock } from 'lucide-react'
-import { PaywallModal } from '@/components/paywall-modal'
 import {
+  DAILY_LIMIT_REACHED_TEXT,
   formatEstimatedValue,
+  formatOfferAvailableAgain,
   formatOfferCooldownText,
   formatOfferTitle,
   type OfferType,
 } from '@/lib/offers'
-import { ruDayWordAfterNumber } from '@/lib/ru-plural'
 import { trackGoal } from '@/lib/analytics-client'
 import {
   META_OFFER_DEFAULT_VALUE_KZT,
   trackMetaPixel,
 } from '@/lib/meta-pixel-client'
-import { offerCardSource } from '@/lib/whatsapp'
 
 export type RestaurantOffer = {
   id: string
@@ -35,9 +33,12 @@ type RestaurantOffersListProps = {
   restaurantId: string
   restaurantSlug: string
   restaurantName: string
-  hasSubscription: boolean
-  /** offerId → days left in cooldown (e.g. 4). Если оффер не в кулдауне — отсутствует в map. */
-  cooldownDaysLeftByOfferId: Record<string, number>
+  /** Вошёл и подтвердил телефон: кнопка ведёт сразу к коду. */
+  isMember: boolean
+  /** offerId → ISO-момент, когда оффер снова доступен этому гостю. */
+  availableAgainByOfferId: Record<string, string>
+  /** offerId → коды на сегодня закончились (daily_limit). */
+  soldOutByOfferId: Record<string, boolean>
 }
 
 export function RestaurantOffersList({
@@ -45,76 +46,33 @@ export function RestaurantOffersList({
   restaurantId,
   restaurantSlug,
   restaurantName,
-  hasSubscription,
-  cooldownDaysLeftByOfferId,
+  isMember,
+  availableAgainByOfferId,
+  soldOutByOfferId,
 }: RestaurantOffersListProps) {
-  const [paywallSource, setPaywallSource] = useState<string | null>(null)
-
-  const handlePaywallOpen = useCallback(
-    (e: React.MouseEvent, offer: RestaurantOffer) => {
-      e.preventDefault()
-      setPaywallSource(offerCardSource(restaurantSlug, offer.id))
-      trackMetaPixel('AddToCart', {
-        content_name: formatOfferTitle(offer.offer_type, offer.offer_title),
-        content_ids: [offer.id],
-        value: offer.estimated_value ?? META_OFFER_DEFAULT_VALUE_KZT,
-        currency: 'KZT',
-      })
-      trackGoal('offer_get_click', {
-        restaurant_slug: restaurantSlug,
-        restaurant_name: restaurantName,
-        offer_type: offer.offer_type,
-        has_subscription: false,
-      })
-    },
-    [restaurantName, restaurantSlug],
-  )
-
-  const handlePaywallClose = useCallback(() => {
-    setPaywallSource(null)
-  }, [])
-
   if (offers.length === 0) {
     return (
       <div className="rounded-xl bg-neutral-50 px-4 py-8 text-center text-sm text-neutral-400">
-        Пока нет активных офферов
+        Пока нет активных предложений
       </div>
     )
   }
 
   return (
-    <>
-      {paywallSource ? (
-        <PaywallModal
-          onClose={handlePaywallClose}
-          whatsappSource={paywallSource}
-          messageKind="offer-card"
+    <div className="flex flex-col" style={{ gap: '12px' }}>
+      {offers.map((offer) => (
+        <OfferCard
+          key={offer.id}
+          offer={offer}
+          restaurantId={restaurantId}
+          restaurantSlug={restaurantSlug}
           restaurantName={restaurantName}
+          isMember={isMember}
+          availableAgainAt={availableAgainByOfferId[offer.id] ?? null}
+          soldOut={soldOutByOfferId[offer.id] === true}
         />
-      ) : null}
-
-      <div className="flex flex-col" style={{ gap: '12px' }}>
-        {offers.map((offer) => {
-          const daysLeft = cooldownDaysLeftByOfferId[offer.id]
-          const isOnCooldown = hasSubscription && typeof daysLeft === 'number' && daysLeft > 0
-          const isOutsideUsableHours = hasSubscription && offer.isOutsideUsableHours
-          return (
-            <OfferCard
-              key={offer.id}
-              offer={offer}
-              restaurantId={restaurantId}
-              restaurantSlug={restaurantSlug}
-              restaurantName={restaurantName}
-              hasSubscription={hasSubscription}
-              isOnCooldown={isOnCooldown}
-              isOutsideUsableHours={isOutsideUsableHours}
-              daysLeft={daysLeft ?? 0}
-              onPaywallOpen={handlePaywallOpen}
-            />
-          )
-        })}
-      </div>
-    </>
+      ))}
+    </div>
   )
 }
 
@@ -123,24 +81,13 @@ type OfferCardProps = {
   restaurantId: string
   restaurantSlug: string
   restaurantName: string
-  hasSubscription: boolean
-  isOnCooldown: boolean
-  isOutsideUsableHours: boolean
-  daysLeft: number
-  onPaywallOpen: (e: React.MouseEvent, offer: RestaurantOffer) => void
+  isMember: boolean
+  availableAgainAt: string | null
+  soldOut: boolean
 }
 
-function OfferCard({
-  offer,
-  restaurantId,
-  restaurantSlug,
-  restaurantName,
-  hasSubscription,
-  isOnCooldown,
-  isOutsideUsableHours,
-  daysLeft,
-  onPaywallOpen,
-}: OfferCardProps) {
+function OfferCard(props: OfferCardProps) {
+  const { offer } = props
   const title = formatOfferTitle(offer.offer_type, offer.offer_title)
   const benefitLabel = formatEstimatedValue(offer.estimated_value)
   const cooldownLabel = formatOfferCooldownText(offer.cooldown_days)
@@ -252,32 +199,20 @@ function OfferCard({
           ) : null}
         </div>
 
-        {renderCta({
-          offer,
-          restaurantId,
-          restaurantSlug,
-          restaurantName,
-          hasSubscription,
-          isOnCooldown,
-          isOutsideUsableHours,
-          daysLeft,
-          onPaywallOpen,
-        })}
+        <OfferCta {...props} />
       </div>
     </div>
   )
 }
 
-function renderCta({
+function OfferCta({
   offer,
   restaurantId,
   restaurantSlug,
   restaurantName,
-  hasSubscription,
-  isOnCooldown,
-  isOutsideUsableHours,
-  daysLeft,
-  onPaywallOpen,
+  isMember,
+  availableAgainAt,
+  soldOut,
 }: OfferCardProps) {
   const baseStyle: React.CSSProperties = {
     fontSize: '13px',
@@ -286,7 +221,16 @@ function renderCta({
     fontWeight: 500,
   }
 
-  if (hasSubscription && isOnCooldown) {
+  let disabledLabel: string | null = null
+  if (isMember && availableAgainAt) {
+    disabledLabel = formatOfferAvailableAgain(availableAgainAt)
+  } else if (soldOut) {
+    disabledLabel = DAILY_LIMIT_REACHED_TEXT
+  } else if (offer.isOutsideUsableHours && offer.usableHoursLabel) {
+    disabledLabel = offer.usableHoursLabel
+  }
+
+  if (disabledLabel) {
     return (
       <button
         type="button"
@@ -294,58 +238,37 @@ function renderCta({
         className="w-full cursor-not-allowed text-neutral-500"
         style={{ ...baseStyle, background: '#f5f5f5' }}
       >
-        Доступно через {daysLeft} {ruDayWordAfterNumber(daysLeft)}
+        {disabledLabel}
       </button>
     )
   }
 
-  if (hasSubscription && isOutsideUsableHours && offer.usableHoursLabel) {
-    return (
-      <button
-        type="button"
-        disabled
-        className="w-full cursor-not-allowed text-neutral-500"
-        style={{ ...baseStyle, background: '#f5f5f5' }}
-      >
-        {offer.usableHoursLabel}
-      </button>
-    )
-  }
-
-  if (hasSubscription) {
-    return (
-      <a
-        href={`/app/redeem/${restaurantId}/${offer.id}`}
-        onClick={() => {
-          trackMetaPixel('AddToCart', {
-            content_name: formatOfferTitle(offer.offer_type, offer.offer_title),
-            content_ids: [offer.id],
-            value: offer.estimated_value ?? META_OFFER_DEFAULT_VALUE_KZT,
-            currency: 'KZT',
-          })
-          trackGoal('offer_get_click', {
-            restaurant_slug: restaurantSlug,
-            restaurant_name: restaurantName,
-            offer_type: offer.offer_type,
-            has_subscription: true,
-          })
-        }}
-        className="block w-full text-center text-white transition-colors hover:opacity-95"
-        style={{ ...baseStyle, background: '#D85A30' }}
-      >
-        Получить
-      </a>
-    )
-  }
+  const redeemPath = `/app/redeem/${restaurantId}/${offer.id}`
+  const href = isMember ? redeemPath : `/login?next=${encodeURIComponent(redeemPath)}`
 
   return (
     <a
-      href={`/app/redeem/${restaurantId}/${offer.id}`}
-      onClick={(e) => onPaywallOpen(e, offer)}
+      href={href}
+      onClick={() => {
+        trackMetaPixel('AddToCart', {
+          content_name: formatOfferTitle(offer.offer_type, offer.offer_title),
+          content_ids: [offer.id],
+          value: offer.estimated_value ?? META_OFFER_DEFAULT_VALUE_KZT,
+          currency: 'KZT',
+        })
+        trackGoal('offer_get_click', {
+          restaurant_slug: restaurantSlug,
+          restaurant_name: restaurantName,
+          restaurant_id: restaurantId,
+          offer_id: offer.id,
+          offer_type: offer.offer_type,
+          is_member: isMember,
+        })
+      }}
       className="block w-full text-center text-white transition-colors hover:opacity-95"
       style={{ ...baseStyle, background: '#D85A30' }}
     >
-      Получить
+      Получить код
     </a>
   )
 }

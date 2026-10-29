@@ -9,7 +9,7 @@ import {
 } from '@/app/app/redeem/[restaurantId]/[offerId]/actions'
 import { getAppSiteOrigin } from '@/lib/site-url'
 import { Button } from '@/components/ui/button'
-import { trackGoal } from '@/lib/analytics-client'
+import { reachMetricaGoal, trackGoal } from '@/lib/analytics-client'
 import { saveCachedDiscountCode } from '@/lib/pwa/discount-code-cache'
 import type { OfferType } from '@/lib/offers'
 
@@ -67,6 +67,21 @@ export function RedeemTokenCard({
   useEffect(() => {
     setLocalExpires(expiresAt)
   }, [expiresAt])
+
+  // В БД code_requested пишет issue_redeem_token; здесь — только цель Метрики, один раз на код.
+  useEffect(() => {
+    const key = `kc_code_requested_${tokenId}`
+    try {
+      if (window.sessionStorage.getItem(key)) return
+      window.sessionStorage.setItem(key, '1')
+    } catch {
+      return
+    }
+    reachMetricaGoal('code_requested', {
+      restaurant_id: restaurantId,
+      offer_id: offerId,
+    })
+  }, [tokenId, restaurantId, offerId])
 
   // Кэш для офлайн-показа кода на /app/me (PWA).
   useEffect(() => {
@@ -146,6 +161,8 @@ export function RedeemTokenCard({
         if (!body.usedAt) return
         fired = true
         trackGoal('offer_redeemed', {
+          restaurant_id: restaurantId,
+          offer_id: offerId,
           restaurant_slug: metricaOffer.restaurantSlug,
           estimated_savings: metricaOffer.estimatedSavingsTenge,
           offer_type: metricaOffer.offerType,
@@ -161,7 +178,7 @@ export function RedeemTokenCard({
       cancelled = true
       window.clearInterval(timer)
     }
-  }, [metricaOffer, isExpired, tokenId])
+  }, [metricaOffer, isExpired, tokenId, restaurantId, offerId])
 
   const masked = '•'.repeat(Math.min(tokenCode.length, 8))
 

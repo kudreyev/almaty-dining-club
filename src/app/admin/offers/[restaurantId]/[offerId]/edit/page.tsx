@@ -95,6 +95,16 @@ export default async function AdminOfferEditPage({ params }: PageProps) {
             />
           </div>
 
+          <Input
+            name="daily_limit"
+            type="number"
+            min={1}
+            label="Лимит кодов в день"
+            placeholder="Без лимита"
+            defaultValue={offer.daily_limit == null ? '' : String(offer.daily_limit)}
+            hint="Пусто — без лимита. Когда лимит выбран, гости видят «На сегодня коды закончились, загляните завтра»."
+          />
+
           <label className="flex items-center gap-2 text-base text-gray-600">
             <input type="checkbox" name="is_active" defaultChecked={!!offer.is_active} className="rounded" />
             Активен

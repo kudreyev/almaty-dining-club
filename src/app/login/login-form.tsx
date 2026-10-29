@@ -6,22 +6,17 @@ import { useRouter } from 'next/navigation'
 import { PhoneInput, normalizeToE164Like } from '@/components/phone-input'
 import { formatPhoneForDisplay } from '@/lib/kz-phone'
 import { sendWhatsAppLogin, verifyWhatsAppLoginCode } from './actions'
-import { setUserId } from '@/lib/analytics-client'
-import SubscribeCTA from '@/components/checkout/subscribe-cta'
-import {
-  formatPriceKzt,
-  SUBSCRIPTIONS_CLOSED_MESSAGE,
-  SUBSCRIPTIONS_OPEN,
-} from '@/lib/pricing'
+import { reachMetricaGoal, setUserId } from '@/lib/analytics-client'
+import { trackMetaPixel } from '@/lib/meta-pixel-client'
 
 export function LoginForm({
   safeNext,
+  defaultNext,
   presetPhone,
-  activationToken,
 }: {
   safeNext?: string
+  defaultNext: string
   presetPhone?: string
-  activationToken?: string
 }) {
   const router = useRouter()
   const [subscriber, setSubscriber] = useState(() => presetPhone ?? '')
@@ -31,25 +26,13 @@ export function LoginForm({
   const [otpLoading, setOtpLoading] = useState(false)
   const [message, setMessage] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const [noAccount, setNoAccount] = useState(false)
   const isPhoneLocked = Boolean(presetPhone)
 
   const normalizeOtpCode = (value: string) => value.replace(/\D/g, '').slice(0, 6)
 
   const redirectAfterLogin = () => {
-    router.push(safeNext ?? '/app/me')
+    router.push(safeNext ?? defaultNext)
     router.refresh()
-  }
-
-  const resetToLogin = () => {
-    setNoAccount(false)
-    setError(null)
-    setMessage(null)
-    setOtpCode('')
-    setCodeRequested(false)
-    if (!isPhoneLocked) {
-      setSubscriber('')
-    }
   }
 
   const handleWhatsAppLogin = async (e: React.FormEvent) => {
@@ -57,7 +40,6 @@ export function LoginForm({
     setWhatsAppLoading(true)
     setMessage(null)
     setError(null)
-    setNoAccount(false)
 
     const phoneE164 = normalizeToE164Like(subscriber)
     if (!phoneE164) {
@@ -68,17 +50,10 @@ export function LoginForm({
 
     const formData = new FormData()
     formData.set('phone', phoneE164)
-    if (activationToken) {
-      formData.set('activation_token', activationToken)
-    }
     const result = await sendWhatsAppLogin(formData)
 
     if (!result.ok) {
-      if (result.code === 'no_account') {
-        setNoAccount(true)
-      } else {
-        setError(result.error ?? 'Не удалось отправить сообщение.')
-      }
+      setError(result.error ?? 'Не удалось отправить сообщение.')
     } else {
       setMessage(result.message ?? 'Код отправлен в WhatsApp.')
       setCodeRequested(true)
@@ -117,6 +92,10 @@ export function LoginForm({
     if (result.userId) {
       setUserId(result.userId)
     }
+    if (result.isNewUser) {
+      reachMetricaGoal('signup_completed')
+      trackMetaPixel('CompleteRegistration')
+    }
 
     redirectAfterLogin()
   }
@@ -136,54 +115,6 @@ export function LoginForm({
     padding: '11px 14px',
   }
 
-  if (noAccount) {
-    return (
-      <div className="flex min-h-[60vh] items-center justify-center px-5 py-12">
-        <div
-          className="relative w-full max-w-sm bg-white"
-          style={{
-            borderWidth: '0.5px',
-            borderStyle: 'solid',
-            borderColor: 'rgb(229 229 229)',
-            borderRadius: '12px',
-            padding: '24px',
-          }}
-        >
-          <h1
-            className="font-medium text-neutral-900"
-            style={{ fontSize: '20px', lineHeight: 1.3, letterSpacing: '-0.2px' }}
-          >
-            У вас ещё нет подписки Kudaclub
-          </h1>
-          <p
-            className="text-neutral-500"
-            style={{ fontSize: '13px', lineHeight: 1.5, marginTop: '8px' }}
-          >
-            {SUBSCRIPTIONS_OPEN
-              ? `На номер ${formatPhoneForDisplay(subscriber) || subscriber} аккаунт не найден. Чтобы получить доступ к 1+1, оформите подписку прямо здесь — оплата картой, доступ откроется сразу.`
-              : `На номер ${formatPhoneForDisplay(subscriber) || subscriber} аккаунт не найден. ${SUBSCRIPTIONS_CLOSED_MESSAGE}`}
-          </p>
-
-          <SubscribeCTA
-            source="login-no-account"
-            className="mt-5 flex w-full items-center justify-center rounded-lg bg-[#D85A30] px-5 py-[11px] text-[14px] font-medium text-white transition-opacity hover:opacity-95"
-          >
-            Оформить за {formatPriceKzt()}
-          </SubscribeCTA>
-
-          <button
-            type="button"
-            onClick={resetToLogin}
-            className="mt-3 block w-full text-center text-neutral-400 underline-offset-2 transition-colors hover:text-neutral-700 hover:underline"
-            style={{ fontSize: '12px' }}
-          >
-            Вернуться к входу
-          </button>
-        </div>
-      </div>
-    )
-  }
-
   return (
     <div className="flex min-h-[60vh] items-center justify-center px-5 py-12">
       <div
@@ -200,13 +131,13 @@ export function LoginForm({
           className="font-medium text-neutral-900"
           style={{ fontSize: '20px', lineHeight: 1.3, letterSpacing: '-0.2px' }}
         >
-          Вход через WhatsApp
+          Вход и регистрация
         </h1>
         <p
           className="text-neutral-500"
           style={{ fontSize: '13px', lineHeight: 1.5, marginTop: '6px' }}
         >
-          Введите номер и подтвердите код из WhatsApp.
+          Введите номер и подтвердите код из WhatsApp. Это бесплатно: без подписки и оплаты.
         </p>
 
         <form onSubmit={handleWhatsAppLogin} style={{ marginTop: '20px' }}>

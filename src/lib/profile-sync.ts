@@ -11,37 +11,51 @@ import { safeLog } from '@/lib/safe-logger'
  * The real phone is stored in auth.users.user_metadata.phone_e164 (written in
  * ensureAuthUserForPhone) and must be synced to public.profiles.phone manually.
  *
- * Strategy:
- *  - Try INSERT (new user path) → sets id, phone, role='user'.
- *  - On conflict (existing user) → UPDATE phone only, role is untouched.
+ * profiles.phone is the "phone verified" flag: it is written only after OTP,
+ * and code issuance (issue_redeem_token) requires it.
  *
  * Errors are swallowed: a sync failure must never break the login flow.
+ *
+ * @returns firstVerification — phone was written for the first time (signup completed).
  */
 export async function ensureProfilePhone(
   userId: string,
   phone: string | null | undefined,
-): Promise<void> {
-  if (!userId || !phone) return
+): Promise<{ firstVerification: boolean }> {
+  if (!userId || !phone) return { firstVerification: false }
 
   const admin = createSupabaseAdminClient()
 
   safeLog.logAuth('ensureProfilePhone', { userId, phone })
 
   try {
-    // New-user path: insert full row with default role.
-    const { error: insertError } = await admin
+    const { data: existing, error: selectError } = await admin
       .from('profiles')
-      .insert({ id: userId, phone, role: 'user' })
+      .select('phone')
+      .eq('id', userId)
+      .maybeSingle<{ phone: string | null }>()
 
-    if (!insertError) {
-      safeLog.info('[ensureProfilePhone] inserted new profile')
-      return
+    if (selectError) {
+      safeLog.error('[ensureProfilePhone] select failed', selectError)
     }
 
-    safeLog.info('[ensureProfilePhone] insert conflict, updating existing profile', {
-      insertCode: insertError.code,
-      insertMessage: insertError.message,
-    })
+    if (!existing) {
+      const { error: insertError } = await admin
+        .from('profiles')
+        .insert({ id: userId, phone, role: 'user' })
+
+      if (!insertError) {
+        safeLog.info('[ensureProfilePhone] inserted new profile')
+        return { firstVerification: true }
+      }
+
+      safeLog.info('[ensureProfilePhone] insert conflict, updating existing profile', {
+        insertCode: insertError.code,
+        insertMessage: insertError.message,
+      })
+    } else if (existing.phone === phone) {
+      return { firstVerification: false }
+    }
 
     // Existing-user path: only update phone, preserving role and all other fields.
     const { error: updateError } = await admin
@@ -51,10 +65,13 @@ export async function ensureProfilePhone(
 
     if (updateError) {
       safeLog.error('[ensureProfilePhone] update failed', updateError)
-    } else {
-      safeLog.info('[ensureProfilePhone] updated phone for existing profile')
+      return { firstVerification: false }
     }
+
+    safeLog.info('[ensureProfilePhone] updated phone for existing profile')
+    return { firstVerification: !existing?.phone }
   } catch (err) {
     safeLog.error('[ensureProfilePhone] unexpected error', err)
+    return { firstVerification: false }
   }
 }

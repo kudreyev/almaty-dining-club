@@ -8,6 +8,7 @@ import {
   hasLegalEntityDetails,
   LEGAL_ENTITY,
 } from '@/lib/legal-entity'
+import { buildPartnerWhatsAppUrl } from '@/lib/whatsapp'
 
 export function Footer() {
   const pathname = usePathname()
@@ -68,6 +69,16 @@ export function Footer() {
             >
               Публичная оферта
             </Link>
+            <span aria-hidden="true" className="text-neutral-300">·</span>
+
+            <a
+              href={buildPartnerWhatsAppUrl()}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="transition-colors hover:text-neutral-900"
+            >
+              Стать партнёром
+            </a>
             <span aria-hidden="true" className="text-neutral-300">·</span>
 
             <WhatsappSupportLink

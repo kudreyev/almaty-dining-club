@@ -1,10 +1,7 @@
 import { redirect, notFound } from 'next/navigation'
 import Link from 'next/link'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
-import {
-  getCurrentUserSubscription,
-  isSubscriptionCurrentlyActive,
-} from '@/lib/subscription'
+import { getGuestAccess } from '@/lib/guest-access'
 import { generateRedeemToken } from './actions'
 import { RedeemTokenCard } from '@/components/redeem-token-card'
 import { Card } from '@/components/ui/card'
@@ -12,9 +9,12 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { DEFAULT_TZ } from '@/lib/opening-hours'
 import {
+  DAILY_LIMIT_REACHED_TEXT,
+  formatOfferAvailableAgain,
   formatOfferCooldownText,
   formatOfferHeadline,
   formatOfferUsableHoursStatus,
+  getOfferAvailableAgainAt,
   getOfferUsableHours,
   resolveOfferCooldownDays,
   type OfferType,
@@ -30,6 +30,7 @@ type PageProps = {
   searchParams: Promise<{
     error?: string
     success?: string
+    until?: string
   }>
 }
 
@@ -53,34 +54,55 @@ type RedeemToken = {
   extend_deadline_at: string
   extended_once: boolean
 }
+type OtherActiveToken = {
+  restaurant_id: string
+  offer_id: string
+  restaurants: { restaurant_name: string } | null
+}
 
 function getRedeemErrorMessage(
   code: string | undefined,
   cooldownDays: number,
   usableHoursLabel: string | null,
+  until: string | undefined,
 ) {
   switch (code) {
-    case 'active_token': return 'У вас уже есть активный код.'
-    case 'cooldown_offer':
+    case 'active_token':
+      return 'У вас уже есть активный код. Покажите его персоналу или дождитесь, пока он истечёт.'
+    case 'cooldown':
+    case 'cooldown_offer': {
+      const untilDate = until ? new Date(until) : null
+      if (untilDate && !Number.isNaN(untilDate.getTime())) {
+        return `Вы уже пользовались этим предложением. ${formatOfferAvailableAgain(untilDate)}.`
+      }
       return cooldownDays === 1
-        ? 'Этот оффер доступен не чаще одного раза в день.'
-        : `Этот оффер доступен не чаще одного раза в ${cooldownDays} ${ruDayWordAfterNumber(cooldownDays)}.`
+        ? 'Этим предложением можно пользоваться раз в день.'
+        : `Этим предложением можно пользоваться раз в ${cooldownDays} ${ruDayWordAfterNumber(cooldownDays)}.`
+    }
+    case 'daily_limit':
+      return `${DAILY_LIMIT_REACHED_TEXT}.`
     case 'usable_hours':
       return usableHoursLabel
         ? `Сейчас вне окна использования. ${usableHoursLabel}.`
-        : 'Сейчас вне окна использования этого оффера.'
-    case 'server_error': return 'Ошибка. Попробуйте снова.'
-    default: return null
+        : 'Сейчас вне окна использования этого предложения.'
+    case 'offer_unavailable':
+      return 'Это предложение сейчас недоступно.'
+    case 'server_error':
+      return 'Ошибка. Попробуйте снова.'
+    default:
+      return null
   }
 }
 
 export default async function RedeemPage({ params, searchParams }: PageProps) {
   const { restaurantId, offerId } = await params
-  const { error, success } = await searchParams
+  const { error, success, until } = await searchParams
 
-  const { user, subscription } = await getCurrentUserSubscription()
-  if (!user) redirect('/login')
-  if (!isSubscriptionCurrentlyActive(subscription)) redirect('/pricing')
+  const access = await getGuestAccess()
+  if (access.kind !== 'member') {
+    redirect(`/login?next=${encodeURIComponent(`/app/redeem/${restaurantId}/${offerId}`)}`)
+  }
+  const userId = access.user.id
 
   const supabase = await createSupabaseServerClient()
 
@@ -110,24 +132,73 @@ export default async function RedeemPage({ params, searchParams }: PageProps) {
     now,
     DEFAULT_TZ,
   )
-  const errorMessage = getRedeemErrorMessage(error, offerCooldownDays, usableStatus.label)
-  const canGenerateCode = usableStatus.isUsable
 
-  const { data: activeTokens } = await supabase
-    .from('redeem_tokens')
-    .select(
-      'id, token_code, status, expires_at, created_at, extend_deadline_at, extended_once'
-    )
-    .eq('user_id', user.id)
-    .eq('restaurant_id', restaurantId)
-    .eq('offer_id', offerId)
-    .eq('status', 'active')
-    .is('used_at', null)
-    .order('created_at', { ascending: false })
-    .limit(1)
-    .returns<RedeemToken[]>()
+  const cooldownStart = new Date(now.getTime() - offerCooldownDays * 24 * 60 * 60 * 1000)
 
-  const activeToken = activeTokens?.[0] ?? null
+  const [activeTokensRes, lastRedemptionRes, availabilityRes] = await Promise.all([
+    supabase
+      .from('redeem_tokens')
+      .select(
+        'id, token_code, status, expires_at, created_at, extend_deadline_at, extended_once'
+      )
+      .eq('user_id', userId)
+      .eq('restaurant_id', restaurantId)
+      .eq('offer_id', offerId)
+      .eq('status', 'active')
+      .is('used_at', null)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .returns<RedeemToken[]>(),
+    supabase
+      .from('redemptions')
+      .select('redeemed_at')
+      .eq('user_id', userId)
+      .eq('offer_id', offerId)
+      .gte('redeemed_at', cooldownStart.toISOString())
+      .order('redeemed_at', { ascending: false })
+      .limit(1)
+      .returns<Array<{ redeemed_at: string }>>(),
+    supabase.rpc('offer_daily_availability', { p_offer_ids: [offerId] }),
+  ])
+
+  const activeToken = activeTokensRes.data?.[0] ?? null
+  const lastRedeemedAt = lastRedemptionRes.data?.[0]?.redeemed_at ?? null
+  const availableAgainAt = lastRedeemedAt
+    ? getOfferAvailableAgainAt(lastRedeemedAt, offerCooldownDays)
+    : null
+  const availability = (availabilityRes.data ?? []) as Array<{ sold_out: boolean }>
+  const soldOut = availability[0]?.sold_out === true
+
+  let otherActiveToken: OtherActiveToken | null = null
+  if (error === 'active_token' && !activeToken) {
+    const { data } = await supabase
+      .from('redeem_tokens')
+      .select('restaurant_id, offer_id, restaurants ( restaurant_name )')
+      .eq('user_id', userId)
+      .eq('status', 'active')
+      .is('used_at', null)
+      .gt('expires_at', now.toISOString())
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle<OtherActiveToken>()
+    otherActiveToken = data ?? null
+  }
+
+  const errorMessage = getRedeemErrorMessage(
+    error,
+    offerCooldownDays,
+    usableStatus.label,
+    until ?? availableAgainAt?.toISOString(),
+  )
+
+  let blockedLabel: string | null = null
+  if (availableAgainAt) {
+    blockedLabel = formatOfferAvailableAgain(availableAgainAt)
+  } else if (soldOut) {
+    blockedLabel = DAILY_LIMIT_REACHED_TEXT
+  } else if (!usableStatus.isUsable) {
+    blockedLabel = usableStatus.label ?? 'Сейчас недоступно'
+  }
 
   return (
     <div className="mx-auto max-w-lg px-5 py-8">
@@ -141,7 +212,7 @@ export default async function RedeemPage({ params, searchParams }: PageProps) {
                 : 'в подарок'}
           </Badge>
           {offer.takeaway_only ? <Badge color="accent">Только на вынос</Badge> : null}
-          <Badge color="green">Подписка активна</Badge>
+          {access.isFounder ? <Badge color="green">Основатель клуба</Badge> : null}
         </div>
 
         <h1 className="mt-4 text-xl font-bold">{restaurant.restaurant_name}</h1>
@@ -150,13 +221,27 @@ export default async function RedeemPage({ params, searchParams }: PageProps) {
 
         {success === 'code_generated' ? (
           <div className="mt-4 rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-700">
-            Код создан. Покажите персоналу.
+            Код готов. Покажите его официанту.
           </div>
         ) : null}
 
-        {errorMessage ? (
+        {errorMessage && !activeToken && !(error === 'daily_limit' && soldOut) ? (
           <div className="mt-4 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">
             {errorMessage}
+            {otherActiveToken ? (
+              <>
+                {' '}
+                <Link
+                  href={`/app/redeem/${otherActiveToken.restaurant_id}/${otherActiveToken.offer_id}`}
+                  className="font-medium underline underline-offset-2"
+                >
+                  Открыть код
+                  {otherActiveToken.restaurants?.restaurant_name
+                    ? ` (${otherActiveToken.restaurants.restaurant_name})`
+                    : ''}
+                </Link>
+              </>
+            ) : null}
           </div>
         ) : null}
 
@@ -181,7 +266,7 @@ export default async function RedeemPage({ params, searchParams }: PageProps) {
           />
         ) : (
           <div className="mt-6 rounded-xl bg-gray-50 p-4">
-            <p className="text-sm font-medium">Генерация кода</p>
+            <p className="text-sm font-medium">Как это работает</p>
             <ul className="mt-2 space-y-1 text-xs text-gray-500">
               <li>Код действует 10 минут</li>
               <li>Одновременно — 1 активный код</li>
@@ -190,25 +275,25 @@ export default async function RedeemPage({ params, searchParams }: PageProps) {
               {usableStatus.label ? <li>{usableStatus.label}</li> : null}
             </ul>
 
-            {canGenerateCode ? (
+            {blockedLabel ? (
+              <Button type="button" className="mt-4 w-full" disabled>
+                {blockedLabel}
+              </Button>
+            ) : (
               <form action={generateRedeemToken} className="mt-4">
                 <input type="hidden" name="restaurantId" value={restaurant.id} />
                 <input type="hidden" name="offerId" value={offer.id} />
                 <Button type="submit" className="w-full">
-                  Сгенерировать код
+                  Получить код
                 </Button>
               </form>
-            ) : (
-              <Button type="button" className="mt-4 w-full" disabled>
-                {usableStatus.label ?? 'Сейчас недоступно'}
-              </Button>
             )}
           </div>
         )}
 
         <div className="mt-6">
           <Button href={`/r/${restaurant.slug}`} variant="secondary" size="sm">
-            ← Назад к ресторану
+            ← Назад к заведению
           </Button>
         </div>
       </Card>

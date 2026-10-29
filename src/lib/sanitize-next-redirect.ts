@@ -2,20 +2,15 @@
 
 const ALLOWED_ROOTS = [
   { base: '/app' },
-  { base: '/activate' },
   { base: '/r' },
   { base: '/account' },
   { base: '/admin' },
-  { base: '/pricing' },
-  { base: '/free' },
   { base: '/map' },
   { base: '/almaty' },
   { base: '/astana' },
   { base: '/support' },
-  { base: '/how-it-works' },
   { base: '/privacy' },
   { base: '/terms' },
-  { base: '/payment' },
   { base: '/staff' },
   { base: '/login' },
 ] as const

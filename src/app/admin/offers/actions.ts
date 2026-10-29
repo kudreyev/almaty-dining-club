@@ -48,12 +48,14 @@ function sanitizeTime(value: FormDataEntryValue | null): string | null {
   return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`
 }
 
-function parseOfferUsableHoursFromFormData(
-  offerType: string,
-  formData: FormData,
-): OfferUsableHour[] | null {
-  if (offerType !== 'kudafest_set') return null
+/** Пусто — без лимита; иначе 1…10000 кодов в сутки (по Алматы). */
+function sanitizeDailyLimit(value: FormDataEntryValue | null): number | null {
+  const parsed = parseOptionalInteger(value)
+  if (parsed == null || parsed < 1) return null
+  return Math.min(parsed, 10000)
+}
 
+function parseOfferUsableHoursFromFormData(formData: FormData): OfferUsableHour[] | null {
   const hours: OfferUsableHour[] = []
   let anyConfigured = false
 
@@ -175,7 +177,7 @@ export async function createOffer(formData: FormData) {
   }
   const providedOfferKey = String(formData.get('offer_key') || '').trim()
   const offerKey = providedOfferKey || await generateUniqueOfferKey(supabase, restaurantId, offerTitle, offerType)
-  const usableHours = parseOfferUsableHoursFromFormData(offerType, formData)
+  const usableHours = parseOfferUsableHoursFromFormData(formData)
 
   const payload = {
     restaurant_id: restaurantId,
@@ -186,6 +188,7 @@ export async function createOffer(formData: FormData) {
     offer_terms_full: '',
     estimated_value: sanitizeEstimatedValue(formData.get('estimated_value')),
     cooldown_days: sanitizeCooldownDays(formData.get('cooldown_days')),
+    daily_limit: sanitizeDailyLimit(formData.get('daily_limit')),
     end_date: endDate,
     dish_photo_url: String(formData.get('dish_photo_url') || '').trim() || null,
     is_active: formData.get('is_active') === 'on',
@@ -235,7 +238,7 @@ export async function updateOffer(formData: FormData) {
       || incomingOfferKey
       || await generateUniqueOfferKey(supabase, restaurantId, offerTitle, offerType)
 
-  const usableHours = parseOfferUsableHoursFromFormData(offerType, formData)
+  const usableHours = parseOfferUsableHoursFromFormData(formData)
 
   const payload = {
     offer_type: offerType,
@@ -245,6 +248,7 @@ export async function updateOffer(formData: FormData) {
     offer_terms_full: '',
     estimated_value: sanitizeEstimatedValue(formData.get('estimated_value')),
     cooldown_days: sanitizeCooldownDays(formData.get('cooldown_days')),
+    daily_limit: sanitizeDailyLimit(formData.get('daily_limit')),
     end_date: endDate,
     dish_photo_url: String(formData.get('dish_photo_url') || '').trim() || null,
     is_active: formData.get('is_active') === 'on',

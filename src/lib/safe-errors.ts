@@ -8,17 +8,13 @@ const FALLBACK_DEFAULT = 'Что-то пошло не так. Напишите �
 export function getFallbackByContext(context: string): string {
   const messages: Record<string, string> = {
     auth: 'Ошибка авторизации. Попробуйте войти заново.',
-    'payment-request': 'Не удалось отправить заявку. Попробуйте позже.',
-    subscription: 'Ошибка с подпиской. Напишите нам в WhatsApp.',
     'photo-upload': 'Не удалось загрузить фото. Попробуйте ещё раз.',
     redeem: 'Ошибка активации оффера. Покажите официанту этот экран.',
     offers: 'Не удалось загрузить офферы.',
     restaurants: 'Не удалось загрузить список заведений.',
     'staff-history': 'Не удалось загрузить историю.',
     map: 'Не удалось загрузить карту.',
-    payments: 'Не удалось загрузить заявки.',
     import: 'Ошибка импорта. Проверьте данные и попробуйте снова.',
-    'transfer-subscription': 'Не удалось перенести подписку. Напишите в поддержку.',
     staff: 'Ошибка входа. Попробуйте ещё раз или обратитесь в поддержку.',
   }
   return messages[context] ?? FALLBACK_DEFAULT

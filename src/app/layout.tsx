@@ -12,7 +12,6 @@ import { PushClickTracker } from '@/components/pwa/push-click-tracker'
 import { Heartbeat } from '@/components/pwa/heartbeat'
 import { PwaAppBadge } from '@/components/pwa/pwa-app-badge'
 import { SessionKeepAlive } from '@/components/auth/session-keepalive'
-import { UserProvider } from '@/lib/auth/use-user'
 import {
   buildMetaPixelBootstrapScript,
   sanitizeMetaPixelId,
@@ -28,9 +27,18 @@ export const viewport: Viewport = {
 }
 
 export const metadata: Metadata = {
-  title: 'Kudaclub — подписка на рестораны',
-  description: 'Подписка с офферами 1+1 и в подарок в ресторанах Казахстана.',
+  title: 'KudaClub: 2-за-1 в кафе и ресторанах Алматы бесплатно',
+  description:
+    'Бесплатные предложения 2-за-1, напитки и десерты в лучших заведениях Алматы. Без подписки и приложения.',
   applicationName: 'kudaclub',
+  openGraph: {
+    title: 'KudaClub: 2-за-1 в кафе и ресторанах Алматы бесплатно',
+    description:
+      'Бесплатные предложения 2-за-1, напитки и десерты в лучших заведениях Алматы. Без подписки и приложения.',
+    siteName: 'KudaClub',
+    locale: 'ru_RU',
+    type: 'website',
+  },
   appleWebApp: {
     capable: true,
     title: 'kudaclub',
@@ -78,23 +86,21 @@ export default function RootLayout({
             />
           </noscript>
         ) : null}
-        <UserProvider>
-          <PwaInstallProvider>
-            <UtmCapture />
-            <PwaRegister />
-            <PushClickTracker />
-            <Heartbeat />
-            <SessionKeepAlive />
-            <PwaAppBadge />
-            <div className="flex min-h-screen flex-col bg-[#fafaf9] text-gray-900">
-              <HeaderShell>
-                <Header />
-              </HeaderShell>
-              <main className="flex-1">{children}</main>
-              <Footer />
-            </div>
-          </PwaInstallProvider>
-        </UserProvider>
+        <PwaInstallProvider>
+          <UtmCapture />
+          <PwaRegister />
+          <PushClickTracker />
+          <Heartbeat />
+          <SessionKeepAlive />
+          <PwaAppBadge />
+          <div className="flex min-h-screen flex-col bg-[#fafaf9] text-gray-900">
+            <HeaderShell>
+              <Header />
+            </HeaderShell>
+            <main className="flex-1">{children}</main>
+            <Footer />
+          </div>
+        </PwaInstallProvider>
         <YandexMetrica />
       </body>
     </html>

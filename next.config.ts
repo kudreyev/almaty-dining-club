@@ -7,6 +7,19 @@ const nextConfig: NextConfig = {
       { protocol: 'https', hostname: '*.supabase.in', pathname: '/storage/v1/object/public/**' },
     ],
   },
+  // Сервис бесплатный: старые страницы оплаты ведут на главную (query сохраняется).
+  // /free обрабатывает middleware — там город из QR.
+  async redirects() {
+    return [
+      '/pricing',
+      '/how-it-works',
+      '/activate',
+      '/payment',
+      '/payment/:path*',
+      '/checkout',
+      '/checkout/:path*',
+    ].map((source) => ({ source, destination: '/', permanent: false }))
+  },
   async headers() {
     return [
       {

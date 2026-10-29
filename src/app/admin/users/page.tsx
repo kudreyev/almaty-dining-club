@@ -16,7 +16,7 @@ type ProfileRow = {
   email: string | null
   role: 'user' | 'admin'
   user_kind: UserKind
-  trial_used: boolean
+  is_founder: boolean
   created_at: string
 }
 
@@ -40,7 +40,7 @@ export default async function AdminUsersPage({ searchParams }: PageProps) {
   const admin = createSupabaseAdminClient()
   let query = admin
     .from('profiles')
-    .select('id, phone, email, role, user_kind, trial_used, created_at')
+    .select('id, phone, email, role, user_kind, is_founder, created_at')
     .order('created_at', { ascending: false })
     .limit(200)
 
@@ -73,8 +73,7 @@ export default async function AdminUsersPage({ searchParams }: PageProps) {
         <h2 className="mb-3 text-base font-semibold text-gray-800">Отметить стаффом по телефону</h2>
         <MarkStaffForm />
         <p className="mt-2 text-xs text-gray-400">
-          Создаёт/обновляет подписку plan_type=staff до 2099-12-31 и помечает trial-подписки
-          неактивными.
+          Профиль получает user_kind=staff и больше не попадает в метрики гостей.
         </p>
       </Card>
 
@@ -91,7 +90,7 @@ export default async function AdminUsersPage({ searchParams }: PageProps) {
                   <th className="px-4 py-3 text-sm font-medium text-gray-500">Телефон</th>
                   <th className="px-4 py-3 text-sm font-medium text-gray-500">Тип</th>
                   <th className="px-4 py-3 text-sm font-medium text-gray-500">Роль</th>
-                  <th className="px-4 py-3 text-sm font-medium text-gray-500">Trial</th>
+                  <th className="px-4 py-3 text-sm font-medium text-gray-500">Основатель</th>
                   <th className="px-4 py-3 text-sm font-medium text-gray-500">Создан</th>
                 </tr>
               </thead>
@@ -116,7 +115,7 @@ export default async function AdminUsersPage({ searchParams }: PageProps) {
                     </td>
                     <td className="px-4 py-3 text-gray-600">{row.role}</td>
                     <td className="px-4 py-3 text-gray-600">
-                      {row.trial_used ? 'да' : 'нет'}
+                      {row.is_founder ? 'да' : '—'}
                     </td>
                     <td className="px-4 py-3 text-gray-600">{fmtDate(row.created_at)}</td>
                   </tr>

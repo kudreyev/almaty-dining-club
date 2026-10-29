@@ -40,17 +40,26 @@ export async function middleware(request: NextRequest) {
   // Обновляет access/refresh cookie на каждом заходе (критично для PWA после простоя).
   await supabase.auth.getUser()
 
-  // QR /free: сразу фиксируем город из utm_source / ?city= (каталог и header).
+  // Старый QR-лендинг /free (напечатан в заведениях): город из utm_source / ?city=,
+  // затем каталог города с теми же utm.
   if (request.nextUrl.pathname === '/free') {
     const city = resolveFreeCity(
       request.nextUrl.searchParams.get('city'),
       request.nextUrl.searchParams.get('utm_source'),
     )
-    response.cookies.set(CITY_COOKIE, city, {
+    const redirectUrl = request.nextUrl.clone()
+    redirectUrl.pathname = `/${city}`
+    redirectUrl.searchParams.delete('city')
+    const redirect = NextResponse.redirect(redirectUrl)
+    for (const cookie of response.cookies.getAll()) {
+      redirect.cookies.set(cookie)
+    }
+    redirect.cookies.set(CITY_COOKIE, city, {
       path: '/',
       maxAge: CITY_COOKIE_MAX_AGE,
       sameSite: 'lax',
     })
+    return redirect
   }
 
   // Город — фильтр контента: при заходе на '/' с сохранённым городом ведём

@@ -56,13 +56,30 @@ export function OfferAdminTypeAndSchedule({
           <OfferUsableHoursFields initialHours={initialHours} />
         </div>
       ) : (
-        <Input
-          name="end_date"
-          type="date"
-          label="Дата окончания"
-          defaultValue={defaultEndDate}
-          hint="Необязательно для обычных офферов."
-        />
+        <>
+          <Input
+            name="end_date"
+            type="date"
+            label="Дата окончания"
+            defaultValue={defaultEndDate}
+            hint="Необязательно для обычных офферов."
+          />
+
+          <details
+            className="rounded-xl border border-gray-200 p-4"
+            open={initialHours.some((h) => !h.is_unavailable)}
+          >
+            <summary className="cursor-pointer text-base font-medium text-gray-800">
+              Часы действия (необязательно)
+            </summary>
+            <p className="mt-2 text-sm text-gray-500">
+              Например, только будни 12:00–16:00. Пусто — оффер действует весь день.
+            </p>
+            <div className="mt-4">
+              <OfferUsableHoursFields initialHours={initialHours} />
+            </div>
+          </details>
+        </>
       )}
     </>
   )

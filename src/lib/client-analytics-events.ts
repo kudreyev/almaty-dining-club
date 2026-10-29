@@ -1,31 +1,12 @@
 /** Клиентские события, которые принимает POST /api/track. */
+// signup_completed, code_requested, code_redeemed пишет сервер (в /api/track не принимаются).
 export const CLIENT_ANALYTICS_EVENTS = [
   'whatsapp_click',
-  'subscribe_click_home',
-  'trial_to_paid_click',
   'offer_get_click',
   'offer_redeemed',
-  'subscription_activated',
   'sort_mode_switch',
-  // Воронка чекаута TipTop Pay (SubscribeCTA → CheckoutModal).
-  'cta_click',
-  'checkout_open',
-  'phone_filled',
-  'pay_click',
-  'widget_open',
-  'purchase',
-  'payment_fail',
-  'payment_abandoned',
-  'promo_applied',
-  // QR / промо-лендинг /free
-  'free_page_view',
-  // Legacy имена (старые клиенты / исторические записи) — принимаем, в воронку не ставим.
-  'checkout_opened',
-  'phone_submitted',
-  'otp_verified',
-  'widget_opened',
-  'payment_success',
-  'first_offer_view',
+  'login_cta_click',
+  'partner_cta_click',
   // PWA install funnel (см. комментарий в src/lib/pwa/install.ts).
   'pwa_prompt_shown',
   'pwa_prompt_accepted',

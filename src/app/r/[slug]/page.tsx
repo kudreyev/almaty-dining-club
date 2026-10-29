@@ -4,8 +4,6 @@ import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { logServerError } from '@/lib/safe-errors'
 import { getGuestAccess } from '@/lib/guest-access'
 import {
-  resolveOfferCooldownDays,
-  getOfferAvailableAgainAt,
   filterCatalogActiveOffers,
   getTodayDateStringInTz,
   formatOfferUsableHoursStatus,
@@ -57,7 +55,6 @@ type Offer = {
   offer_title: string
   offer_terms_short: string
   estimated_value: number | null
-  cooldown_days: number | null
   dish_photo_url: string | null
   end_date: string | null
   offer_usable_hours?: OfferUsableHour[]
@@ -68,11 +65,6 @@ type Offer = {
 type PrimaryLocation = {
   lat: number | null
   lng: number | null
-}
-
-type RedemptionRow = {
-  offer_id: string
-  redeemed_at: string
 }
 
 type PageProps = {
@@ -89,69 +81,6 @@ const SELECT_RESTAURANT = `
   is_active,
   restaurant_hours ( day_of_week, is_closed, open_time, close_time, close_next_day )
 `
-
-async function loadAvailableAgain(
-  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
-  userId: string,
-  offers: Pick<Offer, 'id' | 'cooldown_days'>[]
-): Promise<Record<string, string>> {
-  const offerIds = offers.map((o) => o.id)
-  const maxCooldownDays = offers.reduce(
-    (acc, o) => Math.max(acc, resolveOfferCooldownDays(o.cooldown_days)),
-    0
-  )
-  if (maxCooldownDays <= 0) return {}
-
-  const earliest = new Date(Date.now() - maxCooldownDays * 24 * 60 * 60 * 1000)
-
-  const { data: redemptions } = await supabase
-    .from('redemptions')
-    .select('offer_id, redeemed_at')
-    .eq('user_id', userId)
-    .in('offer_id', offerIds)
-    .gte('redeemed_at', earliest.toISOString())
-    .order('redeemed_at', { ascending: false })
-    .returns<RedemptionRow[]>()
-
-  const lastByOffer = new Map<string, string>()
-  for (const row of redemptions ?? []) {
-    if (!lastByOffer.has(row.offer_id)) {
-      lastByOffer.set(row.offer_id, row.redeemed_at)
-    }
-  }
-
-  const result: Record<string, string> = {}
-  const nowTs = Date.now()
-  for (const offer of offers) {
-    const lastRedeemedAt = lastByOffer.get(offer.id)
-    if (!lastRedeemedAt) continue
-    const availableAt = getOfferAvailableAgainAt(lastRedeemedAt, offer.cooldown_days)
-    if (availableAt.getTime() > nowTs) {
-      result[offer.id] = availableAt.toISOString()
-    }
-  }
-  return result
-}
-
-async function loadSoldOut(
-  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
-  offerIds: string[]
-): Promise<Record<string, boolean>> {
-  if (offerIds.length === 0) return {}
-  const { data, error } = await supabase.rpc('offer_daily_availability', {
-    p_offer_ids: offerIds,
-  })
-  if (error) {
-    logServerError('r/[slug]/daily-availability', error)
-    return {}
-  }
-  const rows = (data ?? []) as Array<{ offer_id: string; sold_out: boolean }>
-  const result: Record<string, boolean> = {}
-  for (const row of rows) {
-    if (row.sold_out) result[row.offer_id] = true
-  }
-  return result
-}
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { slug } = await params
@@ -182,9 +111,9 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const cityPrepositional = isCity(restaurant.city)
     ? CITY_LABELS_PREPOSITIONAL[restaurant.city]
     : CITY_LABELS_PREPOSITIONAL[DEFAULT_CITY]
-  const title = `${restaurant.restaurant_name} в ${cityPrepositional} — 2-за-1 бесплатно с KudaClub`
+  const title = `${restaurant.restaurant_name} в ${cityPrepositional} — 1+1 бесплатно с KudaClub`
   const descriptionParts = [
-    `${restaurant.restaurant_name} — 2-за-1 и подарки с KudaClub бесплатно.`,
+    `${restaurant.restaurant_name} — 1+1 и подарки с KudaClub бесплатно.`,
     cuisines ? `Кухня: ${cuisines}.` : null,
     restaurant.address ? `Адрес: ${restaurant.address}.` : null,
     'Без подписки и приложения.',
@@ -225,7 +154,7 @@ export default async function RestaurantPage({ params }: PageProps) {
       .from('offers')
       .select(`
         id, offer_type, offer_title, offer_terms_short,
-        estimated_value, cooldown_days, dish_photo_url, end_date, takeaway_only, is_active,
+        estimated_value, dish_photo_url, end_date, takeaway_only, is_active,
         offer_usable_hours ( day_of_week, is_unavailable, from_time, to_time, to_next_day )
       `)
       .eq('restaurant_id', restaurant.id)
@@ -256,13 +185,6 @@ export default async function RestaurantPage({ params }: PageProps) {
   const offersError = offersResult.error
   const primaryLocation = primaryLocationResult.data
   const isMember = access.kind === 'member'
-
-  const [availableAgainByOfferId, soldOutByOfferId] = await Promise.all([
-    isMember && offers.length > 0
-      ? loadAvailableAgain(supabase, access.user.id, offers)
-      : Promise.resolve({} as Record<string, string>),
-    loadSoldOut(supabase, offers.map((offer) => offer.id)),
-  ])
 
   if (offersError) {
     logServerError('r/[slug]/offers', offersError)
@@ -324,7 +246,7 @@ export default async function RestaurantPage({ params }: PageProps) {
       />
       <RestaurantNavBar
         shareTitle={restaurant.restaurant_name}
-        shareText={`${restaurant.restaurant_name} — 2-за-1 бесплатно с KudaClub`}
+        shareText={`${restaurant.restaurant_name} — 1+1 бесплатно с KudaClub`}
       />
 
       <main className="mx-auto max-w-3xl pb-10">
@@ -373,7 +295,6 @@ export default async function RestaurantPage({ params }: PageProps) {
                 offer_title: offer.offer_title,
                 offer_terms_short: offer.offer_terms_short,
                 estimated_value: offer.estimated_value,
-                cooldown_days: offer.cooldown_days,
                 dish_photo_url: offer.dish_photo_url,
                 takeaway_only: offer.takeaway_only,
                 usableHoursLabel: usableStatus.label,
@@ -384,8 +305,6 @@ export default async function RestaurantPage({ params }: PageProps) {
             restaurantSlug={restaurant.slug}
             restaurantName={restaurant.restaurant_name}
             isMember={isMember}
-            availableAgainByOfferId={availableAgainByOfferId}
-            soldOutByOfferId={soldOutByOfferId}
           />
         </section>
 

@@ -12,7 +12,7 @@ export function HowItWorks() {
           Как это работает
         </p>
         <h2 className="mt-2 text-2xl font-semibold tracking-tight text-neutral-900 sm:text-3xl">
-          Три шага до ужина 2-за-1
+          Три шага до ужина 1+1
         </h2>
 
         <ol className="mt-7 grid grid-cols-1 gap-4 md:grid-cols-3 md:gap-5">

@@ -4,7 +4,6 @@ import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { getGuestAccess } from '@/lib/guest-access'
-import { DAILY_LIMIT_REACHED_TEXT } from '@/lib/offers'
 import { logServerError } from '@/lib/safe-errors'
 
 export type ExtendRedeemState =
@@ -19,7 +18,6 @@ type ExtendRpcResult = {
     | 'already_used'
     | 'already_extended'
     | 'extend_window_closed'
-    | 'daily_limit'
   expires_at?: string
 }
 
@@ -31,10 +29,7 @@ type IssueRpcResult = {
     | 'offer_unavailable'
     | 'active_token'
     | 'usable_hours'
-    | 'cooldown'
-    | 'daily_limit'
     | 'server_error'
-  available_at?: string
   token_id?: string
 }
 
@@ -44,7 +39,6 @@ const EXTEND_ERRORS: Record<NonNullable<ExtendRpcResult['reason']>, string> = {
   already_used: 'Код уже использован.',
   already_extended: 'Продление уже применялось.',
   extend_window_closed: 'Время для продления истекло (прошёл час с выдачи).',
-  daily_limit: DAILY_LIMIT_REACHED_TEXT,
 }
 
 function redeemPath(restaurantId: string, offerId: string) {
@@ -74,7 +68,10 @@ export async function extendRedeemToken(
 
   const result = data as ExtendRpcResult | null
   if (!result?.ok || !result.expires_at) {
-    return { error: EXTEND_ERRORS[result?.reason ?? 'not_found'] }
+    return {
+      error:
+        EXTEND_ERRORS[result?.reason ?? 'not_found'] ?? 'Не удалось продлить. Попробуйте снова.',
+    }
   }
 
   if (restaurantId && offerId) {
@@ -115,9 +112,6 @@ export async function generateRedeemToken(formData: FormData) {
     const reason = result?.reason ?? 'server_error'
     if (reason === 'login_required' || reason === 'phone_not_verified') {
       redirect(`/login?next=${encodeURIComponent(backUrl)}`)
-    }
-    if (reason === 'cooldown' && result?.available_at) {
-      redirect(`${backUrl}?error=cooldown&until=${encodeURIComponent(result.available_at)}`)
     }
     redirect(`${backUrl}?error=${reason}`)
   }

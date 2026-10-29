@@ -5,7 +5,6 @@ import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input, Textarea } from '@/components/ui/input'
 import { OfferAdminTypeAndSchedule } from '@/components/admin/offer-admin-type-and-schedule'
-import { DEFAULT_OFFER_COOLDOWN_DAYS } from '@/lib/offers'
 
 type PageProps = { params: Promise<{ restaurantId: string }> }
 
@@ -51,27 +50,7 @@ export default async function AdminOfferNewPage({ params }: PageProps) {
             hint="Опционально. Используется как превью в карточке оффера."
           />
 
-          <div className="grid gap-4 sm:grid-cols-2">
-            <Input name="estimated_value" type="number" min={0} label="Примерная выгода (₸)" placeholder="3500" />
-            <Input
-              name="cooldown_days"
-              type="number"
-              min={1}
-              max={365}
-              label="Cooldown (дней)"
-              placeholder="7"
-              defaultValue={String(DEFAULT_OFFER_COOLDOWN_DAYS)}
-            />
-          </div>
-
-          <Input
-            name="daily_limit"
-            type="number"
-            min={1}
-            label="Лимит кодов в день"
-            placeholder="Без лимита"
-            hint="Пусто — без лимита. Когда лимит выбран, гости видят «На сегодня коды закончились, загляните завтра»."
-          />
+          <Input name="estimated_value" type="number" min={0} label="Примерная выгода (₸)" placeholder="3500" />
 
           <label className="flex items-center gap-2 text-base text-gray-600">
             <input type="checkbox" name="is_active" defaultChecked className="rounded" />

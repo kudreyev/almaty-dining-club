@@ -109,7 +109,7 @@ export async function buildWeeklyDigestContext(): Promise<WeeklyDigestContext> {
 }
 
 export function buildWeeklyDigestPrompt(ctx: WeeklyDigestContext): string {
-  return `Ты — продуктовый аналитик KudaClub: бесплатный для гостей сервис предложений 2-за-1 в кафе и ресторанах Алматы. Зарабатываем на заведениях-партнёрах, которым приводим гостей.
+  return `Ты — продуктовый аналитик KudaClub: бесплатный для гостей сервис предложений 1+1 в кафе и ресторанах Алматы. Приводим гостей в заведения-партнёры.
 
 Вот агрегированные данные за неделю (JSON). Все числа уже посчитаны — не пересчитывай их.
 

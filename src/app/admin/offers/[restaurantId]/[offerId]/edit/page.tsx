@@ -6,7 +6,7 @@ import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input, Textarea } from '@/components/ui/input'
 import { OfferAdminTypeAndSchedule } from '@/components/admin/offer-admin-type-and-schedule'
-import { DEFAULT_OFFER_COOLDOWN_DAYS, type OfferUsableHour } from '@/lib/offers'
+import type { OfferUsableHour } from '@/lib/offers'
 
 type PageProps = { params: Promise<{ restaurantId: string; offerId: string }> }
 
@@ -75,34 +75,13 @@ export default async function AdminOfferEditPage({ params }: PageProps) {
             hint="Опционально. Используется как превью в карточке оффера."
           />
 
-          <div className="grid gap-4 sm:grid-cols-2">
-            <Input
-              name="estimated_value"
-              type="number"
-              min={0}
-              label="Примерная выгода (₸)"
-              placeholder="3500"
-              defaultValue={offer.estimated_value == null ? '' : String(offer.estimated_value)}
-            />
-            <Input
-              name="cooldown_days"
-              type="number"
-              min={1}
-              max={365}
-              label="Cooldown (дней)"
-              placeholder="7"
-              defaultValue={String(offer.cooldown_days ?? DEFAULT_OFFER_COOLDOWN_DAYS)}
-            />
-          </div>
-
           <Input
-            name="daily_limit"
+            name="estimated_value"
             type="number"
-            min={1}
-            label="Лимит кодов в день"
-            placeholder="Без лимита"
-            defaultValue={offer.daily_limit == null ? '' : String(offer.daily_limit)}
-            hint="Пусто — без лимита. Когда лимит выбран, гости видят «На сегодня коды закончились, загляните завтра»."
+            min={0}
+            label="Примерная выгода (₸)"
+            placeholder="3500"
+            defaultValue={offer.estimated_value == null ? '' : String(offer.estimated_value)}
           />
 
           <label className="flex items-center gap-2 text-base text-gray-600">

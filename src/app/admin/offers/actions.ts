@@ -3,7 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { requireAdmin } from '@/lib/admin'
-import { DEFAULT_OFFER_COOLDOWN_DAYS, type OfferUsableHour } from '@/lib/offers'
+import type { OfferUsableHour } from '@/lib/offers'
 import { buildOfferKeyBase } from '@/lib/offer-key'
 
 function parseOptionalInteger(value: FormDataEntryValue | null): number | null {
@@ -18,14 +18,6 @@ function sanitizeEstimatedValue(value: FormDataEntryValue | null): number | null
   const parsed = parseOptionalInteger(value)
   if (parsed == null) return null
   return parsed < 0 ? 0 : parsed
-}
-
-function sanitizeCooldownDays(value: FormDataEntryValue | null): number {
-  const parsed = parseOptionalInteger(value)
-  if (parsed == null) return DEFAULT_OFFER_COOLDOWN_DAYS
-  if (parsed < 1) return 1
-  if (parsed > 365) return 365
-  return parsed
 }
 
 function sanitizeEndDate(value: FormDataEntryValue | null): string | null {
@@ -46,13 +38,6 @@ function sanitizeTime(value: FormDataEntryValue | null): string | null {
   const minutes = Number(match[2])
   if (hours < 0 || hours > 23 || minutes < 0 || minutes > 59) return null
   return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`
-}
-
-/** Пусто — без лимита; иначе 1…10000 кодов в сутки (по Алматы). */
-function sanitizeDailyLimit(value: FormDataEntryValue | null): number | null {
-  const parsed = parseOptionalInteger(value)
-  if (parsed == null || parsed < 1) return null
-  return Math.min(parsed, 10000)
 }
 
 function parseOfferUsableHoursFromFormData(formData: FormData): OfferUsableHour[] | null {
@@ -187,8 +172,6 @@ export async function createOffer(formData: FormData) {
     offer_terms_short: String(formData.get('offer_terms_short') || ''),
     offer_terms_full: '',
     estimated_value: sanitizeEstimatedValue(formData.get('estimated_value')),
-    cooldown_days: sanitizeCooldownDays(formData.get('cooldown_days')),
-    daily_limit: sanitizeDailyLimit(formData.get('daily_limit')),
     end_date: endDate,
     dish_photo_url: String(formData.get('dish_photo_url') || '').trim() || null,
     is_active: formData.get('is_active') === 'on',
@@ -247,8 +230,6 @@ export async function updateOffer(formData: FormData) {
     offer_terms_short: String(formData.get('offer_terms_short') || ''),
     offer_terms_full: '',
     estimated_value: sanitizeEstimatedValue(formData.get('estimated_value')),
-    cooldown_days: sanitizeCooldownDays(formData.get('cooldown_days')),
-    daily_limit: sanitizeDailyLimit(formData.get('daily_limit')),
     end_date: endDate,
     dish_photo_url: String(formData.get('dish_photo_url') || '').trim() || null,
     is_active: formData.get('is_active') === 'on',

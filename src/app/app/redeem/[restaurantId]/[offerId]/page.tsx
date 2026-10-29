@@ -9,18 +9,12 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { DEFAULT_TZ } from '@/lib/opening-hours'
 import {
-  DAILY_LIMIT_REACHED_TEXT,
-  formatOfferAvailableAgain,
-  formatOfferCooldownText,
   formatOfferHeadline,
   formatOfferUsableHoursStatus,
-  getOfferAvailableAgainAt,
   getOfferUsableHours,
-  resolveOfferCooldownDays,
   type OfferType,
   type OfferUsableHour,
 } from '@/lib/offers'
-import { ruDayWordAfterNumber } from '@/lib/ru-plural'
 
 type PageProps = {
   params: Promise<{
@@ -30,7 +24,6 @@ type PageProps = {
   searchParams: Promise<{
     error?: string
     success?: string
-    until?: string
   }>
 }
 
@@ -41,7 +34,6 @@ type Offer = {
   offer_terms_short: string
   offer_type: OfferType
   estimated_value: number | null
-  cooldown_days?: number | null
   takeaway_only?: boolean
   offer_usable_hours?: OfferUsableHour[]
 }
@@ -60,43 +52,27 @@ type OtherActiveToken = {
   restaurants: { restaurant_name: string } | null
 }
 
-function getRedeemErrorMessage(
-  code: string | undefined,
-  cooldownDays: number,
-  usableHoursLabel: string | null,
-  until: string | undefined,
-) {
+function getRedeemErrorMessage(code: string | undefined, usableHoursLabel: string | null) {
   switch (code) {
+    case undefined:
+    case '':
+      return null
     case 'active_token':
       return 'У вас уже есть активный код. Покажите его персоналу или дождитесь, пока он истечёт.'
-    case 'cooldown':
-    case 'cooldown_offer': {
-      const untilDate = until ? new Date(until) : null
-      if (untilDate && !Number.isNaN(untilDate.getTime())) {
-        return `Вы уже пользовались этим предложением. ${formatOfferAvailableAgain(untilDate)}.`
-      }
-      return cooldownDays === 1
-        ? 'Этим предложением можно пользоваться раз в день.'
-        : `Этим предложением можно пользоваться раз в ${cooldownDays} ${ruDayWordAfterNumber(cooldownDays)}.`
-    }
-    case 'daily_limit':
-      return `${DAILY_LIMIT_REACHED_TEXT}.`
     case 'usable_hours':
       return usableHoursLabel
         ? `Сейчас вне окна использования. ${usableHoursLabel}.`
         : 'Сейчас вне окна использования этого предложения.'
     case 'offer_unavailable':
       return 'Это предложение сейчас недоступно.'
-    case 'server_error':
-      return 'Ошибка. Попробуйте снова.'
     default:
-      return null
+      return 'Не удалось получить код. Попробуйте снова.'
   }
 }
 
 export default async function RedeemPage({ params, searchParams }: PageProps) {
   const { restaurantId, offerId } = await params
-  const { error, success, until } = await searchParams
+  const { error, success } = await searchParams
 
   const access = await getGuestAccess()
   if (access.kind !== 'member') {
@@ -116,7 +92,7 @@ export default async function RedeemPage({ params, searchParams }: PageProps) {
   const { data: offer } = await supabase
     .from('offers')
     .select(`
-      id, offer_title, offer_terms_short, offer_type, estimated_value, cooldown_days, takeaway_only,
+      id, offer_title, offer_terms_short, offer_type, estimated_value, takeaway_only,
       offer_usable_hours ( day_of_week, is_unavailable, from_time, to_time, to_next_day )
     `)
     .eq('id', offerId)
@@ -126,48 +102,27 @@ export default async function RedeemPage({ params, searchParams }: PageProps) {
 
   if (!restaurant || !offer) notFound()
   const now = new Date()
-  const offerCooldownDays = resolveOfferCooldownDays(offer.cooldown_days)
   const usableStatus = formatOfferUsableHoursStatus(
     getOfferUsableHours(offer),
     now,
     DEFAULT_TZ,
   )
 
-  const cooldownStart = new Date(now.getTime() - offerCooldownDays * 24 * 60 * 60 * 1000)
+  const { data: activeTokens } = await supabase
+    .from('redeem_tokens')
+    .select(
+      'id, token_code, status, expires_at, created_at, extend_deadline_at, extended_once'
+    )
+    .eq('user_id', userId)
+    .eq('restaurant_id', restaurantId)
+    .eq('offer_id', offerId)
+    .eq('status', 'active')
+    .is('used_at', null)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .returns<RedeemToken[]>()
 
-  const [activeTokensRes, lastRedemptionRes, availabilityRes] = await Promise.all([
-    supabase
-      .from('redeem_tokens')
-      .select(
-        'id, token_code, status, expires_at, created_at, extend_deadline_at, extended_once'
-      )
-      .eq('user_id', userId)
-      .eq('restaurant_id', restaurantId)
-      .eq('offer_id', offerId)
-      .eq('status', 'active')
-      .is('used_at', null)
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .returns<RedeemToken[]>(),
-    supabase
-      .from('redemptions')
-      .select('redeemed_at')
-      .eq('user_id', userId)
-      .eq('offer_id', offerId)
-      .gte('redeemed_at', cooldownStart.toISOString())
-      .order('redeemed_at', { ascending: false })
-      .limit(1)
-      .returns<Array<{ redeemed_at: string }>>(),
-    supabase.rpc('offer_daily_availability', { p_offer_ids: [offerId] }),
-  ])
-
-  const activeToken = activeTokensRes.data?.[0] ?? null
-  const lastRedeemedAt = lastRedemptionRes.data?.[0]?.redeemed_at ?? null
-  const availableAgainAt = lastRedeemedAt
-    ? getOfferAvailableAgainAt(lastRedeemedAt, offerCooldownDays)
-    : null
-  const availability = (availabilityRes.data ?? []) as Array<{ sold_out: boolean }>
-  const soldOut = availability[0]?.sold_out === true
+  const activeToken = activeTokens?.[0] ?? null
 
   let otherActiveToken: OtherActiveToken | null = null
   if (error === 'active_token' && !activeToken) {
@@ -184,21 +139,9 @@ export default async function RedeemPage({ params, searchParams }: PageProps) {
     otherActiveToken = data ?? null
   }
 
-  const errorMessage = getRedeemErrorMessage(
-    error,
-    offerCooldownDays,
-    usableStatus.label,
-    until ?? availableAgainAt?.toISOString(),
-  )
+  const errorMessage = getRedeemErrorMessage(error, usableStatus.label)
 
-  let blockedLabel: string | null = null
-  if (availableAgainAt) {
-    blockedLabel = formatOfferAvailableAgain(availableAgainAt)
-  } else if (soldOut) {
-    blockedLabel = DAILY_LIMIT_REACHED_TEXT
-  } else if (!usableStatus.isUsable) {
-    blockedLabel = usableStatus.label ?? 'Сейчас недоступно'
-  }
+  const blockedLabel = usableStatus.isUsable ? null : (usableStatus.label ?? 'Сейчас недоступно')
 
   return (
     <div className="mx-auto max-w-lg px-5 py-8">
@@ -225,7 +168,7 @@ export default async function RedeemPage({ params, searchParams }: PageProps) {
           </div>
         ) : null}
 
-        {errorMessage && !activeToken && !(error === 'daily_limit' && soldOut) ? (
+        {errorMessage && !activeToken ? (
           <div className="mt-4 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">
             {errorMessage}
             {otherActiveToken ? (
@@ -270,7 +213,6 @@ export default async function RedeemPage({ params, searchParams }: PageProps) {
             <ul className="mt-2 space-y-1 text-xs text-gray-500">
               <li>Код действует 10 минут</li>
               <li>Одновременно — 1 активный код</li>
-              <li>{formatOfferCooldownText(offerCooldownDays)}</li>
               {offer.takeaway_only ? <li>Действует только на вынос</li> : null}
               {usableStatus.label ? <li>{usableStatus.label}</li> : null}
             </ul>

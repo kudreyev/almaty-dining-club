@@ -2,7 +2,6 @@
 
 import { redirect } from 'next/navigation'
 import { requireAdmin } from '@/lib/admin'
-import { DEFAULT_OFFER_COOLDOWN_DAYS } from '@/lib/offers'
 import { logServerError } from '@/lib/safe-errors'
 import { isCity } from '@/lib/cities'
 
@@ -195,13 +194,6 @@ export async function importCsvText(formData: FormData) {
         const value = parseOptionalInteger(row.estimated_value)
         if (value == null) return null
         return value < 0 ? 0 : value
-      })(),
-      cooldown_days: (() => {
-        const value = parseOptionalInteger(row.cooldown_days)
-        if (value == null) return DEFAULT_OFFER_COOLDOWN_DAYS
-        if (value < 1) return 1
-        if (value > 365) return 365
-        return value
       })(),
       dish_photo_url: (row.dish_photo_url || '').trim() || null,
       is_active: parseBoolean(row.is_active, true),

@@ -14,7 +14,7 @@ export function HeroGuest({ city }: HeroGuestProps) {
         </span>
 
         <h1 className="mt-5 text-3xl font-semibold leading-[1.15] tracking-[-0.02em] text-neutral-900 md:text-5xl">
-          2-за-1 в лучших местах {CITY_LABELS_GENITIVE[city]}.{' '}
+          1+1 в лучших местах {CITY_LABELS_GENITIVE[city]}.{' '}
           <span style={{ color: '#D85A30' }}>Бесплатно.</span>
         </h1>
 

@@ -6,10 +6,6 @@ import {
   nowMinutesInTimezone,
   timeToMinutes,
 } from '@/lib/opening-hours'
-import { ruDayWordAfterNumber } from '@/lib/ru-plural'
-
-export const DEFAULT_OFFER_COOLDOWN_DAYS = 7
-
 export type OfferType = '2for1' | 'compliment' | 'kudafest_set'
 
 export type CatalogOfferLike = {
@@ -267,52 +263,4 @@ export function formatEstimatedValue(estimatedValue?: number | null): string | n
 
   const formatted = new Intl.NumberFormat('ru-RU').format(Math.max(0, Math.round(estimatedValue)))
   return `Выгода ~${formatted} ₸`
-}
-
-export function resolveOfferCooldownDays(
-  cooldownDays?: number | null,
-  fallbackDays = DEFAULT_OFFER_COOLDOWN_DAYS,
-): number {
-  if (typeof cooldownDays !== 'number' || Number.isNaN(cooldownDays) || cooldownDays < 1) {
-    return fallbackDays
-  }
-
-  return Math.round(cooldownDays)
-}
-
-/** Текст доступности оффера для UI (чип «Доступно …»). */
-export function formatOfferCooldownText(cooldownDays?: number | null): string {
-  const days = resolveOfferCooldownDays(cooldownDays)
-  if (days === 1) {
-    return 'Доступно каждый день'
-  }
-  return `Доступно раз в ${days} ${ruDayWordAfterNumber(days)}`
-}
-
-export const DAILY_LIMIT_REACHED_TEXT = 'На сегодня коды закончились, загляните завтра'
-
-/** Момент, когда оффер снова доступен после последнего использования. */
-export function getOfferAvailableAgainAt(
-  lastRedeemedAt: string | Date,
-  cooldownDays?: number | null,
-): Date {
-  const days = resolveOfferCooldownDays(cooldownDays)
-  return new Date(new Date(lastRedeemedAt).getTime() + days * 24 * 60 * 60 * 1000)
-}
-
-/** «Снова можно с 5 ноября, 14:30» (время заведения). */
-export function formatOfferAvailableAgain(availableAt: string | Date, tz = DEFAULT_TZ): string {
-  const date = new Date(availableAt)
-  const day = new Intl.DateTimeFormat('ru-RU', {
-    day: 'numeric',
-    month: 'long',
-    timeZone: tz,
-  }).format(date)
-  const time = new Intl.DateTimeFormat('ru-RU', {
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: false,
-    timeZone: tz,
-  }).format(date)
-  return `Снова можно с ${day}, ${time}`
 }

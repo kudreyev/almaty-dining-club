@@ -5,7 +5,7 @@ export default function manifest(): MetadataRoute.Manifest {
     name: 'kudaclub',
     short_name: 'kudaclub',
     description:
-      'Бесплатные предложения 2-за-1, напитки и десерты в лучших заведениях Алматы. Без подписки и приложения.',
+      'Бесплатные предложения 1+1, напитки и десерты в лучших заведениях Алматы. Без подписки и приложения.',
     start_url: '/app/me?utm_source=pwa',
     scope: '/',
     display: 'standalone',

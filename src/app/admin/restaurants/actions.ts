@@ -12,13 +12,6 @@ function parseCity(value: FormDataEntryValue | null): 'almaty' | 'astana' {
   return isCity(value) ? value : DEFAULT_CITY
 }
 
-/** Пусто — без лимита; иначе 1…10000 кодов в сутки на всё заведение (по Алматы). */
-function parseDailyLimit(value: FormDataEntryValue | null): number | null {
-  const parsed = Number.parseInt(String(value ?? '').trim(), 10)
-  if (!Number.isFinite(parsed) || parsed < 1) return null
-  return Math.min(parsed, 10000)
-}
-
 function minutesFromTime(value: string): number {
   const [hh, mm] = value.split(':').map((part) => Number(part))
   return hh * 60 + mm
@@ -211,7 +204,6 @@ export async function createRestaurant(formData: FormData) {
     cuisine_2: String(formData.get('cuisine_2') || '') || null,
     cuisine_3: String(formData.get('cuisine_3') || '') || null,
     tags: parseTagsList(formData.get('tags')),
-    daily_limit: parseDailyLimit(formData.get('daily_limit')),
     is_active: formData.get('is_active') === 'on',
   }
 
@@ -273,7 +265,6 @@ export async function updateRestaurant(formData: FormData) {
     cuisine_2: String(formData.get('cuisine_2') || '') || null,
     cuisine_3: String(formData.get('cuisine_3') || '') || null,
     tags: parseTagsList(formData.get('tags')),
-    daily_limit: parseDailyLimit(formData.get('daily_limit')),
     is_active: formData.get('is_active') === 'on',
   }
 

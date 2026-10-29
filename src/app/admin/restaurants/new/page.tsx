@@ -35,14 +35,6 @@ export default async function AdminRestaurantNewPage() {
           </div>
           <Input name="tags" label="Теги (через запятую)" placeholder="Ужины, Свидания, Винная карта" />
           <Input name="instagram_url" label="Instagram" placeholder="https://instagram.com/..." />
-          <Input
-            name="daily_limit"
-            type="number"
-            min={1}
-            label="Лимит кодов в день на заведение"
-            placeholder="Без лимита"
-            hint="Пусто — без лимита. Считается по всем офферам заведения вместе."
-          />
 
           <fieldset className="rounded-xl border border-gray-200 p-4">
             <legend className="px-2 text-sm font-medium text-gray-700">Информация из 2GIS</legend>

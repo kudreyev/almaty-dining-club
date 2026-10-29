@@ -60,7 +60,6 @@ export async function loadHomeRestaurants(city: City): Promise<HomeRestaurantsRe
         offer_title,
         offer_terms_short,
         estimated_value,
-        cooldown_days,
         dish_photo_url,
         end_date,
         is_active

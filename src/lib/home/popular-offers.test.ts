@@ -11,7 +11,7 @@ function offer(partial: Partial<Offer> & Pick<Offer, 'offer_type' | 'offer_title
 }
 
 describe('pickPopularOffers', () => {
-  it('puts 2-for-1 dinners before gifts and coffee, strongest value first', () => {
+  it('puts 1+1 dinners before gifts and coffee, strongest value first', () => {
     const result = pickPopularOffers([
       restaurant('coffee', [offer({ offer_type: '2for1', offer_title: 'Капучино', estimated_value: 1200 })]),
       restaurant('dessert', [offer({ offer_type: 'compliment', offer_title: 'Десерт', estimated_value: 3000 })]),

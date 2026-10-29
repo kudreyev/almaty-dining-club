@@ -2,10 +2,7 @@
 
 import { Clock } from 'lucide-react'
 import {
-  DAILY_LIMIT_REACHED_TEXT,
   formatEstimatedValue,
-  formatOfferAvailableAgain,
-  formatOfferCooldownText,
   formatOfferTitle,
   type OfferType,
 } from '@/lib/offers'
@@ -21,7 +18,6 @@ export type RestaurantOffer = {
   offer_title: string
   offer_terms_short: string
   estimated_value: number | null
-  cooldown_days: number | null
   dish_photo_url: string | null
   takeaway_only: boolean
   usableHoursLabel: string | null
@@ -35,10 +31,6 @@ type RestaurantOffersListProps = {
   restaurantName: string
   /** Вошёл и подтвердил телефон: кнопка ведёт сразу к коду. */
   isMember: boolean
-  /** offerId → ISO-момент, когда оффер снова доступен этому гостю. */
-  availableAgainByOfferId: Record<string, string>
-  /** offerId → коды на сегодня закончились (daily_limit). */
-  soldOutByOfferId: Record<string, boolean>
 }
 
 export function RestaurantOffersList({
@@ -47,8 +39,6 @@ export function RestaurantOffersList({
   restaurantSlug,
   restaurantName,
   isMember,
-  availableAgainByOfferId,
-  soldOutByOfferId,
 }: RestaurantOffersListProps) {
   if (offers.length === 0) {
     return (
@@ -68,8 +58,6 @@ export function RestaurantOffersList({
           restaurantSlug={restaurantSlug}
           restaurantName={restaurantName}
           isMember={isMember}
-          availableAgainAt={availableAgainByOfferId[offer.id] ?? null}
-          soldOut={soldOutByOfferId[offer.id] === true}
         />
       ))}
     </div>
@@ -82,15 +70,12 @@ type OfferCardProps = {
   restaurantSlug: string
   restaurantName: string
   isMember: boolean
-  availableAgainAt: string | null
-  soldOut: boolean
 }
 
 function OfferCard(props: OfferCardProps) {
   const { offer } = props
   const title = formatOfferTitle(offer.offer_type, offer.offer_title)
   const benefitLabel = formatEstimatedValue(offer.estimated_value)
-  const cooldownLabel = formatOfferCooldownText(offer.cooldown_days)
   const typeBadge = formatTypeBadge(offer.offer_type)
 
   const hasPhoto = Boolean(offer.dish_photo_url)
@@ -183,21 +168,15 @@ function OfferCard(props: OfferCardProps) {
           </div>
         ) : null}
 
-        <div
-          className="flex flex-col text-neutral-500"
-          style={{ fontSize: '11px', gap: '4px', marginBottom: '10px' }}
-        >
-          <div className="flex items-center" style={{ gap: '4px' }}>
+        {offer.usableHoursLabel ? (
+          <div
+            className="flex items-center text-neutral-500"
+            style={{ fontSize: '11px', gap: '4px', marginBottom: '10px' }}
+          >
             <Clock size={11} style={{ opacity: 0.7 }} aria-hidden="true" />
-            <span>{cooldownLabel}</span>
+            <span>{offer.usableHoursLabel}</span>
           </div>
-          {offer.usableHoursLabel ? (
-            <div className="flex items-center" style={{ gap: '4px' }}>
-              <Clock size={11} style={{ opacity: 0.7 }} aria-hidden="true" />
-              <span>{offer.usableHoursLabel}</span>
-            </div>
-          ) : null}
-        </div>
+        ) : null}
 
         <OfferCta {...props} />
       </div>
@@ -211,8 +190,6 @@ function OfferCta({
   restaurantSlug,
   restaurantName,
   isMember,
-  availableAgainAt,
-  soldOut,
 }: OfferCardProps) {
   const baseStyle: React.CSSProperties = {
     fontSize: '13px',
@@ -221,14 +198,8 @@ function OfferCta({
     fontWeight: 500,
   }
 
-  let disabledLabel: string | null = null
-  if (isMember && availableAgainAt) {
-    disabledLabel = formatOfferAvailableAgain(availableAgainAt)
-  } else if (soldOut) {
-    disabledLabel = DAILY_LIMIT_REACHED_TEXT
-  } else if (offer.isOutsideUsableHours && offer.usableHoursLabel) {
-    disabledLabel = offer.usableHoursLabel
-  }
+  const disabledLabel =
+    offer.isOutsideUsableHours && offer.usableHoursLabel ? offer.usableHoursLabel : null
 
   if (disabledLabel) {
     return (

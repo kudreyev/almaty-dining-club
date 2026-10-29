@@ -8,7 +8,6 @@ export type Offer = {
   offer_title: string
   offer_terms_short?: string
   estimated_value?: number | null
-  cooldown_days?: number | null
   dish_photo_url?: string | null
   end_date?: string | null
   offer_usable_hours?: OfferUsableHour[]

@@ -29,8 +29,8 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   if (!isCity(city)) return {}
 
   const genitive = CITY_LABELS_GENITIVE[city]
-  const title = `KudaClub: 2-за-1 в кафе и ресторанах ${genitive} бесплатно`
-  const description = `Бесплатные предложения 2-за-1, напитки и десерты в лучших заведениях ${genitive}. Без подписки и приложения.`
+  const title = `KudaClub: 1+1 в кафе и ресторанах ${genitive} бесплатно`
+  const description = `Бесплатные предложения 1+1, напитки и десерты в лучших заведениях ${genitive}. Без подписки и приложения.`
   return {
     title,
     description,

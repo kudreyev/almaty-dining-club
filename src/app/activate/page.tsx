@@ -9,7 +9,13 @@ import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 import { logAnalyticsEvent } from '@/lib/analytics'
 import { normalizeKZPhone } from '@/lib/kz-phone'
 import { WhatsappSupportLink } from '@/components/analytics/whatsapp-support-link'
+import { SUBSCRIPTIONS_CLOSED_MESSAGE, SUBSCRIPTIONS_OPEN } from '@/lib/pricing'
 import { ActivateCard } from './activate-card'
+
+const cardCheckoutHint = SUBSCRIPTIONS_OPEN
+  ? 'Оформить подписку можно картой на странице тарифа.'
+  : SUBSCRIPTIONS_CLOSED_MESSAGE
+const cardCheckoutCta = SUBSCRIPTIONS_OPEN ? 'Оформить подписку' : 'На страницу тарифа'
 
 const WHATSAPP_SUPPORT_URL =
   'https://wa.me/77066059899?text=' +
@@ -79,9 +85,11 @@ export default async function ActivatePage({
         <div className="rounded-3xl border border-gray-200 bg-white p-8 shadow-sm">
           <h1 className="text-xl font-semibold">Ссылка недействительна</h1>
           <p className="mt-3 text-sm text-gray-600">
-            Проверьте ссылку или оформите подписку картой на странице тарифа.
+            {SUBSCRIPTIONS_OPEN
+              ? 'Проверьте ссылку или оформите подписку картой на странице тарифа.'
+              : `Проверьте ссылку. ${cardCheckoutHint}`}
           </p>
-          <CtaRow primaryHref="/pricing" primaryText="Оформить подписку" />
+          <CtaRow primaryHref="/pricing" primaryText={cardCheckoutCta} />
         </div>
       </main>
     )
@@ -101,10 +109,9 @@ export default async function ActivatePage({
         <div className="rounded-3xl border border-gray-200 bg-white p-8 shadow-sm">
           <h1 className="text-xl font-semibold">Ссылка отменена</h1>
           <p className="mt-3 text-sm text-gray-600">
-            Эта ссылка больше недействительна. Оформить подписку можно картой на
-            странице тарифа.
+            Эта ссылка больше недействительна. {cardCheckoutHint}
           </p>
-          <CtaRow primaryHref="/pricing" primaryText="Оформить подписку" />
+          <CtaRow primaryHref="/pricing" primaryText={cardCheckoutCta} />
         </div>
       </main>
     )
@@ -134,10 +141,9 @@ export default async function ActivatePage({
         <div className="rounded-3xl border border-gray-200 bg-white p-8 shadow-sm">
           <h1 className="text-xl font-semibold">Ссылка истекла</h1>
           <p className="mt-3 text-sm text-gray-600">
-            Срок действия ссылки истёк. Оформить подписку можно картой на странице
-            тарифа.
+            Срок действия ссылки истёк. {cardCheckoutHint}
           </p>
-          <CtaRow primaryHref="/pricing" primaryText="Оформить подписку" />
+          <CtaRow primaryHref="/pricing" primaryText={cardCheckoutCta} />
         </div>
       </main>
     )

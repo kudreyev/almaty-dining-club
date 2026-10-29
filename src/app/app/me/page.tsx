@@ -27,7 +27,11 @@ import {
 } from '@/lib/subscription'
 import { pluralizeRu } from '@/lib/ru-plural'
 import { CITY_COOKIE, CITY_LABELS_GENITIVE, DEFAULT_CITY, isCity } from '@/lib/cities'
-import { formatPriceKzt } from '@/lib/pricing'
+import {
+  formatPriceKzt,
+  SUBSCRIPTIONS_CLOSED_MESSAGE,
+  SUBSCRIPTIONS_OPEN,
+} from '@/lib/pricing'
 
 type Profile = {
   id: string
@@ -124,9 +128,11 @@ export default async function MePage({ searchParams }: PageProps) {
       totalVenues > 0 ? `${totalVenues} ${venuesWord} ${cityName}` : `Заведения ${cityName}`
 
     const title = hasAnySubscription ? 'Подписка закончилась' : 'Подписка неактивна'
-    const description = hasAnySubscription
-      ? 'Продли подписку, чтобы снова пользоваться 1+1 и подарками к заказу. Оплата картой онлайн — доступ откроется сразу.'
-      : 'Оформи подписку, чтобы пользоваться 1+1 и подарками к заказу. Оплата картой онлайн — доступ откроется сразу.'
+    const description = !SUBSCRIPTIONS_OPEN
+      ? SUBSCRIPTIONS_CLOSED_MESSAGE
+      : hasAnySubscription
+        ? 'Продли подписку, чтобы снова пользоваться 1+1 и подарками к заказу. Оплата картой онлайн — доступ откроется сразу.'
+        : 'Оформи подписку, чтобы пользоваться 1+1 и подарками к заказу. Оплата картой онлайн — доступ откроется сразу.'
 
     return (
       <>

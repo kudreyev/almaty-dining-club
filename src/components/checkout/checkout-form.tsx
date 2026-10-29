@@ -18,6 +18,8 @@ import {
   formatPriceKzt,
   formatPricePerMonth,
   formatFirstMonthPromoOffer,
+  SUBSCRIPTIONS_CLOSED_MESSAGE,
+  SUBSCRIPTIONS_OPEN,
 } from '@/lib/pricing'
 import {
   trackMetaPixelInitiateCheckout,
@@ -373,6 +375,10 @@ export function CheckoutForm({
   }, [initialPromoCode, isTrial])
 
   const onPayClick = useCallback(async () => {
+    if (!SUBSCRIPTIONS_OPEN) {
+      setError(SUBSCRIPTIONS_CLOSED_MESSAGE)
+      return
+    }
     if (!phoneValid || !phoneE164) {
       setError('Введите корректный номер телефона.')
       return

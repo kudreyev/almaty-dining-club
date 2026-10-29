@@ -7,7 +7,12 @@ import {
 } from 'lucide-react'
 import { PricingFaq } from './pricing-faq'
 import SubscribeCTA from '@/components/checkout/subscribe-cta'
-import { formatPriceKzt, formatPricePerMonth } from '@/lib/pricing'
+import {
+  formatPriceKzt,
+  formatPricePerMonth,
+  SUBSCRIPTIONS_CLOSED_MESSAGE,
+  SUBSCRIPTIONS_OPEN,
+} from '@/lib/pricing'
 
 // Node.js runtime (не edge): страница рендерит SubscribeCTA → CheckoutModal.
 export const metadata: Metadata = {
@@ -144,7 +149,9 @@ export default function PricingPage() {
             </SubscribeCTA>
 
             <p className="mt-2.5 text-center text-[11px] text-neutral-500">
-              Оплата картой · списание {formatPricePerMonth()}, отмена в любой момент
+              {SUBSCRIPTIONS_OPEN
+                ? `Оплата картой · списание ${formatPricePerMonth()}, отмена в любой момент`
+                : SUBSCRIPTIONS_CLOSED_MESSAGE}
             </p>
           </div>
         </div>

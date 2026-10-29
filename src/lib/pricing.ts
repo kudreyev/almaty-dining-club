@@ -15,6 +15,19 @@ function resolvePriceKzt(): number {
 /** Цена подписки в тенге (число). */
 export const PRICE_KZT = resolvePriceKzt()
 
+/**
+ * Публичное оформление новой подписки (виджет TipTop, /free, заявка Kaspi).
+ * false — кнопки не открывают оплату, /api/checkout/start отклоняет запрос,
+ * установочный платёж не активирует доступ. Рекуррентные списания уже
+ * оформленных подписок продолжаются.
+ */
+export const SUBSCRIPTIONS_OPEN = false
+
+export const SUBSCRIPTIONS_CLOSED_LABEL = 'Оформление закрыто'
+
+export const SUBSCRIPTIONS_CLOSED_MESSAGE =
+  'Оформление подписки сейчас закрыто.'
+
 /** Минимальная сумма списания в TipTop (комиссия процессинга). */
 export const MIN_CHECKOUT_AMOUNT_KZT = 30
 

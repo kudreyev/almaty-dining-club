@@ -1,6 +1,10 @@
 import SubscribeCTA from '@/components/checkout/subscribe-cta'
 import { CITY_LABELS, CITY_LABELS_GENITIVE, type City } from '@/lib/cities'
-import { formatPriceKzt } from '@/lib/pricing'
+import {
+  formatPriceKzt,
+  SUBSCRIPTIONS_CLOSED_MESSAGE,
+  SUBSCRIPTIONS_OPEN,
+} from '@/lib/pricing'
 
 type HeroGuestProps = {
   venuesCount: number
@@ -46,7 +50,9 @@ export function HeroGuest({ venuesCount, city }: HeroGuestProps) {
         </div>
 
         <p className="mt-2 text-center text-[11px] text-neutral-500">
-          Оплата картой онлайн — доступ открывается сразу
+          {SUBSCRIPTIONS_OPEN
+            ? 'Оплата картой онлайн — доступ открывается сразу'
+            : SUBSCRIPTIONS_CLOSED_MESSAGE}
         </p>
 
         <ul className="mt-5 flex flex-col items-center gap-2 text-xs text-neutral-500 sm:flex-row sm:flex-wrap sm:justify-center sm:gap-x-6 sm:gap-y-2">

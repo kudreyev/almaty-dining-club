@@ -4,6 +4,8 @@
  */
 
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
+import { SUBSCRIPTIONS_OPEN } from '@/lib/pricing'
+import { safeLog } from '@/lib/safe-logger'
 import { normalizePhoneToE164 } from '@/lib/auth/whatsapp-login'
 import { sendPurchaseEvent } from '@/lib/meta-capi'
 import {
@@ -42,14 +44,18 @@ export function isValidUserAccountId(accountId: string | null | undefined): bool
   return Boolean(accountId && UUID_RE.test(accountId))
 }
 
-/** Активирует/продлевает public.subscriptions по успешному Pay. */
+/**
+ * Активирует/продлевает public.subscriptions по успешному Pay.
+ * Возвращает false, если новая подписка закрыта и это не продление
+ * уже известной подписки TipTop.
+ */
 export async function activateProductSubscription(args: {
   accountId: string
   subscriptionId: string | null
   invoiceId: string | null
   /** Телефон из AccountId/формы — быстрее CAPI, без лишнего lookup. */
   phoneHint?: string | null
-}): Promise<void> {
+}): Promise<boolean> {
   const { accountId, subscriptionId, invoiceId, phoneHint } = args
   if (!isValidUserAccountId(accountId)) {
     throw new Error(`invalid AccountId: ${accountId}`)
@@ -63,6 +69,7 @@ export async function activateProductSubscription(args: {
 
   type SubRow = { id: string; tiptop_subscription_id: string | null }
   let subRow: SubRow | null = null
+  let matchedByTiptopId = false
 
   if (subscriptionId) {
     const { data } = await admin
@@ -72,6 +79,7 @@ export async function activateProductSubscription(args: {
       .limit(1)
       .maybeSingle<SubRow>()
     subRow = data ?? null
+    matchedByTiptopId = Boolean(subRow)
   }
 
   if (!subRow) {
@@ -83,6 +91,13 @@ export async function activateProductSubscription(args: {
       .limit(1)
       .maybeSingle<SubRow>()
     subRow = data ?? null
+  }
+
+  if (!SUBSCRIPTIONS_OPEN && !matchedByTiptopId) {
+    safeLog.warn('activateProductSubscription: new subscription blocked', {
+      invoiceId,
+    })
+    return false
   }
 
   const patch = {
@@ -124,6 +139,8 @@ export async function activateProductSubscription(args: {
       })
     }
   }
+
+  return true
 }
 
 async function resolveUserIdFromAccountId(

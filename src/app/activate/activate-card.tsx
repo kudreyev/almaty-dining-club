@@ -5,7 +5,12 @@ import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { LogoutButton } from '@/components/logout-button'
 import { WhatsappSupportLink } from '@/components/analytics/whatsapp-support-link'
+import { SUBSCRIPTIONS_CLOSED_MESSAGE, SUBSCRIPTIONS_OPEN } from '@/lib/pricing'
 import { activateAction, type ActivateActionResult } from './actions'
+
+const cardCheckoutHint = SUBSCRIPTIONS_OPEN
+  ? 'Оформить подписку можно картой на странице тарифа.'
+  : SUBSCRIPTIONS_CLOSED_MESSAGE
 
 const WHATSAPP_SUPPORT_URL =
   'https://wa.me/77066059899?text=' +
@@ -51,21 +56,23 @@ const ERROR_COPY: Record<
   },
   invalid: {
     title: 'Ссылка недействительна',
-    description: 'Проверьте ссылку или оформите подписку картой на странице тарифа.',
+    description: SUBSCRIPTIONS_OPEN
+      ? 'Проверьте ссылку или оформите подписку картой на странице тарифа.'
+      : `Проверьте ссылку. ${cardCheckoutHint}`,
   },
   revoked: {
     title: 'Ссылка отменена',
-    description:
-      'Эта ссылка больше недействительна. Оформить подписку можно картой на странице тарифа.',
+    description: `Эта ссылка больше недействительна. ${cardCheckoutHint}`,
   },
   expired: {
     title: 'Ссылка истекла',
-    description:
-      'Срок действия ссылки истёк. Оформить подписку можно картой на странице тарифа.',
+    description: `Срок действия ссылки истёк. ${cardCheckoutHint}`,
   },
   already_used: {
     title: 'Ссылка уже использована',
-    description: 'Подписка уже активирована. Продлить подписку можно картой на странице тарифа.',
+    description: SUBSCRIPTIONS_OPEN
+      ? 'Подписка уже активирована. Продлить подписку можно картой на странице тарифа.'
+      : 'Подписка уже активирована.',
   },
   wrong_phone: {
     title: 'Нужен другой номер',
@@ -78,8 +85,9 @@ const ERROR_COPY: Record<
   },
   trial_already_used: {
     title: 'Пробный доступ уже использован',
-    description:
-      'На этот номер уже выдавался пробный доступ. Чтобы продолжить — оформите платную подписку.',
+    description: SUBSCRIPTIONS_OPEN
+      ? 'На этот номер уже выдавался пробный доступ. Чтобы продолжить — оформите платную подписку.'
+      : `На этот номер уже выдавался пробный доступ. ${SUBSCRIPTIONS_CLOSED_MESSAGE}`,
   },
   not_customer: {
     title: 'Внутренний доступ',

@@ -5,7 +5,11 @@ import { createPortal } from 'react-dom'
 import Link from 'next/link'
 import { Check, X } from 'lucide-react'
 import SubscribeCTA from '@/components/checkout/subscribe-cta'
-import { formatPriceKzt } from '@/lib/pricing'
+import {
+  formatPriceKzt,
+  SUBSCRIPTIONS_CLOSED_MESSAGE,
+  SUBSCRIPTIONS_OPEN,
+} from '@/lib/pricing'
 import type { WhatsAppMessageKind } from '@/lib/whatsapp'
 
 const BULLETS = [
@@ -91,7 +95,9 @@ export function PaywallModal({
           className="text-neutral-500"
           style={{ fontSize: '13px', lineHeight: 1.5, marginTop: '6px' }}
         >
-          Оформите подписку — и получите доступ ко всем заведениям.
+          {SUBSCRIPTIONS_OPEN
+            ? 'Оформите подписку — и получите доступ ко всем заведениям.'
+            : SUBSCRIPTIONS_CLOSED_MESSAGE}
         </p>
 
         {/* Bullets */}

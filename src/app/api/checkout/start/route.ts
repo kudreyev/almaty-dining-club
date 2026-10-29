@@ -10,7 +10,11 @@ import {
 } from '@/lib/checkout/pending-checkouts'
 import { parseUtmCookieValue, UTM_COOKIE_NAME } from '@/lib/utm'
 import { validatePromoCode } from '@/lib/promo-codes'
-import { PRICE_KZT } from '@/lib/pricing'
+import {
+  PRICE_KZT,
+  SUBSCRIPTIONS_CLOSED_MESSAGE,
+  SUBSCRIPTIONS_OPEN,
+} from '@/lib/pricing'
 import { logServerError } from '@/lib/safe-errors'
 import { getUserFacingError, getFallbackByContext } from '@/lib/safe-errors'
 
@@ -18,6 +22,13 @@ export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
 export async function POST(req: NextRequest) {
+  if (!SUBSCRIPTIONS_OPEN) {
+    return NextResponse.json(
+      { ok: false, error: SUBSCRIPTIONS_CLOSED_MESSAGE },
+      { status: 403 },
+    )
+  }
+
   try {
     const body = (await req.json()) as {
       phone?: string

@@ -14,6 +14,8 @@ import {
 import {
   MIN_CHECKOUT_AMOUNT_KZT,
   formatPriceKzt,
+  SUBSCRIPTIONS_CLOSED_MESSAGE,
+  SUBSCRIPTIONS_OPEN,
 } from '@/lib/pricing'
 import type { Metadata } from 'next'
 
@@ -135,7 +137,9 @@ export default async function FreePage({ searchParams }: PageProps) {
             {headline}
           </h1>
           <p className="mt-3 text-sm leading-[1.55] text-neutral-600">
-            kudaclub — подписка на скидки. Первый месяц {trialPrice}
+            {SUBSCRIPTIONS_OPEN
+              ? `kudaclub — подписка на скидки. Первый месяц ${trialPrice}`
+              : SUBSCRIPTIONS_CLOSED_MESSAGE}
           </p>
 
           <div className="mt-7 text-left">

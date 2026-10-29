@@ -83,6 +83,7 @@ export async function fulfillSuccessfulPay(
   let phoneForMessage: string | null = null
   let attributionOverride: UtmAttribution | null = null
   let justPaidPending = false
+  let subscriptionActivated = false
 
   if (isValidUserAccountId(rawAccountId)) {
     userId = rawAccountId
@@ -95,9 +96,7 @@ export async function fulfillSuccessfulPay(
     userId = await ensureUserIdForPhone(phone)
 
     if (pending && pending.status === 'pending') {
-      pending = await markPendingCheckoutPaid({ id: pending.id, userId })
       attributionOverride = attributionFromPending(pending)
-      justPaidPending = true
     } else if (pending) {
       if (pending.user_id) userId = pending.user_id
       attributionOverride = attributionFromPending(pending)
@@ -110,12 +109,17 @@ export async function fulfillSuccessfulPay(
   }
 
   if (userId) {
-    await activateProductSubscription({
+    subscriptionActivated = await activateProductSubscription({
       accountId: userId,
       subscriptionId: p.SubscriptionId || null,
       invoiceId: p.InvoiceId || null,
       phoneHint: phoneForMessage,
     })
+  }
+
+  if (pending && pending.status === 'pending' && subscriptionActivated && userId) {
+    pending = await markPendingCheckoutPaid({ id: pending.id, userId })
+    justPaidPending = true
   }
 
   const jsonData = parseWebhookJsonData(p)
@@ -149,6 +153,7 @@ export async function fulfillSuccessfulPay(
   // платежа (не рекуррент). Дубликат вебхука не инкрементирует повторно.
   const promoForUsage = merged.promo_code
   if (
+    subscriptionActivated &&
     promoForUsage &&
     ledger &&
     !ledger.duplicate &&
@@ -162,6 +167,7 @@ export async function fulfillSuccessfulPay(
   }
 
   const shouldNotifyAccess =
+    subscriptionActivated &&
     ledger &&
     !ledger.duplicate &&
     phoneForMessage &&

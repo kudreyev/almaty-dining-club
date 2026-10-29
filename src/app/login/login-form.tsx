@@ -8,7 +8,11 @@ import { formatPhoneForDisplay } from '@/lib/kz-phone'
 import { sendWhatsAppLogin, verifyWhatsAppLoginCode } from './actions'
 import { setUserId } from '@/lib/analytics-client'
 import SubscribeCTA from '@/components/checkout/subscribe-cta'
-import { formatPriceKzt } from '@/lib/pricing'
+import {
+  formatPriceKzt,
+  SUBSCRIPTIONS_CLOSED_MESSAGE,
+  SUBSCRIPTIONS_OPEN,
+} from '@/lib/pricing'
 
 export function LoginForm({
   safeNext,
@@ -155,9 +159,9 @@ export function LoginForm({
             className="text-neutral-500"
             style={{ fontSize: '13px', lineHeight: 1.5, marginTop: '8px' }}
           >
-            На номер {formatPhoneForDisplay(subscriber) || subscriber} аккаунт не найден.
-            Чтобы получить доступ к 1+1, оформите подписку прямо здесь — оплата
-            картой, доступ откроется сразу.
+            {SUBSCRIPTIONS_OPEN
+              ? `На номер ${formatPhoneForDisplay(subscriber) || subscriber} аккаунт не найден. Чтобы получить доступ к 1+1, оформите подписку прямо здесь — оплата картой, доступ откроется сразу.`
+              : `На номер ${formatPhoneForDisplay(subscriber) || subscriber} аккаунт не найден. ${SUBSCRIPTIONS_CLOSED_MESSAGE}`}
           </p>
 
           <SubscribeCTA

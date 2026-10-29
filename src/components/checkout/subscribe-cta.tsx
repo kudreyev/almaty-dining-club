@@ -10,7 +10,11 @@ import Link from 'next/link'
 import CheckoutModal from '@/components/checkout/checkout-modal'
 import { useUser } from '@/lib/auth/use-user'
 import { trackGoal } from '@/lib/analytics-client'
-import { formatPriceKzt } from '@/lib/pricing'
+import {
+  formatPriceKzt,
+  SUBSCRIPTIONS_CLOSED_LABEL,
+  SUBSCRIPTIONS_OPEN,
+} from '@/lib/pricing'
 
 type Props = {
   /** Источник для аналитики: header | pricing | venue-<slug> | map | home-hero … */
@@ -44,6 +48,19 @@ export default function SubscribeCTA({
       <Link href="/app/me" className={activeClassName ?? className} onClick={onClick}>
         Подписка активна ✓
       </Link>
+    )
+  }
+
+  if (!SUBSCRIPTIONS_OPEN) {
+    return (
+      <button
+        type="button"
+        disabled
+        aria-disabled="true"
+        className={`${className ?? ''} cursor-not-allowed opacity-60`}
+      >
+        {SUBSCRIPTIONS_CLOSED_LABEL}
+      </button>
     )
   }
 

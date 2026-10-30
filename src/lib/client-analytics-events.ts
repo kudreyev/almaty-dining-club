@@ -7,16 +7,19 @@ export const CLIENT_ANALYTICS_EVENTS = [
   'sort_mode_switch',
   'login_cta_click',
   'partner_cta_click',
-  // PWA install funnel (см. комментарий в src/lib/pwa/install.ts).
+  // PWA и push (таблица событий в src/lib/pwa/analytics.ts).
   'pwa_prompt_shown',
   'pwa_prompt_accepted',
   'pwa_prompt_dismissed',
   'pwa_installed',
-  'pwa_launch',
-  'pwa_onboarding_skipped',
-  // Web Push (см. src/lib/pwa/push.ts).
+  'pwa_session',
+  'inapp_browser_open_external_clicked',
+  'push_softask_shown',
+  'push_softask_accepted',
+  'push_softask_dismissed',
   'push_permission_granted',
   'push_permission_denied',
+  'push_received',
   'push_clicked',
 ] as const
 

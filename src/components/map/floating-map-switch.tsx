@@ -14,7 +14,10 @@ export function FloatingMapSwitch({
   rightHref: string
 }) {
   return (
-    <div className="pointer-events-none fixed inset-x-0 bottom-4 z-40 flex justify-center px-4 sm:hidden">
+    <div
+      className="pointer-events-none fixed inset-x-0 z-40 flex justify-center px-4 sm:hidden"
+      style={{ bottom: 'calc(1rem + env(safe-area-inset-bottom))' }}
+    >
       <div
         className="pointer-events-auto flex items-center bg-white/95 backdrop-blur"
         style={{

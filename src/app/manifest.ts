@@ -1,64 +1,73 @@
 import type { MetadataRoute } from 'next'
 import { SITE_DESCRIPTION } from '@/lib/seo'
 
+const shortcutIcons = [{ src: '/icons/icon-96.png', sizes: '96x96', type: 'image/png' }]
+
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: 'kudaclub',
-    short_name: 'kudaclub',
+    // Постоянный id: смена start_url не «раздваивает» установленное приложение.
+    id: '/',
+    name: 'KudaClub — 1+1 в кафе и ресторанах',
+    short_name: 'KudaClub',
     description: SITE_DESCRIPTION,
-    start_url: '/app/me?utm_source=pwa',
+    lang: 'ru',
+    dir: 'ltr',
+    categories: ['food', 'lifestyle'],
+    // Middleware уводит «/» в каталог города пользователя (cookie kc_city → IP → Алматы).
+    start_url: '/?source=pwa',
     scope: '/',
     display: 'standalone',
     orientation: 'portrait-primary',
     theme_color: '#D85A30',
     background_color: '#fafafa',
     icons: [
+      { src: '/icons/icon-192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
+      { src: '/icons/icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'any' },
+      { src: '/icons/icon-192-maskable.png', sizes: '192x192', type: 'image/png', purpose: 'maskable' },
+      { src: '/icons/icon-512-maskable.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
+    ],
+    screenshots: [
       {
-        src: '/icons/icon-192.png',
-        sizes: '192x192',
+        src: '/screenshots/catalog.png',
+        sizes: '1080x1920',
         type: 'image/png',
-        purpose: 'any',
+        form_factor: 'narrow',
+        label: 'Каталог заведений с предложениями 1+1',
       },
       {
-        src: '/icons/icon-512.png',
-        sizes: '512x512',
+        src: '/screenshots/restaurant.png',
+        sizes: '1080x1920',
         type: 'image/png',
-        purpose: 'any',
+        form_factor: 'narrow',
+        label: 'Карточка заведения',
       },
       {
-        src: '/icons/icon-192-maskable.png',
-        sizes: '192x192',
+        src: '/screenshots/code.png',
+        sizes: '1080x1920',
         type: 'image/png',
-        purpose: 'maskable',
-      },
-      {
-        src: '/icons/icon-512-maskable.png',
-        sizes: '512x512',
-        type: 'image/png',
-        purpose: 'maskable',
+        form_factor: 'narrow',
+        label: 'Код для официанта',
       },
     ],
     shortcuts: [
       {
-        name: 'Мой код скидки',
-        short_name: 'Код',
-        description: 'Открыть кабинет с кодом скидки',
-        url: '/app/me',
-        icons: [{ src: '/icons/icon-192.png', sizes: '192x192', type: 'image/png' }],
+        name: 'Мой код',
+        short_name: 'Мой код',
+        description: 'Кабинет и активный код',
+        url: '/app/me?source=pwa_shortcut',
+        icons: shortcutIcons,
       },
       {
         name: 'Заведения Алматы',
         short_name: 'Алматы',
-        description: 'Каталог заведений в Алматы',
-        url: '/almaty?utm_source=pwa_shortcut',
-        icons: [{ src: '/icons/icon-192.png', sizes: '192x192', type: 'image/png' }],
+        url: '/almaty?source=pwa_shortcut',
+        icons: shortcutIcons,
       },
       {
-        name: 'Заведения Астана',
+        name: 'Заведения Астаны',
         short_name: 'Астана',
-        description: 'Каталог заведений в Астане',
-        url: '/astana?utm_source=pwa_shortcut',
-        icons: [{ src: '/icons/icon-192.png', sizes: '192x192', type: 'image/png' }],
+        url: '/astana?source=pwa_shortcut',
+        icons: shortcutIcons,
       },
     ],
   }

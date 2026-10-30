@@ -1,19 +1,12 @@
 /**
- * Клиентские хелперы Web Push + цели Метрики:
- *
- * | Goal                     | Когда                                      |
- * |--------------------------|--------------------------------------------|
- * | push_permission_granted  | Notification.permission = granted + subscribe ok |
- * | push_permission_denied   | permission = denied (после клика)          |
- * | push_clicked             | клик по пушу; params.campaign_id при наличии   |
+ * Клиентская часть Web Push: системный запрос только из обработчика нажатия
+ * «Да, сообщать» (enablePush), синхронизация подписки с /api/push/subscribe.
  */
 
-export const PUSH_STORAGE = {
-  dismissUntil: 'kudaclub:push_dismiss_until',
-} as const
+import { CITY_COOKIE } from '@/lib/cities'
+import { readStored, writeStored } from '@/lib/pwa/install'
 
-/** 30 дней после denied / закрытия карточки. */
-export const PUSH_DISMISS_COOLDOWN_MS = 30 * 24 * 60 * 60 * 1000
+const SYNC_SESSION_KEY = 'kc:push_synced'
 
 export function urlBase64ToUint8Array(base64String: string): Uint8Array {
   const padding = '='.repeat((4 - (base64String.length % 4)) % 4)
@@ -26,38 +19,10 @@ export function urlBase64ToUint8Array(base64String: string): Uint8Array {
   return output
 }
 
-function readStorage(key: string): string | null {
-  try {
-    return window.localStorage.getItem(key)
-  } catch {
-    return null
-  }
-}
-
-function writeStorage(key: string, value: string): void {
-  try {
-    window.localStorage.setItem(key, value)
-  } catch {
-    // ignore
-  }
-}
-
-export function isPushDismissCooldownActive(now = Date.now()): boolean {
-  const raw = readStorage(PUSH_STORAGE.dismissUntil)
-  if (!raw) return false
-  const until = Number(raw)
-  if (!Number.isFinite(until)) return false
-  return now < until
-}
-
-export function setPushDismissCooldown(now = Date.now()): void {
-  writeStorage(PUSH_STORAGE.dismissUntil, String(now + PUSH_DISMISS_COOLDOWN_MS))
-}
-
 export function detectPushPlatform(): 'ios' | 'android' | 'desktop' | 'unknown' {
   if (typeof window === 'undefined') return 'unknown'
   const ua = window.navigator.userAgent
-  if (/iPad|iPhone|iPod/.test(ua) || (ua.includes('Mac') && 'ontouchend' in document)) {
+  if (/iPad|iPhone|iPod/.test(ua) || (ua.includes('Mac') && navigator.maxTouchPoints > 1)) {
     return 'ios'
   }
   if (/Android/i.test(ua)) return 'android'
@@ -70,6 +35,69 @@ export function isPushApiSupported(): boolean {
     typeof window !== 'undefined' &&
     'Notification' in window &&
     'serviceWorker' in navigator &&
-    'PushManager' in window
+    'PushManager' in window &&
+    Boolean(process.env.NEXT_PUBLIC_VAPID_KEY?.trim())
   )
+}
+
+export function currentPushPermission(): NotificationPermission | 'unsupported' {
+  if (!isPushApiSupported()) return 'unsupported'
+  return Notification.permission
+}
+
+function currentCity(): string | null {
+  const match = document.cookie.match(new RegExp(`(?:^|; )${CITY_COOKIE}=([^;]+)`))
+  return match ? decodeURIComponent(match[1]) : null
+}
+
+async function saveSubscription(subscription: PushSubscription): Promise<boolean> {
+  const json = subscription.toJSON()
+  const res = await fetch('/api/push/subscribe', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      endpoint: json.endpoint,
+      keys: json.keys,
+      platform: detectPushPlatform(),
+      city: currentCity(),
+    }),
+  })
+  // 401: гость ещё не вошёл (например, в только что установленном приложении на iPhone) —
+  // подписка останется в браузере и сохранится после входа (syncPushSubscription).
+  return res.ok
+}
+
+/** Вызывать только из обработчика нажатия. */
+export async function enablePush(): Promise<NotificationPermission | 'error'> {
+  const publicKey = process.env.NEXT_PUBLIC_VAPID_KEY?.trim()
+  if (!publicKey || !isPushApiSupported()) return 'error'
+  try {
+    const permission = await Notification.requestPermission()
+    if (permission !== 'granted') return permission
+    const reg = await navigator.serviceWorker.ready
+    const subscription =
+      (await reg.pushManager.getSubscription()) ??
+      (await reg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(publicKey) as BufferSource,
+      }))
+    if (await saveSubscription(subscription)) writeStored(SYNC_SESSION_KEY, '1', 'session')
+    return 'granted'
+  } catch {
+    return 'error'
+  }
+}
+
+/** Раз за сессию: если разрешение уже дано — освежить подписку на сервере (город, is_active, вход). */
+export async function syncPushSubscription(): Promise<void> {
+  if (currentPushPermission() !== 'granted') return
+  if (readStored(SYNC_SESSION_KEY, 'session') === '1') return
+  try {
+    const reg = await navigator.serviceWorker.ready
+    const subscription = await reg.pushManager.getSubscription()
+    if (!subscription) return
+    if (await saveSubscription(subscription)) writeStored(SYNC_SESSION_KEY, '1', 'session')
+  } catch {
+    // ignore
+  }
 }

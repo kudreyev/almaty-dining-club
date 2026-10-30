@@ -7,7 +7,9 @@ import { Footer } from '@/components/footer'
 import { YandexMetrica } from '@/components/yandex-metrica'
 import { UtmCapture } from '@/components/analytics/utm-capture'
 import { PwaRegister } from '@/components/pwa-register'
-import { PwaInstallProvider } from '@/components/pwa/pwa-install-provider'
+import { InstallStateProvider } from '@/components/pwa/install-state-provider'
+import { PromptHost } from '@/components/pwa/prompt-host'
+import { StandaloneExternalLinks } from '@/components/pwa/standalone-external-links'
 import { PushClickTracker } from '@/components/pwa/push-click-tracker'
 import { Heartbeat } from '@/components/pwa/heartbeat'
 import { PwaAppBadge } from '@/components/pwa/pwa-app-badge'
@@ -25,15 +27,17 @@ const inter = Inter({
 export const viewport: Viewport = {
   themeColor: '#D85A30',
   colorScheme: 'light',
+  // Статус-бар black-translucent: контент под ним, отступы через env(safe-area-inset-*).
+  viewportFit: 'cover',
 }
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   ...pageMetadata({ title: SITE_TITLE, description: SITE_DESCRIPTION }),
-  applicationName: 'kudaclub',
+  applicationName: 'KudaClub',
   appleWebApp: {
     capable: true,
-    title: 'kudaclub',
+    title: 'KudaClub',
     statusBarStyle: 'black-translucent',
   },
   icons: {
@@ -78,13 +82,14 @@ export default function RootLayout({
             />
           </noscript>
         ) : null}
-        <PwaInstallProvider>
+        <InstallStateProvider>
           <UtmCapture />
           <PwaRegister />
           <PushClickTracker />
           <Heartbeat />
           <SessionKeepAlive />
           <PwaAppBadge />
+          <StandaloneExternalLinks />
           <div className="flex min-h-screen flex-col bg-[#fafaf9] text-gray-900">
             <HeaderShell>
               <Header />
@@ -92,7 +97,8 @@ export default function RootLayout({
             <main className="flex-1">{children}</main>
             <Footer />
           </div>
-        </PwaInstallProvider>
+          <PromptHost />
+        </InstallStateProvider>
         <YandexMetrica />
       </body>
     </html>

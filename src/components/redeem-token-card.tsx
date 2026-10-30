@@ -1,6 +1,6 @@
 'use client'
 
-import { useActionState, useEffect, useMemo, useRef, useState } from 'react'
+import { useActionState, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import QRCode from 'qrcode'
 import {
@@ -10,7 +10,8 @@ import {
 import { getAppSiteOrigin } from '@/lib/site-url'
 import { Button } from '@/components/ui/button'
 import { reachMetricaGoal, trackGoal } from '@/lib/analytics-client'
-import { saveCachedDiscountCode } from '@/lib/pwa/discount-code-cache'
+import { emitValueMoment } from '@/lib/pwa/value-moment'
+import { useWakeLock } from '@/hooks/use-wake-lock'
 import type { OfferType } from '@/lib/offers'
 
 type RedeemTokenCardProps = {
@@ -83,17 +84,10 @@ export function RedeemTokenCard({
     })
   }, [tokenId, restaurantId, offerId])
 
-  // Кэш для офлайн-показа кода на /app/me (PWA).
+  // Момент ценности: код на экране (предложение установки — после ухода с экрана или погашения).
   useEffect(() => {
-    saveCachedDiscountCode({
-      tokenCode,
-      status: 'active',
-      expiresAt: localExpires,
-      restaurantName: null,
-      offerTitle: null,
-      savedAt: new Date().toISOString(),
-    })
-  }, [tokenCode, localExpires])
+    emitValueMoment('code_shown')
+  }, [tokenId])
 
   useEffect(() => {
     setRemainingMs(getRemainingMs(localExpires))
@@ -140,13 +134,33 @@ export function RedeemTokenCard({
   }, [extendState?.ok, router])
 
   const isExpired = remainingMs <= 0
-  const nowMs = Date.now()
+  const nowMs = new Date(localExpires).getTime() - remainingMs
   const extendWindowOpen =
     new Date(extendDeadlineAt).getTime() >= nowMs
   const canExtend = !extendedOnce && extendWindowOpen
+  const [redeemed, setRedeemed] = useState(false)
+  const [fullscreen, setFullscreen] = useState(false)
+  const codeActive = !isExpired && !redeemed
+
+  useWakeLock(codeActive)
+
+  const onRedeemed = useCallback(() => {
+    setRedeemed(true)
+    setFullscreen(false)
+    if (metricaOffer) {
+      trackGoal('offer_redeemed', {
+        restaurant_id: restaurantId,
+        offer_id: offerId,
+        restaurant_slug: metricaOffer.restaurantSlug,
+        estimated_savings: metricaOffer.estimatedSavingsTenge,
+        offer_type: metricaOffer.offerType,
+      })
+    }
+    emitValueMoment('code_redeemed')
+  }, [metricaOffer, restaurantId, offerId])
 
   useEffect(() => {
-    if (!metricaOffer || isExpired) return
+    if (!codeActive) return
     let cancelled = false
     let fired = false
 
@@ -160,13 +174,7 @@ export function RedeemTokenCard({
         const body = (await res.json()) as { usedAt?: string | null }
         if (!body.usedAt) return
         fired = true
-        trackGoal('offer_redeemed', {
-          restaurant_id: restaurantId,
-          offer_id: offerId,
-          restaurant_slug: metricaOffer.restaurantSlug,
-          estimated_savings: metricaOffer.estimatedSavingsTenge,
-          offer_type: metricaOffer.offerType,
-        })
+        onRedeemed()
       } catch {
         /* ignore */
       }
@@ -178,11 +186,21 @@ export function RedeemTokenCard({
       cancelled = true
       window.clearInterval(timer)
     }
-  }, [metricaOffer, isExpired, tokenId, restaurantId, offerId])
+  }, [codeActive, tokenId, onRedeemed])
 
   const masked = '•'.repeat(Math.min(tokenCode.length, 8))
 
   const timerLabel = isExpired ? 'Код истёк' : `Осталось: ${formatTime(remainingMs)}`
+
+  if (redeemed) {
+    return (
+      <div className="mt-8 rounded-3xl border border-emerald-200 bg-emerald-50 p-6 text-center text-emerald-900">
+        <p className="text-4xl" aria-hidden="true">✓</p>
+        <p className="mt-2 text-xl font-semibold">Код погашен</p>
+        <p className="mt-1 text-sm text-emerald-800">Приятного аппетита! Следующий код — в каталоге.</p>
+      </div>
+    )
+  }
 
   const shell = isExpired
     ? 'border border-red-200 bg-red-50 text-red-900'
@@ -213,9 +231,19 @@ export function RedeemTokenCard({
         Скан открывает страницу подтверждения в приложении персонала
       </p>
 
+      {!isExpired ? (
+        <button
+          type="button"
+          onClick={() => setFullscreen(true)}
+          className="mt-5 flex w-full items-center justify-center rounded-2xl bg-white px-5 py-4 text-[17px] font-semibold text-accent transition-colors hover:bg-white/90"
+        >
+          Показать официанту
+        </button>
+      ) : null}
+
       <div className="mt-5 flex flex-col items-center gap-2">
         <p
-          className={`text-4xl font-semibold tracking-[0.2em] ${isExpired ? 'text-red-900' : ''}`}
+          className={`font-mono text-5xl font-semibold tracking-[0.18em] ${isExpired ? 'text-red-900' : ''}`}
         >
           {showCode ? tokenCode : masked}
         </p>
@@ -274,6 +302,15 @@ export function RedeemTokenCard({
         </form>
       ) : null}
 
+      {fullscreen && !isExpired ? (
+        <WaiterView
+          code={tokenCode}
+          qrDataUrl={qrDataUrl}
+          timerLabel={timerLabel}
+          onClose={() => setFullscreen(false)}
+        />
+      ) : null}
+
       {isExpired ? (
         <form action={generateRedeemToken} className="mt-4">
           <input type="hidden" name="restaurantId" value={restaurantId} />
@@ -283,6 +320,62 @@ export function RedeemTokenCard({
           </Button>
         </form>
       ) : null}
+    </div>
+  )
+}
+
+/** Полноэкранный показ кода официанту: крупный код, QR и таймер. */
+function WaiterView({
+  code,
+  qrDataUrl,
+  timerLabel,
+  onClose,
+}: {
+  code: string
+  qrDataUrl: string | null
+  timerLabel: string
+  onClose: () => void
+}) {
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') onClose()
+    }
+    window.addEventListener('keydown', onKey)
+    const prevOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => {
+      window.removeEventListener('keydown', onKey)
+      document.body.style.overflow = prevOverflow
+    }
+  }, [onClose])
+
+  return (
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-label="Код для официанта"
+      className="fixed inset-0 z-[130] flex flex-col items-center justify-center bg-white px-6 text-neutral-900"
+      style={{
+        paddingTop: 'env(safe-area-inset-top)',
+        paddingBottom: 'env(safe-area-inset-bottom)',
+      }}
+    >
+      <p className="text-base text-neutral-500">Код KudaClub для официанта</p>
+      <p className="mt-4 select-all break-all text-center font-mono text-[clamp(3rem,18vw,7rem)] font-bold leading-none tracking-[0.12em]">
+        {code}
+      </p>
+      {qrDataUrl ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={qrDataUrl} alt="QR для персонала" width={220} height={220} className="mt-8" />
+      ) : null}
+      <p className="mt-6 text-lg font-medium text-neutral-700">{timerLabel}</p>
+      <button
+        type="button"
+        onClick={onClose}
+        className="mt-10 rounded-full bg-neutral-100 px-8 py-3 text-[16px] font-medium text-neutral-800 hover:bg-neutral-200"
+      >
+        Закрыть
+      </button>
     </div>
   )
 }

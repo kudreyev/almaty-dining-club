@@ -26,7 +26,8 @@ export async function GET() {
       db
         .from('push_subscriptions')
         .select('id', { count: 'exact', head: true })
-        .eq('subscriber_id', user.id),
+        .eq('subscriber_id', user.id)
+        .eq('is_active', true),
       db
         .from('push_campaigns')
         .select('id', { count: 'exact', head: true })

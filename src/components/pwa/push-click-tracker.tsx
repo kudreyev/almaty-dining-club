@@ -6,11 +6,12 @@
  * 2) postMessage от SW при focus существующего окна
  *
  * campaign_id: из ?push_campaign= / postMessage → Метрика + click_count.
+ * campaign: из utm_campaign / postMessage (кампании Edge Function send-push без UUID).
  */
 
 import { useEffect, useRef } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
-import { trackGoal } from '@/lib/analytics-client'
+import { trackPwa } from '@/lib/pwa/analytics'
 
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
@@ -20,9 +21,11 @@ function normalizeCampaignId(raw: string | null | undefined): string | null {
   return raw
 }
 
-function reportPushClick(campaignId: string | null) {
-  const params = campaignId ? { campaign_id: campaignId } : undefined
-  trackGoal('push_clicked', params)
+function reportPushClick(campaignId: string | null, campaign: string | null) {
+  trackPwa('push_clicked', {
+    ...(campaignId ? { campaign_id: campaignId } : {}),
+    ...(campaign ? { campaign: campaign.slice(0, 80) } : {}),
+  })
 
   if (!campaignId) return
   fetch('/api/push/click', {
@@ -62,7 +65,7 @@ export function PushClickTracker() {
       if (handledKeyRef.current === key) return
       handledKeyRef.current = key
 
-      reportPushClick(campaignId)
+      reportPushClick(campaignId, url.searchParams.get('utm_campaign'))
       window.history.replaceState({}, '', stripPushParams(url))
     } catch {
       // ignore
@@ -74,7 +77,7 @@ export function PushClickTracker() {
 
     const onMessage = (event: MessageEvent) => {
       const data = event.data as
-        | { type?: string; url?: string; campaign_id?: string }
+        | { type?: string; url?: string; campaign_id?: string; campaign?: string }
         | null
         | undefined
       if (!data || data.type !== 'PUSH_CLICK') return
@@ -99,7 +102,12 @@ export function PushClickTracker() {
       if (handledKeyRef.current === key) return
       handledKeyRef.current = key
 
-      reportPushClick(campaignId)
+      reportPushClick(
+        campaignId,
+        typeof data.campaign === 'string' && data.campaign
+          ? data.campaign
+          : target?.searchParams.get('utm_campaign') ?? null,
+      )
 
       if (target) {
         const path = stripPushParams(target)

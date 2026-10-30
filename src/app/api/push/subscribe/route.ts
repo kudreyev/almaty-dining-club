@@ -1,7 +1,9 @@
 // POST /api/push/subscribe — upsert Web Push подписки текущего залогиненного
 // пользователя (profiles.id → push_subscriptions.subscriber_id).
 
+import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
+import { CITY_COOKIE, isCity } from '@/lib/cities'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { logServerError } from '@/lib/safe-errors'
 
@@ -12,6 +14,7 @@ type Body = {
   endpoint?: string
   keys?: { p256dh?: string; auth?: string }
   platform?: string | null
+  city?: string | null
 }
 
 export async function POST(request: Request) {
@@ -35,6 +38,9 @@ export async function POST(request: Request) {
         ? body.platform.trim().slice(0, 32)
         : null
 
+    const cookieCity = (await cookies()).get(CITY_COOKIE)?.value
+    const city = isCity(body.city) ? body.city : isCity(cookieCity) ? cookieCity : null
+
     if (!endpoint || !p256dh || !auth) {
       return NextResponse.json({ error: 'invalid_subscription' }, { status: 400 })
     }
@@ -49,6 +55,8 @@ export async function POST(request: Request) {
         p256dh,
         auth,
         platform,
+        city,
+        is_active: true,
       },
       { onConflict: 'endpoint' },
     )

@@ -59,6 +59,13 @@ export async function POST(request: Request) {
       subscriberId: campaign.segment === 'self' ? user.id : undefined,
     })
 
+    if (batch.quietHours) {
+      return NextResponse.json(
+        { error: 'quiet_hours', message: 'Рассылка возможна только с 11:00 до 21:00 по Алматы' },
+        { status: 409 },
+      )
+    }
+
     const sentCount = (campaign.sent_count ?? 0) + batch.sent
     const failedCount =
       (campaign.failed_count ?? 0) + batch.failed + batch.gone
@@ -77,6 +84,7 @@ export async function POST(request: Request) {
       batchSent: batch.sent,
       batchFailed: batch.failed + batch.gone,
       processed: batch.processed,
+      skippedQuota: batch.skippedQuota,
       nextOffset: batch.nextOffset,
       done: batch.done,
       total: batch.total,

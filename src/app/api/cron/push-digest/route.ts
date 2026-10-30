@@ -1,7 +1,12 @@
 import { NextResponse } from 'next/server'
 import { isCronAuthorized } from '@/lib/cron-auth'
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
-import { sendPush, type PushPayload } from '@/lib/messaging/push-messaging'
+import {
+  datedCampaign,
+  pushRecipientsWithCity,
+  sendPush,
+  type PushPayload,
+} from '@/lib/messaging/push-messaging'
 import { safeLog } from '@/lib/safe-logger'
 
 /**
@@ -28,25 +33,10 @@ export async function GET(req: Request) {
 
   const db = createSupabaseAdminClient()
 
-  // Получаем подписчиков с push-подписками
-  const { data: subscribers } = await db
-    .from('push_subscriptions')
-    .select('subscriber_id')
-
-  if (!subscribers?.length) {
+  const campaign = datedCampaign('weekly-digest')
+  const recipients = await pushRecipientsWithCity(campaign)
+  if (!recipients.length) {
     return NextResponse.json({ sent: 0, reason: 'no_subscribers' })
-  }
-
-  const uniqueIds = [...new Set(subscribers.map((s) => s.subscriber_id))]
-
-  // Получаем город каждого пользователя
-  const { data: profiles } = await db
-    .from('profiles')
-    .select('id, city')
-    .in('id', uniqueIds)
-
-  if (!profiles?.length) {
-    return NextResponse.json({ sent: 0, reason: 'no_profiles' })
   }
 
   // Считаем активные предложения по городам
@@ -65,8 +55,7 @@ export async function GET(req: Request) {
   let totalSent = 0
   let totalFailed = 0
 
-  for (const profile of profiles) {
-    const city = profile.city ?? 'almaty'
+  for (const { userId, city } of recipients) {
     const count = cityOfferCount[city] ?? 0
     if (count === 0) continue
 
@@ -76,17 +65,18 @@ export async function GET(req: Request) {
       body: 'Откройте приложение и используйте одно из них сегодня!',
       url: `/${city}`,
       tag: 'weekly-digest',
+      campaign,
     }
 
     try {
-      const result = await sendPush(profile.id, payload)
+      const result = await sendPush(userId, payload)
       totalSent += result.sent
       totalFailed += result.failed
     } catch (e) {
-      safeLog.error('[push-digest] send error', { userId: profile.id, error: e })
+      safeLog.error('[push-digest] send error', { userId, error: e })
       totalFailed += 1
     }
   }
 
-  return NextResponse.json({ sent: totalSent, failed: totalFailed, subscribers: uniqueIds.length })
+  return NextResponse.json({ sent: totalSent, failed: totalFailed, subscribers: recipients.length })
 }

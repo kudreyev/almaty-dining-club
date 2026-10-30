@@ -7,6 +7,7 @@ import { MobileMenu } from '@/components/mobile-menu'
 import { CitySelector } from '@/components/city-selector'
 import { CityHint } from '@/components/city-hint'
 import { GoalLink } from '@/components/analytics/goal-link'
+import { StandaloneBackButton } from '@/components/pwa/standalone-back-button'
 import { CITY_HINT_COOKIE, isCity } from '@/lib/cities'
 import { getCurrentCity, getManualCity } from '@/lib/current-city'
 
@@ -58,15 +59,21 @@ export async function Header() {
     : []
 
   return (
-    <header className="sticky top-0 z-50 border-b border-gray-200/80 bg-white/90 backdrop-blur-lg">
+    <header
+      className="sticky top-0 z-50 border-b border-gray-200/80 bg-white/90 backdrop-blur-lg"
+      style={{ paddingTop: 'env(safe-area-inset-top)' }}
+    >
       <div className="mx-auto flex h-14 max-w-6xl items-center justify-between gap-4 px-5">
-        <Link
-          href={`/${city}`}
-          className="font-semibold text-neutral-900"
-          style={{ fontSize: '18px', letterSpacing: '-0.4px' }}
-        >
-          Kuda<span style={{ color: '#D85A30' }}>club</span>
-        </Link>
+        <div className="flex items-center gap-1">
+          <StandaloneBackButton fallbackHref={`/${city}`} />
+          <Link
+            href={`/${city}`}
+            className="font-semibold text-neutral-900"
+            style={{ fontSize: '18px', letterSpacing: '-0.4px' }}
+          >
+            Kuda<span style={{ color: '#D85A30' }}>club</span>
+          </Link>
+        </div>
 
         <nav className="hidden items-center gap-1 md:flex">
           {navLinks.map((l) => (

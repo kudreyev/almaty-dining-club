@@ -1,9 +1,9 @@
 /**
- * Админ-рассылка Web Push (без UI).
+ * Тестовый Web Push одному пользователю (без UI). Лимит 2/неделю и окно 11–21 соблюдаются.
+ * Массовая рассылка — только через админку /admin/push или Edge Function send-push (dry_run по умолчанию).
  *
- * Примеры:
+ * Пример:
  *   npx tsx scripts/send-push.ts --subscriber-id <uuid> --title "Пятница" --body "Куда сходить" --url /almaty
- *   npx tsx scripts/send-push.ts --all --title "Пятница" --body "Куда сходить" --url https://kudaclub.kz/almaty
  *
  * Env: NEXT_PUBLIC_SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY,
  *      NEXT_PUBLIC_VAPID_KEY, VAPID_PRIVATE_KEY [, VAPID_SUBJECT]
@@ -17,7 +17,6 @@ loadEnv({ path: resolve(process.cwd(), '.env') })
 function usage(): never {
   console.error(`Usage:
   npx tsx scripts/send-push.ts --subscriber-id <uuid> --title "..." --body "..." --url <path|url>
-  npx tsx scripts/send-push.ts --all --title "..." --body "..." --url <path|url>
 `)
   process.exit(1)
 }
@@ -33,27 +32,21 @@ function hasFlag(flag: string): boolean {
 }
 
 async function main() {
-  const all = hasFlag('--all')
+  if (hasFlag('--all')) {
+    console.error('Массовая рассылка: Edge Function send-push или /admin/push.')
+    process.exit(1)
+  }
   const subscriberId = readArg('--subscriber-id')
   const title = readArg('--title')
   const body = readArg('--body')
   const url = readArg('--url')
 
-  if ((!all && !subscriberId) || (all && subscriberId) || !title || !body || !url) {
+  if (!subscriberId || !title || !body || !url) {
     usage()
   }
 
-  const { sendPush, sendPushToAll } = await import('../src/lib/messaging/push-messaging')
-
-  if (all) {
-    const result = await sendPushToAll({ title, body, url })
-    console.log(
-      JSON.stringify({ mode: 'all', ...result }, null, 2),
-    )
-    return
-  }
-
-  const result = await sendPush(subscriberId!, { title, body, url })
+  const { sendPush } = await import('../src/lib/messaging/push-messaging')
+  const result = await sendPush(subscriberId, { title, body, url, campaign: 'script-test' })
   console.log(
     JSON.stringify({ mode: 'subscriber', subscriberId, ...result }, null, 2),
   )

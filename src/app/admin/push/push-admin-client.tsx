@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { PUSH_TEMPLATES, hasUnfilledPlaceholders } from '@/lib/push-templates'
 
 const TITLE_MAX = 50
 const BODY_MAX = 120
@@ -111,6 +112,7 @@ const ERROR_LABELS: Record<string, string> = {
   no_subscribers: 'Нет ни одной push-подписки.',
   prepare_failed: 'Не удалось создать кампанию.',
   batch_failed: 'Ошибка при отправке батча.',
+  quiet_hours: 'Рассылка возможна только с 11:00 до 21:00 по Алматы.',
 }
 
 export function PushAdminClient({
@@ -138,6 +140,18 @@ export function PushAdminClient({
 
   const resolvedUrl = urlPreset === 'custom' ? customUrl.trim() || '/' : urlPreset
 
+  const applyTemplate = (id: string) => {
+    const template = PUSH_TEMPLATES.find((t) => t.id === id)
+    if (!template) return
+    setTitle(template.title)
+    setBody(template.body)
+    setUrlPreset('custom')
+    setCustomUrl(template.url)
+  }
+
+  const hasPlaceholders =
+    hasUnfilledPlaceholders(title) || hasUnfilledPlaceholders(body) || hasUnfilledPlaceholders(resolvedUrl)
+
   const recipients = useMemo(() => {
     if (!meta) return 0
     return segment === 'self' ? meta.selfEndpoints : meta.endpoints
@@ -157,6 +171,11 @@ export function PushAdminClient({
   const onSend = async (target: Segment) => {
     setError(null)
     setStatus(null)
+
+    if (hasPlaceholders) {
+      setError('Замените {плейсхолдеры} в заголовке, тексте и ссылке.')
+      return
+    }
 
     if (target === 'all' && !selfTestDone) {
       setError('Сначала отправьте тест себе в этой сессии формы.')
@@ -212,6 +231,23 @@ export function PushAdminClient({
     <div className="space-y-10">
       <div className="grid gap-8 lg:grid-cols-2">
         <div className="space-y-4">
+          <label className="block">
+            <span className="mb-1.5 block text-sm font-medium text-neutral-700">Шаблон</span>
+            <select
+              defaultValue=""
+              onChange={(e) => applyTemplate(e.target.value)}
+              className="w-full rounded-lg border border-neutral-200 bg-white px-3 py-2.5 text-[15px] outline-none focus:border-primary"
+              disabled={busy}
+            >
+              <option value="">— без шаблона —</option>
+              {PUSH_TEMPLATES.map((t) => (
+                <option key={t.id} value={t.id}>
+                  {t.label}
+                </option>
+              ))}
+            </select>
+          </label>
+
           <label className="block">
             <span className="mb-1.5 flex items-center justify-between text-sm font-medium text-neutral-700">
               Заголовок
@@ -377,6 +413,10 @@ export function PushAdminClient({
             </div>
           ) : null}
 
+          <p className="text-[12px] text-neutral-400">
+            Лимиты: не больше 2 пушей на человека за 7 дней (лишние получатели пропускаются),
+            рассылка всем — только 11:00–21:00 по Алматы.
+          </p>
           <p className="text-[12px] text-neutral-400">
             Получателей сейчас (сегмент): {recipients}
             {meta && meta.recentMassCount >= 2 ? (

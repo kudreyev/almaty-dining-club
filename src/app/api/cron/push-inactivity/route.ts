@@ -1,19 +1,19 @@
 import { NextResponse } from 'next/server'
 import { isCronAuthorized } from '@/lib/cron-auth'
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
-import { sendPush, type PushPayload } from '@/lib/messaging/push-messaging'
+import { datedCampaign, sendPush, type PushPayload } from '@/lib/messaging/push-messaging'
 import { safeLog } from '@/lib/safe-logger'
 
 /**
- * Vercel Cron: пуш подписчикам, неактивным 7+ дней.
- * Ежедневно в 13:00 Алматы (08:00 UTC).
+ * Vercel Cron: пуш подписчикам, неактивным 14+ дней.
+ * Раз в неделю, вторник 13:00 Алматы (08:00 UTC); общий лимит — 2 пуша в неделю на человека.
  */
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 export const maxDuration = 120
 
-const INACTIVITY_DAYS = 7
+const INACTIVITY_DAYS = 14
 
 export async function GET(req: Request) {
   if (!isCronAuthorized(req)) {
@@ -23,10 +23,11 @@ export async function GET(req: Request) {
   const db = createSupabaseAdminClient()
   const cutoff = new Date(Date.now() - INACTIVITY_DAYS * 24 * 60 * 60 * 1000).toISOString()
 
-  // Пользователи с push-подпиской, которые не были активны 7+ дней
+  // Пользователи с активной push-подпиской, которые не были активны 14+ дней
   const { data: inactive } = await db
     .from('push_subscriptions')
-    .select('subscriber_id, profiles!inner(id, last_active_at, city)')
+    .select('subscriber_id, profiles!inner(id, last_active_at)')
+    .eq('is_active', true)
     .or(`last_active_at.lt.${cutoff},last_active_at.is.null`, {
       referencedTable: 'profiles',
     })
@@ -49,6 +50,7 @@ export async function GET(req: Request) {
       body: 'Ваши скидки ждут — используйте предложение сегодня',
       url: '/app/me',
       tag: 'inactivity-reminder',
+      campaign: datedCampaign('inactivity-reminder'),
     }
 
     try {

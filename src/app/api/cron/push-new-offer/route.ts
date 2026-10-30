@@ -1,7 +1,12 @@
 import { NextResponse } from 'next/server'
 import { isCronAuthorized } from '@/lib/cron-auth'
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
-import { sendPush, type PushPayload } from '@/lib/messaging/push-messaging'
+import {
+  datedCampaign,
+  pushRecipientsWithCity,
+  sendPush,
+  type PushPayload,
+} from '@/lib/messaging/push-messaging'
 import { safeLog } from '@/lib/safe-logger'
 
 /**
@@ -58,16 +63,12 @@ export async function GET(req: Request) {
   let totalSent = 0
   let totalFailed = 0
 
+  const campaign = datedCampaign('new-offer')
+  const recipients = await pushRecipientsWithCity(campaign)
+
   for (const [city, offers] of Object.entries(offersByCity)) {
-    // Подписчики в этом городе
-    const { data: subscribers } = await db
-      .from('push_subscriptions')
-      .select('subscriber_id, profiles!inner(city)')
-      .eq('profiles.city', city)
-
-    if (!subscribers?.length) continue
-
-    const uniqueIds = [...new Set(subscribers.map((s) => s.subscriber_id))]
+    const uniqueIds = recipients.filter((r) => r.city === city).map((r) => r.userId)
+    if (!uniqueIds.length) continue
     const cityLabel = CITY_LABELS[city] ?? city
     const firstOffer = offers[0]
 
@@ -78,8 +79,9 @@ export async function GET(req: Request) {
       body: offers.length === 1
         ? `В ${firstOffer.restaurant} — попробуйте сегодня`
         : `${firstOffer.restaurant} и другие — откройте каталог`,
-      url: offers.length === 1 ? `/${city}/${firstOffer.slug}` : `/${city}`,
+      url: offers.length === 1 ? `/r/${firstOffer.slug}` : `/${city}`,
       tag: 'new-offer',
+      campaign,
     }
 
     for (const subscriberId of uniqueIds) {

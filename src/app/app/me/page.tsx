@@ -7,9 +7,7 @@ import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { EmptyState } from '@/components/ui/empty-state'
-import { PwaCabinetInstallBanner } from '@/components/pwa/pwa-cabinet-install-banner'
-import { PwaInstallMenuItem } from '@/components/pwa/pwa-install-menu-item'
-import { PwaPushOptIn } from '@/components/pwa/pwa-push-opt-in'
+import { PwaProfileSection } from '@/components/pwa/pwa-profile-section'
 import { DiscountCodeCard } from '@/components/me/discount-code-card'
 import { FounderBadge } from '@/components/me/founder-badge'
 import { LifetimeSavings } from '@/components/me/lifetime-savings'
@@ -113,12 +111,7 @@ export default async function MePage() {
         redemptionsCount={savings.redemptionsCount}
       />
 
-      <div className="mb-6">
-        <PwaInstallMenuItem />
-      </div>
-
-      <PwaCabinetInstallBanner />
-      <PwaPushOptIn />
+      <PwaProfileSection />
 
       <NewVenuesBlock venues={newestVenues} />
 

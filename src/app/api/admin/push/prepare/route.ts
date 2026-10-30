@@ -3,7 +3,7 @@
 import { NextResponse } from 'next/server'
 import { assertAdminApi } from '@/lib/admin'
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
-import { countPushSubscriptions } from '@/lib/messaging/push-messaging'
+import { countPushSubscriptions, isPushWindowOpen } from '@/lib/messaging/push-messaging'
 import { logServerError } from '@/lib/safe-errors'
 
 export const runtime = 'nodejs'
@@ -53,11 +53,15 @@ export async function POST(request: Request) {
         .from('push_subscriptions')
         .select('id', { count: 'exact', head: true })
         .eq('subscriber_id', user.id)
+        .eq('is_active', true)
       recipientEndpoints = count ?? 0
       if (recipientEndpoints === 0) {
         return NextResponse.json({ error: 'no_self_subscription' }, { status: 400 })
       }
     } else {
+      if (!(await isPushWindowOpen())) {
+        return NextResponse.json({ error: 'quiet_hours' }, { status: 409 })
+      }
       recipientEndpoints = await countPushSubscriptions()
       if (recipientEndpoints === 0) {
         return NextResponse.json({ error: 'no_subscribers' }, { status: 400 })

@@ -1,0 +1,6 @@
+# JWT на шлюзе отключён только для weekly-report: pg_cron шлёт CRON_SECRET,
+# это не JWT. Доступ проверяет сама функция (CRON_SECRET / WEEKLY_REPORT_SECRET /
+# service_role). Остальные функции по умолчанию с verify_jwt = true.
+
+[functions.weekly-report]
+verify_jwt = false

@@ -1,8 +1,8 @@
 'use client'
 
 /**
- * Один раз при заходе сохраняет utm_* / promo_code из URL в cookie kc_utm (30 дней).
- * Монтируется в корневом layout.
+ * Первый заход с utm_* / ref / promo_code → cookie kc_utm (30 дней).
+ * Повторно не перезаписываем, чтобы атрибуция до регистрации не потерялась.
  */
 
 import { useEffect } from 'react'
@@ -17,6 +17,11 @@ import {
 export function UtmCapture() {
   useEffect(() => {
     try {
+      const already = document.cookie
+        .split('; ')
+        .some((item) => item.startsWith(`${UTM_COOKIE_NAME}=`))
+      if (already) return
+
       const params = new URLSearchParams(window.location.search)
       const fromUrl = parseUtmFromSearchParams(params)
       if (!hasAnyUtm(fromUrl)) return
@@ -39,6 +44,7 @@ export function readUtmFromCookie(): {
   utm_medium?: string
   utm_campaign?: string
   promo_code?: string
+  ref_code?: string
 } {
   if (typeof document === 'undefined') return {}
   const match = document.cookie
@@ -49,7 +55,7 @@ export function readUtmFromCookie(): {
   try {
     const parsed = JSON.parse(decodeURIComponent(raw)) as Record<string, unknown>
     const out: Record<string, string> = {}
-    for (const key of ['utm_source', 'utm_medium', 'utm_campaign', 'promo_code'] as const) {
+    for (const key of ['utm_source', 'utm_medium', 'utm_campaign', 'promo_code', 'ref_code'] as const) {
       const v = parsed[key]
       if (typeof v === 'string' && v.trim()) out[key] = v.trim().slice(0, 128)
     }

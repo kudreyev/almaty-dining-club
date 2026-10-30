@@ -8,6 +8,7 @@ export type UtmAttribution = {
   utm_medium: string | null
   utm_campaign: string | null
   promo_code: string | null
+  ref_code: string | null
 }
 
 const EMPTY: UtmAttribution = {
@@ -15,6 +16,7 @@ const EMPTY: UtmAttribution = {
   utm_medium: null,
   utm_campaign: null,
   promo_code: null,
+  ref_code: null,
 }
 
 function clean(value: unknown, max = 128): string | null {
@@ -39,11 +41,12 @@ export function parseUtmFromSearchParams(
     utm_medium: get('utm_medium'),
     utm_campaign: get('utm_campaign'),
     promo_code: get('promo_code') ?? get('promo'),
+    ref_code: get('ref_code') ?? get('ref'),
   }
 }
 
 export function hasAnyUtm(a: UtmAttribution): boolean {
-  return Boolean(a.utm_source || a.utm_medium || a.utm_campaign || a.promo_code)
+  return Boolean(a.utm_source || a.utm_medium || a.utm_campaign || a.promo_code || a.ref_code)
 }
 
 export function serializeUtmCookie(a: UtmAttribution): string {
@@ -52,6 +55,7 @@ export function serializeUtmCookie(a: UtmAttribution): string {
     utm_medium: a.utm_medium,
     utm_campaign: a.utm_campaign,
     promo_code: a.promo_code,
+    ref_code: a.ref_code,
   })
 }
 
@@ -64,6 +68,7 @@ export function parseUtmCookieValue(raw: string | null | undefined): UtmAttribut
       utm_medium: clean(parsed.utm_medium),
       utm_campaign: clean(parsed.utm_campaign),
       promo_code: clean(parsed.promo_code),
+      ref_code: clean(parsed.ref_code),
     }
   } catch {
     return { ...EMPTY }
@@ -106,5 +111,6 @@ export function parseUtmFromJsonData(raw: unknown): UtmAttribution {
     utm_medium: pick('utm_medium'),
     utm_campaign: pick('utm_campaign'),
     promo_code: pick('promo_code') ?? pick('promo'),
+    ref_code: pick('ref_code') ?? pick('ref'),
   }
 }

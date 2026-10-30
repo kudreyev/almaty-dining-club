@@ -142,11 +142,15 @@ export async function verifyWhatsAppLoginCode(
       phone: phoneE164,
     })
 
-    const { firstVerification } = await ensureProfilePhone(data.user.id, phoneE164)
+    const utm = parseUtmCookieValue(cookieStore.get(UTM_COOKIE_NAME)?.value)
+    const { firstVerification } = await ensureProfilePhone(data.user.id, phoneE164, {
+      utm_source: utm.utm_source,
+      utm_campaign: utm.utm_campaign,
+      ref_code: utm.ref_code,
+    })
     isNewUser = firstVerification
 
     if (firstVerification) {
-      const utm = parseUtmCookieValue(cookieStore.get(UTM_COOKIE_NAME)?.value)
       await logAnalyticsEvent({
         event_name: 'signup_completed',
         user_id: data.user.id,

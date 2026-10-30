@@ -17,8 +17,18 @@ describe('utm attribution', () => {
       utm_medium: 'paid',
       utm_campaign: 'spring',
       promo_code: 'KUD10',
+      ref_code: null,
     })
     expect(hasAnyUtm(a)).toBe(true)
+  })
+
+  it('parses ref from short and long query keys', () => {
+    expect(
+      parseUtmFromSearchParams(new URLSearchParams('utm_source=test&ref=abc')),
+    ).toMatchObject({ utm_source: 'test', ref_code: 'abc' })
+    expect(
+      parseUtmFromSearchParams(new URLSearchParams('ref_code=partner')),
+    ).toMatchObject({ ref_code: 'partner' })
   })
 
   it('parses JsonData flat and nested', () => {

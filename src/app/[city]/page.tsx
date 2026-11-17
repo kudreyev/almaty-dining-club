@@ -16,6 +16,7 @@ import { SavingsCounter } from '@/components/home/savings-counter'
 import { getGuestAccess, getUserSavings } from '@/lib/guest-access'
 import { getDisplayedSavingsStats } from '@/lib/savings-stats'
 import { cityDescription, cityTitle, pageMetadata } from '@/lib/seo'
+import { FestivalBanner } from '@/components/home/festival-banner'
 import { loadHomeRestaurants } from '@/lib/home/load-home-restaurants'
 import { pickPopularOffers } from '@/lib/home/popular-offers'
 import { pluralizeRu } from '@/lib/ru-plural'
@@ -56,7 +57,7 @@ export default async function CityCatalogPage({ params }: PageProps) {
     </div>
   ) : null
 
-  const { restaurantsWithStatus, cuisineOptions } = restaurantsData
+  const { restaurantsWithStatus, cuisineOptions, activeEvent } = restaurantsData
   const totalVenues = restaurantsWithStatus.length
   const venuesWord = pluralizeRu(totalVenues, [
     'заведение',
@@ -67,6 +68,9 @@ export default async function CityCatalogPage({ params }: PageProps) {
   const venuesSectionTitle =
     totalVenues > 0 ? `${totalVenues} ${venuesWord} ${cityName}` : `Заведения ${cityName}`
   const popularOffers = pickPopularOffers(restaurantsWithStatus)
+  const festivalBanner = activeEvent ? (
+    <FestivalBanner city={city} event={activeEvent} />
+  ) : null
 
   const catalog = (
     <div id="venues" className="mx-auto max-w-6xl px-5 py-8 md:py-12">
@@ -95,6 +99,7 @@ export default async function CityCatalogPage({ params }: PageProps) {
           savingsAmountKzt={savings.amountKzt}
           hasRedemptions={savings.hasRedemptions}
         />
+        {festivalBanner}
         {savingsCounter}
         <PopularOffers offers={popularOffers} />
         {catalog}
@@ -106,6 +111,7 @@ export default async function CityCatalogPage({ params }: PageProps) {
   return (
     <>
       <HeroGuest city={city} />
+      {festivalBanner}
       {savingsCounter}
       <HowItWorks />
       <PopularOffers offers={popularOffers} />

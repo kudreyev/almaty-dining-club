@@ -109,6 +109,8 @@ export default async function MapPage({ params }: PageProps) {
   const places = (restaurants ?? [])
     .map((restaurant) => {
       const activeOffers = filterCatalogActiveOffers(restaurant.offers ?? [], today)
+        .filter((offer) => offer.offer_type !== 'set')
+      // Карта = партнёры клуба; set-only фестивальные точки не показываем.
       if (activeOffers.length === 0) return null
 
       const primaryLocation = (restaurant.restaurant_locations ?? [])

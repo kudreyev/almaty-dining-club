@@ -13,6 +13,19 @@ export type Offer = {
   offer_usable_hours?: OfferUsableHour[]
   takeaway_only?: boolean
   is_active: boolean
+  event_id?: string | null
+  price_kzt?: number | null
+  items?: unknown
+  menu_value_kzt?: number | null
+}
+
+export type ActiveSetBadge = {
+  eventName: string
+  eventSlug: string
+  accentColor: string
+  priceKzt: number
+  statusLabel: string
+  isServing: boolean
 }
 
 export type RestaurantLocation = {
@@ -32,9 +45,11 @@ export type Restaurant = {
   cuisine_3: string | null
   brand?: string | null
   cover_photo_url?: string | null
+  combine_set_with_club_offer?: boolean
   offers: Offer[]
   restaurant_hours?: RestaurantHour[]
   restaurant_locations?: RestaurantLocation[]
+  activeSetBadge?: ActiveSetBadge | null
 }
 
 export type RestaurantWithStatus = Restaurant & {

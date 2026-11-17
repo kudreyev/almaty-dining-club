@@ -6,6 +6,7 @@ import {
   formatOfferTitle,
   type OfferType,
 } from '@/lib/offers'
+import { formatSetPrice, parseSetItems, type SetItem } from '@/lib/events'
 import { trackGoal } from '@/lib/analytics-client'
 import {
   META_OFFER_DEFAULT_VALUE_KZT,
@@ -22,10 +23,26 @@ export type RestaurantOffer = {
   takeaway_only: boolean
   usableHoursLabel: string | null
   isOutsideUsableHours: boolean
+  price_kzt?: number | null
+  items?: SetItem[]
+  event_slug?: string | null
+  event_name?: string | null
+  accent_color?: string | null
+  schedule_summary?: string | null
+  ctaDisabledLabel?: string | null
+}
+
+type FestivalBlock = {
+  eventName: string
+  endsLabel: string
+  accentColor: string
+  offers: RestaurantOffer[]
 }
 
 type RestaurantOffersListProps = {
-  offers: RestaurantOffer[]
+  clubOffers: RestaurantOffer[]
+  festivalBlocks?: FestivalBlock[]
+  combineAllowed?: boolean
   restaurantId: string
   restaurantSlug: string
   restaurantName: string
@@ -34,13 +51,18 @@ type RestaurantOffersListProps = {
 }
 
 export function RestaurantOffersList({
-  offers,
+  clubOffers,
+  festivalBlocks = [],
+  combineAllowed = true,
   restaurantId,
   restaurantSlug,
   restaurantName,
   isMember,
 }: RestaurantOffersListProps) {
-  if (offers.length === 0) {
+  const hasClub = clubOffers.length > 0
+  const hasFestival = festivalBlocks.some((b) => b.offers.length > 0)
+
+  if (!hasClub && !hasFestival) {
     return (
       <div className="rounded-xl bg-neutral-50 px-4 py-8 text-center text-sm text-neutral-400">
         Пока нет активных предложений
@@ -49,17 +71,62 @@ export function RestaurantOffersList({
   }
 
   return (
-    <div className="flex flex-col" style={{ gap: '12px' }}>
-      {offers.map((offer) => (
-        <OfferCard
-          key={offer.id}
-          offer={offer}
-          restaurantId={restaurantId}
-          restaurantSlug={restaurantSlug}
-          restaurantName={restaurantName}
-          isMember={isMember}
-        />
-      ))}
+    <div className="flex flex-col gap-8">
+      {hasClub ? (
+        <div>
+          <h2
+            className="font-medium text-neutral-900"
+            style={{ fontSize: '18px', marginBottom: '16px' }}
+          >
+            Всегда в KudaClub
+          </h2>
+          <div className="flex flex-col" style={{ gap: '12px' }}>
+            {clubOffers.map((offer) => (
+              <OfferCard
+                key={offer.id}
+                offer={offer}
+                restaurantId={restaurantId}
+                restaurantSlug={restaurantSlug}
+                restaurantName={restaurantName}
+                isMember={isMember}
+              />
+            ))}
+          </div>
+        </div>
+      ) : null}
+
+      {festivalBlocks.map((block) =>
+        block.offers.length > 0 ? (
+          <div key={block.eventName}>
+            <h2
+              className="font-medium text-neutral-900"
+              style={{ fontSize: '18px', marginBottom: '6px' }}
+            >
+              <span style={{ color: block.accentColor }}>{block.eventName}</span>
+              {' '}
+              до {block.endsLabel}
+            </h2>
+            <div className="flex flex-col" style={{ gap: '12px', marginTop: '12px' }}>
+              {block.offers.map((offer) => (
+                <OfferCard
+                  key={offer.id}
+                  offer={offer}
+                  restaurantId={restaurantId}
+                  restaurantSlug={restaurantSlug}
+                  restaurantName={restaurantName}
+                  isMember={isMember}
+                />
+              ))}
+            </div>
+          </div>
+        ) : null,
+      )}
+
+      {hasClub && hasFestival && !combineAllowed ? (
+        <p className="text-sm text-neutral-500">
+          Сет и 1+1 в одном визите не суммируются
+        </p>
+      ) : null}
     </div>
   )
 }
@@ -74,16 +141,24 @@ type OfferCardProps = {
 
 function OfferCard(props: OfferCardProps) {
   const { offer } = props
-  const title = formatOfferTitle(offer.offer_type, offer.offer_title)
+  const isSet = offer.offer_type === 'set'
+  const title = isSet
+    ? offer.offer_title
+    : formatOfferTitle(offer.offer_type, offer.offer_title, offer.event_name)
   const benefitLabel = formatEstimatedValue(offer.estimated_value)
-  const typeBadge = formatTypeBadge(offer.offer_type)
-
+  const typeBadge = formatTypeBadge(offer)
+  const items = offer.items ?? parseSetItems(undefined)
   const hasPhoto = Boolean(offer.dish_photo_url)
+  const accent = offer.accent_color || '#5B21B6'
 
   return (
     <div
       className="flex overflow-hidden rounded-xl bg-white"
-      style={{ borderWidth: '0.5px', borderStyle: 'solid', borderColor: 'rgb(229 229 229)' }}
+      style={{
+        borderWidth: '0.5px',
+        borderStyle: 'solid',
+        borderColor: isSet ? `${accent}55` : 'rgb(229 229 229)',
+      }}
     >
       {hasPhoto ? (
         <div
@@ -114,8 +189,21 @@ function OfferCard(props: OfferCardProps) {
         </div>
       ) : null}
 
-      {/* RIGHT: content */}
       <div className="min-w-0 flex-1" style={{ padding: '14px 16px' }}>
+        {!hasPhoto ? (
+          <span
+            className="mb-2 inline-block font-medium text-white"
+            style={{
+              fontSize: '10px',
+              padding: '3px 7px',
+              borderRadius: '4px',
+              background: typeBadge.bg,
+            }}
+          >
+            {typeBadge.label}
+          </span>
+        ) : null}
+
         <h3
           className="text-sm font-medium leading-[1.35] text-neutral-900"
           style={{ marginBottom: '4px' }}
@@ -123,13 +211,32 @@ function OfferCard(props: OfferCardProps) {
           {title}
         </h3>
 
-        {offer.offer_terms_short ? (
+        {isSet && typeof offer.price_kzt === 'number' ? (
+          <p className="mb-2 text-sm font-semibold" style={{ color: accent }}>
+            К оплате {formatSetPrice(offer.price_kzt)}
+          </p>
+        ) : null}
+
+        {isSet && items.length > 0 ? (
+          <ul className="mb-2 space-y-0.5 text-xs text-neutral-600">
+            {items.map((item) => (
+              <li key={item.title}>
+                {item.title}
+                {item.options?.length ? ` (${item.options.join(', ')})` : ''}
+              </li>
+            ))}
+          </ul>
+        ) : offer.offer_terms_short ? (
           <p
             className="whitespace-pre-line text-xs leading-[1.5] text-neutral-600"
             style={{ marginBottom: '10px' }}
           >
             {offer.offer_terms_short}
           </p>
+        ) : null}
+
+        {offer.schedule_summary ? (
+          <p className="mb-2 text-[11px] text-neutral-500">{offer.schedule_summary}</p>
         ) : null}
 
         {benefitLabel || offer.takeaway_only ? (
@@ -168,7 +275,7 @@ function OfferCard(props: OfferCardProps) {
           </div>
         ) : null}
 
-        {offer.usableHoursLabel ? (
+        {offer.usableHoursLabel && !isSet ? (
           <div
             className="flex items-center text-neutral-500"
             style={{ fontSize: '11px', gap: '4px', marginBottom: '10px' }}
@@ -199,7 +306,10 @@ function OfferCta({
   }
 
   const disabledLabel =
-    offer.isOutsideUsableHours && offer.usableHoursLabel ? offer.usableHoursLabel : null
+    offer.ctaDisabledLabel
+    || (offer.isOutsideUsableHours
+      ? offer.usableHoursLabel || 'Сейчас недоступно'
+      : null)
 
   if (disabledLabel) {
     return (
@@ -216,13 +326,14 @@ function OfferCta({
 
   const redeemPath = `/app/redeem/${restaurantId}/${offer.id}`
   const href = isMember ? redeemPath : `/login?next=${encodeURIComponent(redeemPath)}`
+  const accent = offer.accent_color || '#D85A30'
 
   return (
     <a
       href={href}
       onClick={() => {
         trackMetaPixel('AddToCart', {
-          content_name: formatOfferTitle(offer.offer_type, offer.offer_title),
+          content_name: formatOfferTitle(offer.offer_type, offer.offer_title, offer.event_name),
           content_ids: [offer.id],
           value: offer.estimated_value ?? META_OFFER_DEFAULT_VALUE_KZT,
           currency: 'KZT',
@@ -233,23 +344,27 @@ function OfferCta({
           restaurant_id: restaurantId,
           offer_id: offer.id,
           offer_type: offer.offer_type,
+          event_slug: offer.event_slug ?? undefined,
           is_member: isMember,
         })
       }}
       className="block w-full text-center text-white transition-colors hover:opacity-95"
-      style={{ ...baseStyle, background: '#D85A30' }}
+      style={{ ...baseStyle, background: offer.offer_type === 'set' ? accent : '#D85A30' }}
     >
       Получить код
     </a>
   )
 }
 
-function formatTypeBadge(offerType: OfferType): { label: string; bg: string } {
-  if (offerType === '2for1') {
+function formatTypeBadge(offer: RestaurantOffer): { label: string; bg: string } {
+  if (offer.offer_type === '2for1') {
     return { label: '1+1', bg: '#D85A30' }
   }
-  if (offerType === 'kudafest_set') {
-    return { label: 'Kudafest', bg: '#5B21B6' }
+  if (offer.offer_type === 'set') {
+    return {
+      label: offer.event_name ? `Сет ${offer.event_name}` : 'Сет',
+      bg: offer.accent_color || '#5B21B6',
+    }
   }
   return { label: 'В подарок', bg: '#0F6E56' }
 }

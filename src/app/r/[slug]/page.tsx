@@ -6,12 +6,23 @@ import { getGuestAccess } from '@/lib/guest-access'
 import {
   filterCatalogActiveOffers,
   getTodayDateStringInTz,
+  pickClubOffers,
   pickTopOffers,
   formatOfferUsableHoursStatus,
   getOfferUsableHours,
   type OfferType,
   type OfferUsableHour,
 } from '@/lib/offers'
+import {
+  formatCompactSchedule,
+  formatEventEndsLabel,
+  getSetServingStatus,
+  isEventActiveNow,
+  parseSetItems,
+  resolveSetSchedule,
+  type EventVenueScheduleRow,
+  type FestivalEvent,
+} from '@/lib/events'
 import { DEFAULT_TZ } from '@/lib/opening-hours'
 import { CITY_LABELS, DEFAULT_CITY, isCity } from '@/lib/cities'
 import { pageMetadata, restaurantDescription, restaurantTitle } from '@/lib/seo'
@@ -43,6 +54,7 @@ type Restaurant = {
   cuisine_3: string | null
   tags: string[] | null
   is_active: boolean
+  combine_set_with_club_offer: boolean
   restaurant_hours?: RestaurantHour[]
 }
 
@@ -57,6 +69,9 @@ type Offer = {
   offer_usable_hours?: OfferUsableHour[]
   takeaway_only: boolean
   is_active: boolean
+  event_id: string | null
+  price_kzt: number | null
+  items: unknown
 }
 
 type PrimaryLocation = {
@@ -75,7 +90,7 @@ const SELECT_RESTAURANT = `
   instagram_url, website_url, two_gis_url,
   external_rating, external_reviews_count,
   cuisine, cuisine_2, cuisine_3, tags,
-  is_active,
+  is_active, combine_set_with_club_offer,
   restaurant_hours ( day_of_week, is_closed, open_time, close_time, close_next_day )
 `
 
@@ -132,6 +147,7 @@ export default async function RestaurantPage({ params }: PageProps) {
       .select(`
         id, offer_type, offer_title, offer_terms_short,
         estimated_value, dish_photo_url, end_date, takeaway_only, is_active,
+        event_id, price_kzt, items,
         offer_usable_hours ( day_of_week, is_unavailable, from_time, to_time, to_next_day )
       `)
       .eq('restaurant_id', restaurant.id)
@@ -175,6 +191,82 @@ export default async function RestaurantPage({ params }: PageProps) {
     )
   }
 
+  const clubOffers = pickClubOffers(offers)
+  const setOffers = offers.filter((o) => o.offer_type === 'set' && o.event_id)
+  const eventIds = [...new Set(setOffers.map((o) => o.event_id!).filter(Boolean))]
+
+  let events: FestivalEvent[] = []
+  let scheduleRows: Array<EventVenueScheduleRow & { event_id: string }> = []
+  if (eventIds.length > 0) {
+    const [{ data: eventRows }, { data: sched }] = await Promise.all([
+      supabase
+        .from('events')
+        .select(
+          'id, slug, name, city, starts_at, ends_at, set_price_kzt, logo_url, accent_color, is_published',
+        )
+        .in('id', eventIds)
+        .returns<FestivalEvent[]>(),
+      supabase
+        .from('event_venue_schedule')
+        .select('event_id, offer_id, weekday, open_time, close_time')
+        .eq('restaurant_id', restaurant.id)
+        .in('event_id', eventIds)
+        .returns<
+          Array<{
+            event_id: string
+            offer_id: string | null
+            weekday: number
+            open_time: string
+            close_time: string
+          }>
+        >(),
+    ])
+    events = (eventRows ?? []).filter((e) => isEventActiveNow(e, now, DEFAULT_TZ))
+    scheduleRows = (sched ?? []).map((row) => ({
+      event_id: row.event_id,
+      offer_id: row.offer_id,
+      weekday: row.weekday,
+      open_time: row.open_time,
+      close_time: row.close_time,
+    }))
+  }
+
+  const activeEventIds = new Set(events.map((e) => e.id))
+  const festivalBlocks = events.map((event) => {
+    const eventSets = setOffers.filter((o) => o.event_id === event.id)
+    const venueSchedule = scheduleRows.filter((r) => r.event_id === event.id)
+    return {
+      eventName: event.name,
+      endsLabel: formatEventEndsLabel(event.ends_at),
+      accentColor: event.accent_color,
+      offers: eventSets.map((offer) => {
+        const schedule = resolveSetSchedule(venueSchedule, offer.id)
+        const status = getSetServingStatus(schedule, now, DEFAULT_TZ)
+        return {
+          id: offer.id,
+          offer_type: offer.offer_type,
+          offer_title: offer.offer_title,
+          offer_terms_short: offer.offer_terms_short,
+          estimated_value: offer.estimated_value,
+          dish_photo_url: offer.dish_photo_url,
+          takeaway_only: offer.takeaway_only,
+          usableHoursLabel: status.badgeLabel,
+          isOutsideUsableHours: !status.isServing,
+          price_kzt: offer.price_kzt ?? event.set_price_kzt,
+          items: parseSetItems(offer.items),
+          event_slug: event.slug,
+          event_name: event.name,
+          accent_color: event.accent_color,
+          schedule_summary: formatCompactSchedule(schedule) || null,
+          ctaDisabledLabel: status.isServing ? null : status.ctaLabel,
+        }
+      }),
+    }
+  })
+
+  // Drop sets whose event is not active (ended / unpublished).
+  void activeEventIds
+
   const photoUrls = (photosResult.data ?? [])
     .map((item) => item.full_url)
     .filter((u): u is string => Boolean(u))
@@ -209,8 +301,6 @@ export default async function RestaurantPage({ params }: PageProps) {
     ? `https://yandex.kz/maps/?pt=${lng},${lat}&z=17&l=map`
     : yandexSearchUrl
   const mapHrefUrl = restaurant.two_gis_url || yandexMapUrl
-  // Brand-orange pin (close to coral). Yandex поддерживает ограниченный набор цветов;
-  // `or` (orange) ближе всего к нашему `#D85A30`.
   const staticMapUrl = hasCoordinates
     ? `https://static-maps.yandex.ru/1.x/?lang=ru_RU&ll=${lng},${lat}&z=17&l=map&size=650,400&pt=${lng},${lat},pm2orm`
     : null
@@ -252,15 +342,8 @@ export default async function RestaurantPage({ params }: PageProps) {
             borderTopColor: '#f0f0f0',
           }}
         >
-          <h2
-            className="font-medium text-neutral-900"
-            style={{ fontSize: '18px', marginBottom: '16px' }}
-          >
-            Предложения
-          </h2>
-
           <RestaurantOffersList
-            offers={offers.map((offer) => {
+            clubOffers={clubOffers.map((offer) => {
               const usableStatus = formatOfferUsableHoursStatus(
                 getOfferUsableHours(offer),
                 now,
@@ -278,6 +361,8 @@ export default async function RestaurantPage({ params }: PageProps) {
                 isOutsideUsableHours: !usableStatus.isUsable,
               }
             })}
+            festivalBlocks={festivalBlocks}
+            combineAllowed={restaurant.combine_set_with_club_offer}
             restaurantId={restaurant.id}
             restaurantSlug={restaurant.slug}
             restaurantName={restaurant.restaurant_name}

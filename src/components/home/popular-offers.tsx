@@ -8,7 +8,7 @@ type PopularOffersProps = {
 
 function badge(offerType: OfferType): { label: string; bg: string } {
   if (offerType === '2for1') return { label: '1+1', bg: '#D85A30' }
-  if (offerType === 'kudafest_set') return { label: 'Kudafest', bg: '#5B21B6' }
+  if (offerType === 'set') return { label: 'Сет', bg: '#5B21B6' }
   return { label: 'В подарок', bg: '#0F6E56' }
 }
 

@@ -49,6 +49,7 @@ type RestaurantRecord = {
   phone: string | null
   whatsapp_phone: string | null
   is_active: boolean
+  combine_set_with_club_offer: boolean
 }
 
 export default async function AdminRestaurantEditPage({ params, searchParams }: PageProps) {
@@ -76,7 +77,8 @@ export default async function AdminRestaurantEditPage({ params, searchParams }: 
         external_reviews_count,
         phone,
         whatsapp_phone,
-        is_active
+        is_active,
+        combine_set_with_club_offer
       `)
       .eq('id', id)
       .single<RestaurantRecord>(),
@@ -200,6 +202,21 @@ export default async function AdminRestaurantEditPage({ params, searchParams }: 
           <label className="flex items-center gap-2 text-base text-gray-600">
             <input type="checkbox" name="is_active" defaultChecked={!!r.is_active} className="rounded" />
             Активен
+          </label>
+
+          <label className="flex items-start gap-2 text-base text-gray-600">
+            <input
+              type="checkbox"
+              name="combine_set_with_club_offer"
+              defaultChecked={!!r.combine_set_with_club_offer}
+              className="mt-1 rounded"
+            />
+            <span>
+              Сет и 1+1 можно в один визит
+              <span className="mt-0.5 block text-sm text-gray-400">
+                Если выключено — после погашения одного типа второй блокируется на 3 часа.
+              </span>
+            </span>
           </label>
 
           <Button type="submit" className="w-full">

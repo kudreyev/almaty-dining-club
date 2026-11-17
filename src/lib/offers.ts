@@ -6,7 +6,7 @@ import {
   nowMinutesInTimezone,
   timeToMinutes,
 } from '@/lib/opening-hours'
-export type OfferType = '2for1' | 'compliment' | 'kudafest_set'
+export type OfferType = '2for1' | 'compliment' | 'set'
 
 export type CatalogOfferLike = {
   is_active: boolean
@@ -185,37 +185,31 @@ export function hasCatalogActiveOffers<T extends CatalogOfferLike>(
   return offers.some((offer) => isOfferCatalogActive(offer, todayString))
 }
 
-function parseDateOnly(isoDate: string): Date {
-  const [year, month, day] = isoDate.split('-').map(Number)
-  return new Date(year, month - 1, day)
-}
-
-/** «Kudafest · до 8 июня» */
-export function formatKudafestBadgeDate(endDate: string): string {
-  const formatted = new Intl.DateTimeFormat('ru-RU', {
-    day: 'numeric',
-    month: 'long',
-  }).format(parseDateOnly(endDate))
-  return `Kudafest · до ${formatted}`
-}
-
-export function formatOfferHeadline(offerType: OfferType, offerTitle: string): string {
+export function formatOfferHeadline(
+  offerType: OfferType,
+  offerTitle: string,
+  eventName?: string | null,
+): string {
   if (offerType === '2for1') return `1+1 · ${offerTitle}`
-  if (offerType === 'kudafest_set') return `Сеты Kudafest · ${offerTitle}`
+  if (offerType === 'set') return eventName ? `Сет ${eventName} · ${offerTitle}` : `Сет · ${offerTitle}`
   return `${offerTitle} в подарок`
 }
 
 /** Развёрнутый заголовок оффера с пробелами: «1+1 · {название}» / «{название} в подарок». */
-export function formatOfferTitle(offerType: OfferType, offerTitle: string): string {
+export function formatOfferTitle(
+  offerType: OfferType,
+  offerTitle: string,
+  eventName?: string | null,
+): string {
   if (offerType === '2for1') return `1+1 · ${offerTitle}`
-  if (offerType === 'kudafest_set') return `Сеты Kudafest · ${offerTitle}`
+  if (offerType === 'set') return eventName ? `Сет ${eventName} · ${offerTitle}` : `Сет · ${offerTitle}`
   return `${offerTitle} в подарок`
 }
 
-/** Лейбл плашки оффера на карточке заведения. */
+/** Лейбл плашки оффера на карточке заведения (только клубные). */
 export function formatOfferChipLabel(offerType: OfferType, offerTitle: string): string {
   if (offerType === '2for1') return `1+1 · ${offerTitle}`
-  if (offerType === 'kudafest_set') return `Сеты Kudafest · ${offerTitle}`
+  if (offerType === 'set') return `Сет · ${offerTitle}`
   return `${offerTitle} в подарок`
 }
 
@@ -225,13 +219,22 @@ type OfferLike = {
   estimated_value?: number | null
 }
 
-/** Сначала 1+1, потом подарки, затем Kudafest; ограничено maxN. Возвращает только активные. */
+/** Сначала 1+1, потом подарки; сеты в основном каталоге не как главные чипы. */
 export function pickTopOffers<T extends OfferLike>(offers: T[], maxN = 3): T[] {
-  const active = offers.filter((offer) => offer.is_active)
+  const active = offers.filter((offer) => offer.is_active && offer.offer_type !== 'set')
   const twoFor1 = active.filter((offer) => offer.offer_type === '2for1')
   const compliments = active.filter((offer) => offer.offer_type === 'compliment')
-  const kudafest = active.filter((offer) => offer.offer_type === 'kudafest_set')
-  return [...twoFor1, ...compliments, ...kudafest].slice(0, maxN)
+  return [...twoFor1, ...compliments].slice(0, maxN)
+}
+
+export function pickClubOffers<T extends OfferLike>(offers: T[]): T[] {
+  return offers.filter(
+    (offer) => offer.is_active && (offer.offer_type === '2for1' || offer.offer_type === 'compliment'),
+  )
+}
+
+export function pickSetOffers<T extends OfferLike>(offers: T[]): T[] {
+  return offers.filter((offer) => offer.is_active && offer.offer_type === 'set')
 }
 
 /** Максимальная выгода (estimated_value) среди активных офферов; null — если нет данных. */

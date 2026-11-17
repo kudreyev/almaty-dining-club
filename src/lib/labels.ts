@@ -13,10 +13,13 @@ export function redeemTokenStatusLabel(
   }
 }
 
-export function offerTypeLabel(type: '2for1' | 'compliment' | 'kudafest_set') {
+export function offerTypeLabel(
+  type: '2for1' | 'compliment' | 'set',
+  eventName?: string | null,
+) {
   if (type === '2for1') return '1+1'
   if (type === 'compliment') return 'в подарок'
-  return 'Сеты Kudafest'
+  return eventName ? `сет ${eventName}` : 'сет'
 }
 
 /** Витрина: заведение активно или скрыто */

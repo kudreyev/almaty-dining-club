@@ -12,8 +12,8 @@ export type PopularOffer = {
 
 const TYPE_RANK: Record<OfferType, number> = {
   '2for1': 0,
-  kudafest_set: 1,
-  compliment: 2,
+  compliment: 1,
+  set: 2,
 }
 
 function value(offer: { estimated_value?: number | null }): number {
@@ -41,7 +41,7 @@ export function pickPopularOffers(
   const best = restaurants
     .map((restaurant) => {
       const offer = restaurant.offers
-        .filter((o) => o.is_active)
+        .filter((o) => o.is_active && o.offer_type !== 'set')
         .sort(compareStrength)[0]
       return offer ? { restaurant, offer } : null
     })

@@ -60,6 +60,11 @@ export type WeeklyReport = {
     combined: { channel: string; count: number }[]
   }
   goals: { target_date: string; items: WeeklyReportGoal[] }
+  festival?: {
+    club_redemptions: number
+    set_redemptions: number
+    set_then_club_30d_guests: number
+  }
 }
 
 const GOAL_LABELS: Record<string, string> = {
@@ -130,6 +135,12 @@ export function formatWeeklyReportTelegram(report: WeeklyReport): string {
     `Удержание во 2-м месяце: ${report.retention_m2_pct == null ? 'н/д' : `${formatInt(Math.round(Number(report.retention_m2_pct)))}%`}`,
     `Выгода гостей: ${formatKzt(savings.week)} · всего ${formatKzt(savings.lifetime)}`,
   ]
+
+  if (report.festival) {
+    lines.push(
+      `Фестиваль: клуб ${formatInt(report.festival.club_redemptions)} · сеты ${formatInt(report.festival.set_redemptions)} · после сета → клуб (30 дн.): ${formatInt(report.festival.set_then_club_30d_guests)}`,
+    )
+  }
 
   if (goals?.items?.length) {
     const parts = goals.items

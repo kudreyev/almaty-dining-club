@@ -66,6 +66,8 @@ function getErrorMessage(error?: string) {
       return 'Этот код уже использован.'
     case 'expired':
       return 'Срок действия кода истёк.'
+    case 'usable_hours':
+      return 'Сет сейчас не подают — вне окна подачи.'
     case 'update_failed':
       return 'Не удалось обновить токен.'
     case 'redemption_failed':
@@ -161,18 +163,41 @@ export default async function StaffRedeemPage({ searchParams }: PageProps) {
     redirect('/staff/login')
   }
 
+  type TokenPreview = {
+    restaurant_id: string
+    offer_type: string | null
+    offers: {
+      offer_title: string
+      offer_type: string
+      price_kzt: number | null
+      events: { name: string } | null
+    } | null
+  }
+
   let tokenUrlIssue: 'none' | 'not_found' | 'wrong_restaurant' = 'none'
+  let tokenPreview: TokenPreview | null = null
   if (tokenFromUrl) {
     const admin = createSupabaseAdminClient()
     const { data: tokenRow } = await admin
       .from('redeem_tokens')
-      .select('restaurant_id')
+      .select(`
+        restaurant_id,
+        offer_type,
+        offers (
+          offer_title,
+          offer_type,
+          price_kzt,
+          events ( name )
+        )
+      `)
       .eq('token_code', tokenFromUrl)
-      .maybeSingle<{ restaurant_id: string }>()
+      .maybeSingle<TokenPreview>()
     if (!tokenRow) {
       tokenUrlIssue = 'not_found'
     } else if (tokenRow.restaurant_id !== sessionRestaurantId) {
       tokenUrlIssue = 'wrong_restaurant'
+    } else {
+      tokenPreview = tokenRow
     }
   }
 
@@ -214,6 +239,29 @@ export default async function StaffRedeemPage({ searchParams }: PageProps) {
         {displayError ? (
           <div className="mt-4 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">
             {displayError}
+          </div>
+        ) : null}
+
+        {tokenPreview?.offers ? (
+          <div className="mt-4 rounded-lg bg-neutral-50 px-3 py-3 text-sm">
+            <p className="font-medium text-neutral-900">
+              {(() => {
+                const type = tokenPreview.offer_type ?? tokenPreview.offers.offer_type
+                if (type === '2for1') return '1+1'
+                if (type === 'compliment') return 'Подарок'
+                const name = tokenPreview.offers.events?.name
+                return name ? `Сет ${name}` : 'Сет'
+              })()}
+              {' · '}
+              {tokenPreview.offers.offer_title}
+            </p>
+            {tokenPreview.offers.price_kzt != null
+              && (tokenPreview.offer_type === 'set'
+                || tokenPreview.offers.offer_type === 'set') ? (
+              <p className="mt-1 text-neutral-600">
+                К оплате {new Intl.NumberFormat('ru-RU').format(tokenPreview.offers.price_kzt)} ₸
+              </p>
+            ) : null}
           </div>
         ) : null}
 

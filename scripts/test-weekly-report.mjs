@@ -59,7 +59,7 @@ await db.exec(`
   create table public.offers (
     id uuid primary key default gen_random_uuid(),
     restaurant_id uuid not null references public.restaurants(id),
-    offer_type text not null default '2for1',
+    offer_type text not null default '2for1' check (offer_type in ('2for1','compliment','set')),
     offer_key text not null,
     offer_title text not null,
     estimated_value integer,

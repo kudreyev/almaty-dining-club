@@ -68,19 +68,25 @@ function cleanText(value: string | null | undefined): string {
     .trim()
 }
 
-/** «Паста 1+1», «Кофе в подарок», «Сеты Kudafest». */
-export function offerMetaPhrase(offer: MetaOffer): string {
+/** «Паста 1+1», «Кофе в подарок», «Сет». */
+export function offerMetaPhrase(offer: MetaOffer, eventName?: string | null): string {
   const title = cleanText(offer.offer_title)
   if (offer.offer_type === '2for1') return `${title} 1+1`
-  if (offer.offer_type === 'kudafest_set') return 'Сеты Kudafest'
+  if (offer.offer_type === 'set') return eventName ? `сеты ${eventName}` : 'сеты'
   return `${title} в подарок`
 }
 
-export function restaurantTitle(rawName: string, offer: MetaOffer | null): string {
+export function restaurantTitle(
+  rawName: string,
+  offer: MetaOffer | null,
+  eventName?: string | null,
+): string {
   const name = cleanText(rawName)
   if (!offer) return `${name} | ${SITE_NAME}`
-  // Сеты Kudafest продаются по фестивальной цене — «бесплатно» к ним не пишем.
-  if (offer.offer_type === 'kudafest_set') return `${name}: сеты Kudafest | ${SITE_NAME}`
+  // Сеты продаются по фестивальной цене — «бесплатно» к ним не пишем.
+  if (offer.offer_type === 'set') {
+    return `${name}: ${offerMetaPhrase(offer, eventName)} | ${SITE_NAME}`
+  }
   return `${name}: ${offerMetaPhrase(offer)} бесплатно | ${SITE_NAME}`
 }
 

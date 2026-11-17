@@ -8,9 +8,19 @@ import {
 import {
   filterCatalogActiveOffers,
   getTodayDateStringInTz,
+  pickClubOffers,
+  pickSetOffers,
 } from '@/lib/offers'
+import {
+  formatSetPrice,
+  getSetServingStatus,
+  isEventActiveNow,
+  resolveSetSchedule,
+  type EventVenueScheduleRow,
+  type FestivalEvent,
+} from '@/lib/events'
 import type { City } from '@/lib/cities'
-import type { Offer, RestaurantWithStatus } from '@/lib/types'
+import type { ActiveSetBadge, Offer, RestaurantWithStatus } from '@/lib/types'
 
 type SupabaseRow = {
   id: string
@@ -21,6 +31,7 @@ type SupabaseRow = {
   cuisine_2: string | null
   cuisine_3: string | null
   brand: string | null
+  combine_set_with_club_offer?: boolean
   offers: Offer[]
   restaurant_hours?: RestaurantHour[]
   restaurant_locations?: {
@@ -34,12 +45,12 @@ type SupabaseRow = {
 export type HomeRestaurantsResult = {
   restaurantsWithStatus: RestaurantWithStatus[]
   cuisineOptions: string[]
+  activeEvent: FestivalEvent | null
 }
 
 /**
- * Загружает каталог активных ресторанов заданного города с фото, часами,
- * оффером и предвычисленным openStatus. Используется в каталоге (/[city]);
- * в пределах одного запроса метаданные и страница делят один результат.
+ * Загружает каталог активных ресторанов-партнёров клуба заданного города.
+ * Заведения только с сетами фестиваля в основной каталог не входят.
  */
 export const loadHomeRestaurants = cache(loadHomeRestaurantsUncached)
 
@@ -48,44 +59,64 @@ async function loadHomeRestaurantsUncached(city: City): Promise<HomeRestaurantsR
   const now = new Date()
   const today = getTodayDateStringInTz(now, DEFAULT_TZ)
 
-  const { data: restaurants } = await supabase
-    .from('restaurants')
-    .select(`
-      id,
-      restaurant_name,
-      slug,
-      address,
-      cuisine,
-      cuisine_2,
-      cuisine_3,
-      brand,
-      offers (
-        offer_type,
-        offer_title,
-        offer_terms_short,
-        estimated_value,
-        dish_photo_url,
-        end_date,
-        is_active
-      ),
-      restaurant_hours (
-        day_of_week,
-        is_closed,
-        open_time,
-        close_time,
-        close_next_day
-      ),
-      restaurant_locations (
-        lat,
-        lng,
-        is_active,
-        sort_order
+  const [{ data: restaurants }, { data: events }] = await Promise.all([
+    supabase
+      .from('restaurants')
+      .select(`
+        id,
+        restaurant_name,
+        slug,
+        address,
+        cuisine,
+        cuisine_2,
+        cuisine_3,
+        brand,
+        combine_set_with_club_offer,
+        offers (
+          offer_type,
+          offer_title,
+          offer_terms_short,
+          estimated_value,
+          dish_photo_url,
+          end_date,
+          is_active,
+          event_id,
+          price_kzt
+        ),
+        restaurant_hours (
+          day_of_week,
+          is_closed,
+          open_time,
+          close_time,
+          close_next_day
+        ),
+        restaurant_locations (
+          lat,
+          lng,
+          is_active,
+          sort_order
+        )
+      `)
+      .eq('city', city)
+      .eq('is_active', true)
+      .order('restaurant_name', { ascending: true })
+      .returns<SupabaseRow[]>(),
+    supabase
+      .from('events')
+      .select(
+        'id, slug, name, city, starts_at, ends_at, set_price_kzt, logo_url, accent_color, is_published, max_sets_per_venue_per_day',
       )
-    `)
-    .eq('city', city)
-    .eq('is_active', true)
-    .order('restaurant_name', { ascending: true })
-    .returns<SupabaseRow[]>()
+      .eq('city', city)
+      .eq('is_published', true)
+      .lte('starts_at', today)
+      .gte('ends_at', today)
+      .order('starts_at', { ascending: false })
+      .limit(1)
+      .returns<FestivalEvent[]>(),
+  ])
+
+  const activeEvent =
+    (events ?? []).find((event) => isEventActiveNow(event, now, DEFAULT_TZ)) ?? null
 
   const safeRestaurants: SupabaseRow[] = (restaurants ?? [])
     .map((r) => ({
@@ -93,7 +124,38 @@ async function loadHomeRestaurantsUncached(city: City): Promise<HomeRestaurantsR
       offers: filterCatalogActiveOffers(r.offers ?? [], today),
       restaurant_hours: r.restaurant_hours ?? [],
     }))
-    .filter((r) => r.offers.length > 0)
+    // Партнёр клуба = есть активный клубный оффер (не только сет).
+    .filter((r) => pickClubOffers(r.offers).length > 0)
+
+  const scheduleByRestaurant = new Map<string, EventVenueScheduleRow[]>()
+  if (activeEvent && safeRestaurants.length > 0) {
+    const restaurantIds = safeRestaurants.map((item) => item.id)
+    const { data: scheduleRows } = await supabase
+      .from('event_venue_schedule')
+      .select('restaurant_id, offer_id, weekday, open_time, close_time')
+      .eq('event_id', activeEvent.id)
+      .in('restaurant_id', restaurantIds)
+      .returns<
+        Array<{
+          restaurant_id: string
+          offer_id: string | null
+          weekday: number
+          open_time: string
+          close_time: string
+        }>
+      >()
+
+    for (const row of scheduleRows ?? []) {
+      const list = scheduleByRestaurant.get(row.restaurant_id) ?? []
+      list.push({
+        weekday: row.weekday,
+        open_time: row.open_time,
+        close_time: row.close_time,
+        offer_id: row.offer_id,
+      })
+      scheduleByRestaurant.set(row.restaurant_id, list)
+    }
+  }
 
   const photoByRestaurantId = new Map<string, string>()
   if (safeRestaurants.length > 0) {
@@ -113,17 +175,38 @@ async function loadHomeRestaurantsUncached(city: City): Promise<HomeRestaurantsR
     }
   }
 
-  const restaurantsWithStatus: RestaurantWithStatus[] = safeRestaurants.map(
-    (restaurant) => ({
+  const restaurantsWithStatus: RestaurantWithStatus[] = safeRestaurants.map((restaurant) => {
+    const setOffers = activeEvent
+      ? pickSetOffers(restaurant.offers).filter((o) => o.event_id === activeEvent.id)
+      : []
+    let activeSetBadge: ActiveSetBadge | null = null
+    if (activeEvent && setOffers.length > 0) {
+      const setOffer = setOffers[0]
+      const schedule = resolveSetSchedule(
+        scheduleByRestaurant.get(restaurant.id) ?? [],
+        null,
+      )
+      const status = getSetServingStatus(schedule, now, DEFAULT_TZ)
+      const price = setOffer.price_kzt ?? activeEvent.set_price_kzt
+      activeSetBadge = {
+        eventName: activeEvent.name,
+        eventSlug: activeEvent.slug,
+        accentColor: activeEvent.accent_color,
+        priceKzt: price,
+        statusLabel: status.badgeLabel,
+        isServing: status.isServing,
+      }
+    }
+
+    return {
       ...restaurant,
       cover_photo_url: photoByRestaurantId.get(restaurant.id) ?? null,
-      openStatus: computeOpenStatus(
-        restaurant.restaurant_hours ?? [],
-        now,
-        DEFAULT_TZ
-      ),
-    })
-  )
+      openStatus: computeOpenStatus(restaurant.restaurant_hours ?? [], now, DEFAULT_TZ),
+      activeSetBadge,
+      // В карточке каталога показываем клубные офферы; бейдж сета отдельно.
+      offers: pickClubOffers(restaurant.offers),
+    }
+  })
 
   const cuisineFrequency = new Map<string, number>()
   for (const r of safeRestaurants) {
@@ -140,5 +223,18 @@ async function loadHomeRestaurantsUncached(city: City): Promise<HomeRestaurantsR
     })
     .map(([name]) => name)
 
-  return { restaurantsWithStatus, cuisineOptions }
+  return { restaurantsWithStatus, cuisineOptions, activeEvent }
+}
+
+export function formatActiveEventBanner(event: FestivalEvent): string {
+  const ends = new Intl.DateTimeFormat('ru-RU', {
+    day: 'numeric',
+    month: 'long',
+  }).format(
+    (() => {
+      const [y, m, d] = event.ends_at.split('-').map(Number)
+      return new Date(y, m - 1, d)
+    })(),
+  )
+  return `${event.name} · сеты ${formatSetPrice(event.set_price_kzt)} · до ${ends}`
 }

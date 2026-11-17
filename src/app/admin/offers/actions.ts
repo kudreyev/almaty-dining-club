@@ -157,8 +157,8 @@ export async function createOffer(formData: FormData) {
   const offerTitle = String(formData.get('offer_title') || '').trim()
   if (!offerTitle) throw new Error('Название предложения обязательно')
   const endDate = sanitizeEndDate(formData.get('end_date'))
-  if (offerType === 'kudafest_set' && !endDate) {
-    throw new Error('Для оффера Kudafest укажите дату окончания')
+  if (offerType === 'set') {
+    throw new Error('Сеты фестиваля создаются в разделе «Фестивали»')
   }
   const providedOfferKey = String(formData.get('offer_key') || '').trim()
   const offerKey = providedOfferKey || await generateUniqueOfferKey(supabase, restaurantId, offerTitle, offerType)
@@ -202,8 +202,8 @@ export async function updateOffer(formData: FormData) {
   const offerTitle = String(formData.get('offer_title') || '').trim()
   if (!offerTitle) throw new Error('Название предложения обязательно')
   const endDate = sanitizeEndDate(formData.get('end_date'))
-  if (offerType === 'kudafest_set' && !endDate) {
-    throw new Error('Для оффера Kudafest укажите дату окончания')
+  if (offerType === 'set') {
+    throw new Error('Сеты фестиваля редактируются в разделе «Фестивали»')
   }
 
   const { data: existingOffer, error: existingOfferError } = await supabase

@@ -25,8 +25,11 @@ type StaffRedemption = {
   } | null
   offers: {
     offer_title: string
-    offer_type: '2for1' | 'compliment'
+    offer_type: '2for1' | 'compliment' | 'set'
+    price_kzt?: number | null
+    events?: { name: string } | null
   } | null
+  offer_type?: string | null
 }
 
 export default async function StaffHistoryPage() {
@@ -48,9 +51,9 @@ export default async function StaffHistoryPage() {
   const { data: redemptions, error } = await admin
     .from('redemptions')
     .select(`
-      id, redeemed_at, user_id,
+      id, redeemed_at, user_id, offer_type,
       restaurants ( restaurant_name ),
-      offers ( offer_title, offer_type )
+      offers ( offer_title, offer_type, price_kzt, events ( name ) )
     `)
     .eq('restaurant_id', restaurantId)
     .order('redeemed_at', { ascending: false })
@@ -103,7 +106,12 @@ export default async function StaffHistoryPage() {
                 </div>
                 <div className="shrink-0 text-right">
                   <Badge color={item.offers?.offer_type === '2for1' ? 'dark' : 'blue'}>
-                    {item.offers?.offer_type ? offerTypeLabel(item.offers.offer_type) : '—'}
+                    {item.offers?.offer_type
+                      ? offerTypeLabel(
+                          item.offers.offer_type,
+                          item.offers.events?.name,
+                        )
+                      : '—'}
                   </Badge>
                   <p className="mt-1 text-xs text-gray-400">
                     {new Date(item.redeemed_at).toLocaleString('ru-RU')}

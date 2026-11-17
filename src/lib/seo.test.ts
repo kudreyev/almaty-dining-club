@@ -43,9 +43,9 @@ describe('restaurant meta', () => {
     )
   })
 
-  it('does not call Kudafest sets free and survives missing data', () => {
-    expect(restaurantTitle('Leon', { offer_type: 'kudafest_set', offer_title: 'Сет №1' })).toBe(
-      'Leon: сеты Kudafest | KudaClub',
+  it('does not call festival sets free and survives missing data', () => {
+    expect(restaurantTitle('Leon', { offer_type: 'set', offer_title: 'Сет №1' }, 'KudaFest')).toBe(
+      'Leon: сеты KudaFest | KudaClub',
     )
     expect(restaurantTitle('Leon', null)).toBe('Leon | KudaClub')
     expect(restaurantDescription('Leon', '', null)).toBe(

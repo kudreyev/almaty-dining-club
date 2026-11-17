@@ -22,9 +22,15 @@ type RedeemTokenCardProps = {
   extendedOnce: boolean
   restaurantId: string
   offerId: string
+  setHeadline?: {
+    title: string
+    priceLabel: string | null
+    accentColor: string
+  } | null
   metricaOffer?: {
     restaurantSlug: string
     offerType: OfferType
+    eventSlug?: string | null
     estimatedSavingsTenge: number | null
   }
 }
@@ -51,6 +57,7 @@ export function RedeemTokenCard({
   extendedOnce,
   restaurantId,
   offerId,
+  setHeadline = null,
   metricaOffer,
 }: RedeemTokenCardProps) {
   const router = useRouter()
@@ -154,6 +161,7 @@ export function RedeemTokenCard({
         restaurant_slug: metricaOffer.restaurantSlug,
         estimated_savings: metricaOffer.estimatedSavingsTenge,
         offer_type: metricaOffer.offerType,
+        event_slug: metricaOffer.eventSlug ?? undefined,
       })
     }
     emitValueMoment('code_redeemed')
@@ -206,8 +214,25 @@ export function RedeemTokenCard({
     ? 'border border-red-200 bg-red-50 text-red-900'
     : 'border border-accent bg-accent text-white'
 
+  const cardShell = setHeadline && !isExpired
+    ? ''
+    : shell
+  const cardStyle =
+    setHeadline && !isExpired
+      ? { backgroundColor: setHeadline.accentColor, borderColor: setHeadline.accentColor }
+      : undefined
+
   return (
-    <div className={`mt-8 rounded-3xl p-6 ${shell}`}>
+    <div
+      className={`mt-8 rounded-3xl border p-6 ${cardShell || (isExpired ? shell : 'text-white')}`}
+      style={cardStyle}
+    >
+      {setHeadline ? (
+        <p className={`mb-3 text-lg font-semibold leading-snug ${isExpired ? 'text-red-900' : 'text-white'}`}>
+          {setHeadline.title}
+          {setHeadline.priceLabel ? ` · ${setHeadline.priceLabel}` : ''}
+        </p>
+      ) : null}
       <p
         className={`text-sm ${isExpired ? 'text-red-700' : 'text-white/70'}`}
       >

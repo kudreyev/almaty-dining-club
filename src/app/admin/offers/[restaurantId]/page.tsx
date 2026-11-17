@@ -55,7 +55,7 @@ export default async function AdminOffersForRestaurantPage({ params }: PageProps
                     color={
                       o.offer_type === '2for1'
                         ? 'dark'
-                        : o.offer_type === 'kudafest_set'
+                        : o.offer_type === 'set'
                           ? 'yellow'
                           : 'blue'
                     }

@@ -3,10 +3,10 @@ import Image from 'next/image'
 import { MapPin } from 'lucide-react'
 import {
   formatBenefitLabel,
-  formatKudafestBadgeDate,
   formatOfferChipLabel,
   pickTopOffers,
 } from '@/lib/offers'
+import { formatSetPrice } from '@/lib/events'
 import { formatStatusForCard } from '@/lib/opening-hours'
 import { formatDistanceFromUser } from '@/lib/distance'
 import type { RestaurantWithStatus } from '@/lib/types'
@@ -24,6 +24,7 @@ export function RestaurantCard({ restaurant, distanceKm }: Props) {
   const status = formatStatusForCard(r.openStatus)
   const isOpen = r.openStatus.isOpen
   const showDistance = typeof distanceKm === 'number' && Number.isFinite(distanceKm)
+  const setBadge = r.activeSetBadge
 
   return (
     <Link
@@ -50,20 +51,9 @@ export function RestaurantCard({ restaurant, distanceKm }: Props) {
           </div>
         )}
 
-        {topOffers.length > 0 ? (
+        {topOffers.length > 0 || setBadge ? (
           <div className="pointer-events-none absolute left-2.5 top-2.5 flex max-w-[70%] flex-col items-start gap-[5px]">
             {topOffers.map((offer, i) => {
-              if (offer.offer_type === 'kudafest_set' && offer.end_date) {
-                return (
-                  <span
-                    key={`${r.id}-kudafest-${i}`}
-                    className="max-w-full truncate rounded-md bg-[#5B21B6]/92 px-2.5 py-[5px] text-xs font-medium text-white backdrop-blur-md"
-                  >
-                    {formatKudafestBadgeDate(offer.end_date)}
-                  </span>
-                )
-              }
-
               const label = formatOfferChipLabel(offer.offer_type, offer.offer_title)
               const isTwoFor1 = offer.offer_type === '2for1'
               return (
@@ -77,6 +67,15 @@ export function RestaurantCard({ restaurant, distanceKm }: Props) {
                 </span>
               )
             })}
+            {setBadge ? (
+              <span
+                className="max-w-full truncate rounded-md px-2 py-[4px] text-[11px] font-medium text-white backdrop-blur-md"
+                style={{ backgroundColor: `${setBadge.accentColor}eb` }}
+              >
+                Сет {setBadge.eventName} {formatSetPrice(setBadge.priceKzt)}
+                <span className="opacity-90"> · {setBadge.statusLabel}</span>
+              </span>
+            ) : null}
           </div>
         ) : null}
 

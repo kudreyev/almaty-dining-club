@@ -29,6 +29,8 @@ type IssueRpcResult = {
     | 'offer_unavailable'
     | 'active_token'
     | 'usable_hours'
+    | 'combine_blocked'
+    | 'set_daily_limit'
     | 'server_error'
   token_id?: string
 }

@@ -266,6 +266,7 @@ export async function updateRestaurant(formData: FormData) {
     cuisine_3: String(formData.get('cuisine_3') || '') || null,
     tags: parseTagsList(formData.get('tags')),
     is_active: formData.get('is_active') === 'on',
+    combine_set_with_club_offer: formData.get('combine_set_with_club_offer') === 'on',
   }
 
   const { error } = await supabase.from('restaurants').update(payload).eq('id', id)

@@ -66,6 +66,11 @@ const sample: WeeklyReport = {
       { metric: 'active_venues', current: 17, target: 20, pct: 85 },
     ],
   },
+  festival: {
+    club_redemptions: 40,
+    set_redemptions: 14,
+    set_then_club_30d_guests: 3,
+  },
 }
 
 describe('weekly report format', () => {
@@ -85,6 +90,9 @@ describe('weekly report format', () => {
     expect(text).toContain('Погашений: 54 (+19) · за 30 дней: 131')
     expect(text).toContain('Удержание во 2-м месяце: 14%')
     expect(text).toContain('Выгода гостей: 236 000 ₸ · всего 1,4 млн ₸')
+    expect(text).toContain(
+      'Фестиваль: клуб 40 · сеты 14 · после сета → клуб (30 дн.): 3',
+    )
     expect(text).toContain('Цели к 30.11: пользователи 82% · активные 76% · погашения 30 дн. 131% · заведения 85%')
     expect(text).toContain('Топ заведений: Антрекот 12 (9 новых) · BAO 8 · Unai 7 · Prosto Bar 5 · BIRCOS 4')
     expect(text).toContain('Без погашений: 6 заведений (Кафе А, Кафе Б, Кафе В)')

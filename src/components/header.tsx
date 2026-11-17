@@ -53,6 +53,7 @@ export async function Header() {
         { href: '/admin/users', label: 'Пользователи' },
         { href: '/admin/restaurants', label: 'Заведения' },
         { href: '/admin/offers', label: 'Офферы' },
+        { href: '/admin/events', label: 'Фестивали' },
         { href: '/admin/staff', label: 'Сотрудники' },
         { href: '/admin/push', label: 'Пуши' },
         { href: '/admin/report', label: 'Отчёт' },

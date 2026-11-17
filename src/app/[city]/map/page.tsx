@@ -10,6 +10,7 @@ import {
 } from '@/lib/offers'
 import { DEFAULT_TZ, computeOpenStatus, type RestaurantHour } from '@/lib/opening-hours'
 import { CITY_LABELS, isCity } from '@/lib/cities'
+import { canViewFestivals, isFestivalPreviewVenueSlug } from '@/lib/festival-access'
 import { MapScreen } from './map-screen'
 import type { OfferType } from '@/lib/offers'
 
@@ -106,8 +107,10 @@ export default async function MapPage({ params }: PageProps) {
 
   const now = new Date()
   const today = getTodayDateStringInTz(now, DEFAULT_TZ)
+  const showFestivals = await canViewFestivals()
   const places = (restaurants ?? [])
     .map((restaurant) => {
+      if (!showFestivals && isFestivalPreviewVenueSlug(restaurant.slug)) return null
       const activeOffers = filterCatalogActiveOffers(restaurant.offers ?? [], today)
         .filter((offer) => offer.offer_type !== 'set')
       // Карта = партнёры клуба; set-only фестивальные точки не показываем.

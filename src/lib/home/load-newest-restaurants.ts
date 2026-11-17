@@ -1,5 +1,6 @@
 import { createSupabasePublicClient } from '@/lib/supabase/public'
 import type { City } from '@/lib/cities'
+import { canViewFestivals, isFestivalPreviewVenueSlug } from '@/lib/festival-access'
 
 export type NewestRestaurant = {
   id: string
@@ -40,7 +41,10 @@ export async function loadNewestRestaurants(
     }[]
   >()
 
-  const rows = data ?? []
+  const showFestivals = await canViewFestivals()
+  const rows = (data ?? []).filter(
+    (r) => showFestivals || !isFestivalPreviewVenueSlug(r.slug),
+  )
   if (rows.length === 0) return []
 
   const ids = rows.map((r) => r.id)

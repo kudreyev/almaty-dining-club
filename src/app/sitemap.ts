@@ -1,5 +1,6 @@
 import type { MetadataRoute } from 'next'
 import { CITIES } from '@/lib/cities'
+import { isFestivalPreviewVenueSlug } from '@/lib/festival-access'
 import { logServerError } from '@/lib/safe-errors'
 import { SITE_URL } from '@/lib/seo'
 import { createSupabasePublicClient } from '@/lib/supabase/public'
@@ -30,10 +31,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   return [
     ...pages,
-    ...(data ?? []).map(({ slug }) => ({
-      url: `${SITE_URL}/r/${encodeURIComponent(slug)}`,
-      changeFrequency: 'weekly' as const,
-      priority: 0.7,
-    })),
+    ...(data ?? [])
+      .filter(({ slug }) => !isFestivalPreviewVenueSlug(slug))
+      .map(({ slug }) => ({
+        url: `${SITE_URL}/r/${encodeURIComponent(slug)}`,
+        changeFrequency: 'weekly' as const,
+        priority: 0.7,
+      })),
   ]
 }

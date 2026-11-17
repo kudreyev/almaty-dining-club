@@ -25,7 +25,11 @@ import {
 } from '@/lib/events'
 import { DEFAULT_TZ } from '@/lib/opening-hours'
 import { CITY_LABELS, DEFAULT_CITY, isCity } from '@/lib/cities'
-import { canViewFestivals, isFestivalAdminOnly } from '@/lib/festival-access'
+import {
+  canViewFestivalPreviewVenue,
+  canViewFestivals,
+  isFestivalAdminOnly,
+} from '@/lib/festival-access'
 import { pageMetadata, restaurantDescription, restaurantTitle } from '@/lib/seo'
 import { RestaurantNavBar } from '@/components/restaurant/restaurant-nav-bar'
 import { RestaurantHeroGallery } from '@/components/restaurant/restaurant-hero-gallery'
@@ -97,6 +101,9 @@ const SELECT_RESTAURANT = `
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { slug } = await params
+  if (!(await canViewFestivalPreviewVenue(slug))) {
+    return { title: 'Заведение не найдено — KudaClub' }
+  }
   const supabase = await createSupabaseServerClient()
 
   const { data: restaurant } = await supabase
@@ -126,6 +133,8 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
 export default async function RestaurantPage({ params }: PageProps) {
   const { slug } = await params
+  if (!(await canViewFestivalPreviewVenue(slug))) notFound()
+
   const supabase = await createSupabaseServerClient()
 
   const { data: restaurant, error: restaurantError } = await supabase

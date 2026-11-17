@@ -21,7 +21,7 @@ import {
 } from '@/lib/events'
 import type { City } from '@/lib/cities'
 import type { ActiveSetBadge, Offer, RestaurantWithStatus } from '@/lib/types'
-import { canViewFestivals } from '@/lib/festival-access'
+import { canViewFestivals, isFestivalPreviewVenueSlug } from '@/lib/festival-access'
 
 type SupabaseRow = {
   id: string
@@ -135,6 +135,8 @@ async function loadHomeRestaurantsUncached(city: City): Promise<HomeRestaurantsR
     }))
     // Партнёр клуба = есть активный клубный оффер (не только сет).
     .filter((r) => pickClubOffers(r.offers).length > 0)
+    // Сид TestFest не показываем гостям в основном каталоге.
+    .filter((r) => showFestivals || !isFestivalPreviewVenueSlug(r.slug))
 
   const scheduleByRestaurant = new Map<string, EventVenueScheduleRow[]>()
   if (activeEvent && safeRestaurants.length > 0) {

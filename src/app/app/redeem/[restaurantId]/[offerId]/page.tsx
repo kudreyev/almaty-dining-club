@@ -22,6 +22,7 @@ import {
   resolveSetSchedule,
   type FestivalEvent,
 } from '@/lib/events'
+import { canViewFestivals } from '@/lib/festival-access'
 
 type PageProps = {
   params: Promise<{
@@ -115,6 +116,7 @@ export default async function RedeemPage({ params, searchParams }: PageProps) {
     .maybeSingle<Offer>()
 
   if (!restaurant || !offer) notFound()
+  if (offer.offer_type === 'set' && !(await canViewFestivals())) notFound()
 
   const now = new Date()
   let event: FestivalEvent | null = null

@@ -15,6 +15,7 @@ import {
   type FestivalEvent,
 } from '@/lib/events'
 import { restaurant_is_club_partner_client } from '@/lib/events-catalog'
+import { canViewFestivals, isFestivalAdminOnly } from '@/lib/festival-access'
 import { FestivalVenuesClient } from '@/components/festival/festival-venues-client'
 
 type PageProps = {
@@ -26,6 +27,7 @@ const RESERVED = new Set(['map'])
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { city, eventSlug } = await params
   if (!isCity(city) || RESERVED.has(eventSlug)) return {}
+  if (!(await canViewFestivals())) return {}
 
   const supabase = createSupabasePublicClient()
   const { data: event } = await supabase
@@ -48,6 +50,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 export default async function FestivalPage({ params }: PageProps) {
   const { city, eventSlug } = await params
   if (!isCity(city) || RESERVED.has(eventSlug)) notFound()
+  if (!(await canViewFestivals())) notFound()
 
   const supabase = createSupabasePublicClient()
   const now = new Date()
@@ -175,6 +178,11 @@ export default async function FestivalPage({ params }: PageProps) {
       </Link>
 
       <header className="mt-4">
+        {isFestivalAdminOnly() ? (
+          <p className="mb-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
+            Превью для админов — обычные гости эту страницу не видят.
+          </p>
+        ) : null}
         <p
           className="inline-block rounded-md px-2.5 py-1 text-xs font-medium text-white"
           style={{ backgroundColor: event.accent_color }}

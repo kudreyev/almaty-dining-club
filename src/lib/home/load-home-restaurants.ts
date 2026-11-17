@@ -21,6 +21,7 @@ import {
 } from '@/lib/events'
 import type { City } from '@/lib/cities'
 import type { ActiveSetBadge, Offer, RestaurantWithStatus } from '@/lib/types'
+import { canViewFestivals } from '@/lib/festival-access'
 
 type SupabaseRow = {
   id: string
@@ -58,65 +59,73 @@ async function loadHomeRestaurantsUncached(city: City): Promise<HomeRestaurantsR
   const supabase = createSupabasePublicClient()
   const now = new Date()
   const today = getTodayDateStringInTz(now, DEFAULT_TZ)
+  const showFestivals = await canViewFestivals()
+
+  const restaurantsQuery = supabase
+    .from('restaurants')
+    .select(`
+      id,
+      restaurant_name,
+      slug,
+      address,
+      cuisine,
+      cuisine_2,
+      cuisine_3,
+      brand,
+      combine_set_with_club_offer,
+      offers (
+        offer_type,
+        offer_title,
+        offer_terms_short,
+        estimated_value,
+        dish_photo_url,
+        end_date,
+        is_active,
+        event_id,
+        price_kzt
+      ),
+      restaurant_hours (
+        day_of_week,
+        is_closed,
+        open_time,
+        close_time,
+        close_next_day
+      ),
+      restaurant_locations (
+        lat,
+        lng,
+        is_active,
+        sort_order
+      )
+    `)
+    .eq('city', city)
+    .eq('is_active', true)
+    .order('restaurant_name', { ascending: true })
+    .returns<SupabaseRow[]>()
+
+  const eventsQuery = showFestivals
+    ? supabase
+        .from('events')
+        .select(
+          'id, slug, name, city, starts_at, ends_at, set_price_kzt, logo_url, accent_color, is_published, max_sets_per_venue_per_day',
+        )
+        .eq('city', city)
+        .eq('is_published', true)
+        .lte('starts_at', today)
+        .gte('ends_at', today)
+        .order('starts_at', { ascending: false })
+        .limit(1)
+        .returns<FestivalEvent[]>()
+    : Promise.resolve({ data: [] as FestivalEvent[] })
 
   const [{ data: restaurants }, { data: events }] = await Promise.all([
-    supabase
-      .from('restaurants')
-      .select(`
-        id,
-        restaurant_name,
-        slug,
-        address,
-        cuisine,
-        cuisine_2,
-        cuisine_3,
-        brand,
-        combine_set_with_club_offer,
-        offers (
-          offer_type,
-          offer_title,
-          offer_terms_short,
-          estimated_value,
-          dish_photo_url,
-          end_date,
-          is_active,
-          event_id,
-          price_kzt
-        ),
-        restaurant_hours (
-          day_of_week,
-          is_closed,
-          open_time,
-          close_time,
-          close_next_day
-        ),
-        restaurant_locations (
-          lat,
-          lng,
-          is_active,
-          sort_order
-        )
-      `)
-      .eq('city', city)
-      .eq('is_active', true)
-      .order('restaurant_name', { ascending: true })
-      .returns<SupabaseRow[]>(),
-    supabase
-      .from('events')
-      .select(
-        'id, slug, name, city, starts_at, ends_at, set_price_kzt, logo_url, accent_color, is_published, max_sets_per_venue_per_day',
-      )
-      .eq('city', city)
-      .eq('is_published', true)
-      .lte('starts_at', today)
-      .gte('ends_at', today)
-      .order('starts_at', { ascending: false })
-      .limit(1)
-      .returns<FestivalEvent[]>(),
+    restaurantsQuery,
+    eventsQuery,
   ])
 
-  const activeEvent =
-    (events ?? []).find((event) => isEventActiveNow(event, now, DEFAULT_TZ)) ?? null
+  const activeEvent = showFestivals
+    ? ((events ?? []).find((event) => isEventActiveNow(event, now, DEFAULT_TZ)) ?? null)
+    : null
 
   const safeRestaurants: SupabaseRow[] = (restaurants ?? [])
     .map((r) => ({

@@ -25,6 +25,7 @@ import {
 } from '@/lib/events'
 import { DEFAULT_TZ } from '@/lib/opening-hours'
 import { CITY_LABELS, DEFAULT_CITY, isCity } from '@/lib/cities'
+import { canViewFestivals, isFestivalAdminOnly } from '@/lib/festival-access'
 import { pageMetadata, restaurantDescription, restaurantTitle } from '@/lib/seo'
 import { RestaurantNavBar } from '@/components/restaurant/restaurant-nav-bar'
 import { RestaurantHeroGallery } from '@/components/restaurant/restaurant-hero-gallery'
@@ -192,7 +193,10 @@ export default async function RestaurantPage({ params }: PageProps) {
   }
 
   const clubOffers = pickClubOffers(offers)
-  const setOffers = offers.filter((o) => o.offer_type === 'set' && o.event_id)
+  const showFestivals = await canViewFestivals()
+  const setOffers = showFestivals
+    ? offers.filter((o) => o.offer_type === 'set' && o.event_id)
+    : []
   const eventIds = [...new Set(setOffers.map((o) => o.event_id!).filter(Boolean))]
 
   let events: FestivalEvent[] = []
@@ -342,6 +346,11 @@ export default async function RestaurantPage({ params }: PageProps) {
             borderTopColor: '#f0f0f0',
           }}
         >
+          {showFestivals && isFestivalAdminOnly() && festivalBlocks.some((b) => b.offers.length > 0) ? (
+            <p className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
+              Превью фестиваля — блоки сетов видят только админы.
+            </p>
+          ) : null}
           <RestaurantOffersList
             clubOffers={clubOffers.map((offer) => {
               const usableStatus = formatOfferUsableHoursStatus(

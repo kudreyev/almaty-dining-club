@@ -215,7 +215,7 @@ export default async function RestaurantPage({ params }: PageProps) {
   const clubOffers = pickClubOffers(offers)
   const showFestivals = await canViewFestivals()
   const setOffers = showFestivals
-    ? offers.filter((o) => o.offer_type === 'set' && o.event_id)
+    ? offers.filter((o) => Boolean(o.event_id))
     : []
   const eventIds = [...new Set(setOffers.map((o) => o.event_id!).filter(Boolean))]
 

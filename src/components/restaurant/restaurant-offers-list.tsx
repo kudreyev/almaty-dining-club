@@ -5,6 +5,7 @@ import {
   formatEstimatedValue,
   formatOfferTitle,
   formatSetOfferTitle,
+  isFestivalSetOffer,
   type OfferType,
 } from '@/lib/offers'
 import { formatSetPrice, parseSetItems, type SetItem } from '@/lib/events'
@@ -146,7 +147,7 @@ type OfferCardProps = {
 
 function OfferCard(props: OfferCardProps) {
   const { offer, showSetNumber = false, setIndex } = props
-  const isSet = offer.offer_type === 'set'
+  const isSet = isFestivalSetOffer(offer)
   const title = isSet
     ? formatSetOfferTitle(offer.event_name, {
         showNumber: showSetNumber,
@@ -365,7 +366,7 @@ function OfferCta({
         })
       }}
       className="block w-full text-center text-white transition-colors hover:opacity-95"
-      style={{ ...baseStyle, background: offer.offer_type === 'set' ? accent : '#D85A30' }}
+      style={{ ...baseStyle, background: isFestivalSetOffer(offer) ? accent : '#D85A30' }}
     >
       Получить код
     </a>
@@ -376,7 +377,7 @@ function formatTypeBadge(offer: RestaurantOffer): { label: string; bg: string } 
   if (offer.offer_type === '2for1') {
     return { label: '1+1', bg: '#D85A30' }
   }
-  if (offer.offer_type === 'set') {
+  if (isFestivalSetOffer(offer)) {
     return {
       label: formatSetOfferTitle(offer.event_name),
       bg: offer.accent_color || '#5B21B6',

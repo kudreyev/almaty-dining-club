@@ -206,6 +206,29 @@ export function formatSetOfferTitle(
   return num ? `${name} сет №${num}` : `${name} сет`
 }
 
+/** Сет фестиваля в данных: тип set или привязка к event. */
+export function isFestivalSetOffer(offer: {
+  offer_type?: string | null
+  event_id?: string | null
+  event_name?: string | null
+}): boolean {
+  return offer.offer_type === 'set' || Boolean(offer.event_id) || Boolean(offer.event_name)
+}
+
+/** Название похоже на фестивальный сет («Сет №1»), а не на клубный подарок. */
+function looksLikeSetTitle(offerTitle: string): boolean {
+  return /^сет\b/i.test(offerTitle.trim().replace(/\s*в подарок\s*$/i, ''))
+}
+
+function formatGiftTitle(offerTitle: string): string {
+  const cleaned = offerTitle.replace(/\s*в подарок\s*$/i, '').trim() || offerTitle
+  // Не клеим «в подарок» к сетам, даже если в БД тип ещё compliment
+  if (looksLikeSetTitle(cleaned)) {
+    return formatSetOfferTitle(null, { showNumber: true, offerTitle: cleaned })
+  }
+  return `${cleaned} в подарок`
+}
+
 export function formatOfferHeadline(
   offerType: OfferType,
   offerTitle: string,
@@ -213,14 +236,14 @@ export function formatOfferHeadline(
   options?: { showSetNumber?: boolean; setIndex?: number },
 ): string {
   if (offerType === '2for1') return `1+1 · ${offerTitle}`
-  if (offerType === 'set') {
+  if (isFestivalSetOffer({ offer_type: offerType, event_name: eventName })) {
     return formatSetOfferTitle(eventName, {
       showNumber: options?.showSetNumber,
       offerTitle,
       index: options?.setIndex,
     })
   }
-  return `${offerTitle} в подарок`
+  return formatGiftTitle(offerTitle)
 }
 
 /** Развёрнутый заголовок оффера: «1+1 · …» / «{event} сет» / «{название} в подарок». */
@@ -231,32 +254,41 @@ export function formatOfferTitle(
   options?: { showSetNumber?: boolean; setIndex?: number },
 ): string {
   if (offerType === '2for1') return `1+1 · ${offerTitle}`
-  if (offerType === 'set') {
+  if (isFestivalSetOffer({ offer_type: offerType, event_name: eventName })) {
     return formatSetOfferTitle(eventName, {
       showNumber: options?.showSetNumber,
       offerTitle,
       index: options?.setIndex,
     })
   }
-  return `${offerTitle} в подарок`
+  return formatGiftTitle(offerTitle)
 }
 
 /** Лейбл плашки оффера на карточке заведения (только клубные). */
 export function formatOfferChipLabel(offerType: OfferType, offerTitle: string): string {
   if (offerType === '2for1') return `1+1 · ${offerTitle}`
-  if (offerType === 'set') return formatSetOfferTitle(null, { showNumber: true, offerTitle })
-  return `${offerTitle} в подарок`
+  if (offerType === 'set' || looksLikeSetTitle(offerTitle)) {
+    return formatSetOfferTitle(null, { showNumber: true, offerTitle })
+  }
+  return formatGiftTitle(offerTitle)
 }
 
 type OfferLike = {
   offer_type: OfferType
   is_active: boolean
   estimated_value?: number | null
+  event_id?: string | null
+  offer_title?: string | null
 }
 
 /** Сначала 1+1, потом подарки; сеты в основном каталоге не как главные чипы. */
 export function pickTopOffers<T extends OfferLike>(offers: T[], maxN = 3): T[] {
-  const active = offers.filter((offer) => offer.is_active && offer.offer_type !== 'set')
+  const active = offers.filter(
+    (offer) =>
+      offer.is_active
+      && offer.offer_type !== 'set'
+      && !offer.event_id,
+  )
   const twoFor1 = active.filter((offer) => offer.offer_type === '2for1')
   const compliments = active.filter((offer) => offer.offer_type === 'compliment')
   return [...twoFor1, ...compliments].slice(0, maxN)
@@ -264,12 +296,17 @@ export function pickTopOffers<T extends OfferLike>(offers: T[], maxN = 3): T[] {
 
 export function pickClubOffers<T extends OfferLike>(offers: T[]): T[] {
   return offers.filter(
-    (offer) => offer.is_active && (offer.offer_type === '2for1' || offer.offer_type === 'compliment'),
+    (offer) =>
+      offer.is_active
+      && !offer.event_id
+      && (offer.offer_type === '2for1' || offer.offer_type === 'compliment'),
   )
 }
 
 export function pickSetOffers<T extends OfferLike>(offers: T[]): T[] {
-  return offers.filter((offer) => offer.is_active && offer.offer_type === 'set')
+  return offers.filter(
+    (offer) => offer.is_active && isFestivalSetOffer(offer),
+  )
 }
 
 /** Максимальная выгода (estimated_value) среди активных офферов; null — если нет данных. */

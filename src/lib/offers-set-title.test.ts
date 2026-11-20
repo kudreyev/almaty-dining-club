@@ -28,5 +28,10 @@ describe('formatSetOfferTitle', () => {
       formatOfferTitle('set', 'Сет №1', 'KudaFest', { showSetNumber: true }),
     ).toBe('KudaFest сет №1')
     expect(formatOfferTitle('compliment', 'Кофе', null)).toBe('Кофе в подарок')
+    // даже если в БД тип ещё compliment / в названии уже «в подарок»
+    expect(formatOfferTitle('compliment', 'Сет №1', null)).toBe('KudaFest сет №1')
+    expect(formatOfferTitle('compliment', 'Сет №1 в подарок', null)).toBe(
+      'KudaFest сет №1',
+    )
   })
 })

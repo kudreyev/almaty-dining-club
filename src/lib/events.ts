@@ -60,7 +60,7 @@ export function formatSetPrice(priceKzt: number): string {
 
 /** close_time 00:00 = конец дня (24:00). */
 function closeMinutes(closeTime: string | null | undefined): number | null {
-  const normalized = normalizeTime(closeTime)
+  const normalized = normalizeTime(closeTime ?? null)
   if (!normalized) return null
   if (normalized === '00:00') return 24 * 60
   return timeToMinutes(normalized)
@@ -282,15 +282,18 @@ export function isClubOfferType(offerType: string): boolean {
 
 export function parseSetItems(items: unknown): SetItem[] {
   if (!Array.isArray(items)) return []
-  return items
-    .map((item) => {
-      if (!item || typeof item !== 'object') return null
-      const row = item as { title?: unknown; options?: unknown }
-      if (typeof row.title !== 'string' || !row.title.trim()) return null
-      const options = Array.isArray(row.options)
-        ? row.options.filter((o): o is string => typeof o === 'string' && Boolean(o.trim()))
-        : undefined
-      return { title: row.title.trim(), options: options?.length ? options : undefined }
+  const result: SetItem[] = []
+  for (const item of items) {
+    if (!item || typeof item !== 'object') continue
+    const row = item as { title?: unknown; options?: unknown }
+    if (typeof row.title !== 'string' || !row.title.trim()) continue
+    const options = Array.isArray(row.options)
+      ? row.options.filter((o): o is string => typeof o === 'string' && Boolean(o.trim()))
+      : undefined
+    result.push({
+      title: row.title.trim(),
+      ...(options?.length ? { options } : {}),
     })
-    .filter((x): x is SetItem => Boolean(x))
+  }
+  return result
 }

@@ -168,7 +168,7 @@ export default async function AdminEventEditPage({ params }: PageProps) {
                       variant="secondary"
                       size="sm"
                     >
-                      {hasSets ? 'Сет и расписание' : 'Прикрепить сет'}
+                      {hasSets ? 'Сеты и расписание' : 'Сет и расписание'}
                     </Button>
                     {!hasSets ? (
                       <form action={removeFestivalRestaurant}>

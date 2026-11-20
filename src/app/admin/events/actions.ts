@@ -243,6 +243,25 @@ export async function saveFestivalSet(formData: FormData) {
     if (error) throw new Error(error.message)
   }
 
+  revalidateCatalogPaths()
+  revalidatePath(`/admin/events/${eventId}`)
+  revalidatePath(`/admin/events/${eventId}/venues/${restaurantId}`)
+  redirect(`/admin/events/${eventId}/venues/${restaurantId}`)
+}
+
+/** Расписание подачи — на уровне заведения (общее для всех его сетов). */
+export async function saveFestivalVenueSchedule(formData: FormData) {
+  const { supabase } = await requireAdmin()
+  const eventId = String(formData.get('event_id') || '')
+  const restaurantId = String(formData.get('restaurant_id') || '')
+  if (!eventId || !restaurantId) throw new Error('Missing ids')
+
+  const { error: linkError } = await supabase.from('event_venues').upsert(
+    { event_id: eventId, restaurant_id: restaurantId },
+    { onConflict: 'event_id,restaurant_id' },
+  )
+  if (linkError) throw new Error(linkError.message)
+
   await saveVenueSchedule(supabase, eventId, restaurantId, formData)
 
   const combine = formData.get('combine_set_with_club_offer') === 'on'
@@ -250,6 +269,28 @@ export async function saveFestivalSet(formData: FormData) {
     .from('restaurants')
     .update({ combine_set_with_club_offer: combine })
     .eq('id', restaurantId)
+
+  revalidateCatalogPaths()
+  revalidatePath(`/admin/events/${eventId}`)
+  revalidatePath(`/admin/events/${eventId}/venues/${restaurantId}`)
+  redirect(`/admin/events/${eventId}/venues/${restaurantId}`)
+}
+
+export async function deleteFestivalSet(formData: FormData) {
+  const { supabase } = await requireAdmin()
+  const eventId = String(formData.get('event_id') || '')
+  const restaurantId = String(formData.get('restaurant_id') || '')
+  const offerId = String(formData.get('offer_id') || '')
+  if (!eventId || !restaurantId || !offerId) throw new Error('Missing ids')
+
+  const { error } = await supabase
+    .from('offers')
+    .delete()
+    .eq('id', offerId)
+    .eq('event_id', eventId)
+    .eq('restaurant_id', restaurantId)
+    .eq('offer_type', 'set')
+  if (error) throw new Error(error.message)
 
   revalidateCatalogPaths()
   revalidatePath(`/admin/events/${eventId}`)

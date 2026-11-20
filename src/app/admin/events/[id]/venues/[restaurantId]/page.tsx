@@ -1,9 +1,14 @@
 import { notFound } from 'next/navigation'
 import { requireAdmin } from '@/lib/admin'
-import { saveFestivalSet } from '../../../actions'
+import {
+  saveFestivalSet,
+  saveFestivalVenueSchedule,
+  deleteFestivalSet,
+} from '../../../actions'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
+import { formatSetPrice } from '@/lib/events'
 import {
   EventScheduleFields,
   type ScheduleDayState,
@@ -11,10 +16,22 @@ import {
 
 type PageProps = {
   params: Promise<{ id: string; restaurantId: string }>
+  searchParams: Promise<{ set?: string; new?: string }>
 }
 
-export default async function AdminEventVenuePage({ params }: PageProps) {
+type SetRow = {
+  id: string
+  offer_title: string
+  offer_terms_short: string | null
+  price_kzt: number | null
+  menu_value_kzt: number | null
+  items: unknown
+  is_active: boolean
+}
+
+export default async function AdminEventVenuePage({ params, searchParams }: PageProps) {
   const { id: eventId, restaurantId } = await params
+  const sp = await searchParams
   const { supabase } = await requireAdmin()
 
   const [{ data: event }, { data: restaurant }, { data: sets }, { data: schedule }] =
@@ -31,7 +48,8 @@ export default async function AdminEventVenuePage({ params }: PageProps) {
         .eq('event_id', eventId)
         .eq('restaurant_id', restaurantId)
         .eq('offer_type', 'set')
-        .order('created_at', { ascending: true }),
+        .order('created_at', { ascending: true })
+        .returns<SetRow[]>(),
       supabase
         .from('event_venue_schedule')
         .select('weekday, open_time, close_time, offer_id')
@@ -41,6 +59,11 @@ export default async function AdminEventVenuePage({ params }: PageProps) {
     ])
 
   if (!event || !restaurant) notFound()
+
+  const setList = sets ?? []
+  const wantNew = sp.new === '1' || setList.length === 0
+  const editingId = wantNew ? null : (sp.set || setList[0]?.id || null)
+  const editing = editingId ? setList.find((s) => s.id === editingId) ?? null : null
 
   const initialSchedule: Partial<Record<number, ScheduleDayState>> = {}
   for (const row of schedule ?? []) {
@@ -59,9 +82,9 @@ export default async function AdminEventVenuePage({ params }: PageProps) {
     }
   }
 
-  const primary = sets?.[0] ?? null
-  const itemsJson = primary?.items
-    ? JSON.stringify(primary.items, null, 2)
+  const nextSetNumber = setList.length + 1
+  const itemsJson = editing?.items
+    ? JSON.stringify(editing.items, null, 2)
     : '[\n  {"title":"Тост с авокадо"},\n  {"title":"Напиток на выбор","options":["латте","капучино"]}\n]'
 
   return (
@@ -72,33 +95,123 @@ export default async function AdminEventVenuePage({ params }: PageProps) {
         </Button>
       </div>
 
-      <Card padding="lg" className="space-y-4">
-        <h1 className="text-xl font-bold">{restaurant.restaurant_name}</h1>
-        <p className="text-sm text-gray-500">
-          {primary ? 'Редактирование сета' : 'Прикрепить сет'} · {event.name}
-        </p>
+      <h1 className="mb-2 text-xl font-bold">{restaurant.restaurant_name}</h1>
+      <p className="mb-6 text-sm text-gray-500">
+        У площадки свои дни/часы подачи и свои сеты (можно несколько разных).
+      </p>
 
+      <Card padding="lg" className="space-y-4">
+        <h2 className="text-lg font-semibold">Расписание подачи</h2>
+        <p className="text-sm text-gray-500">
+          Общее для этой площадки — действует на все её сеты.
+        </p>
+        <form action={saveFestivalVenueSchedule} className="space-y-4">
+          <input type="hidden" name="event_id" value={eventId} />
+          <input type="hidden" name="restaurant_id" value={restaurantId} />
+          <EventScheduleFields initial={initialSchedule} />
+          <label className="flex items-center gap-2 text-sm text-gray-600">
+            <input
+              type="checkbox"
+              name="combine_set_with_club_offer"
+              defaultChecked={!!restaurant.combine_set_with_club_offer}
+              className="rounded"
+            />
+            Сет + 1+1 в один визит
+          </label>
+          <Button type="submit" variant="secondary" className="w-full">
+            Сохранить расписание
+          </Button>
+        </form>
+      </Card>
+
+      <Card padding="lg" className="mt-6 space-y-4">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h2 className="text-lg font-semibold">Сеты</h2>
+          {setList.length > 0 ? (
+            <Button
+              href={`/admin/events/${eventId}/venues/${restaurantId}?new=1`}
+              variant="secondary"
+              size="sm"
+            >
+              + Ещё сет
+            </Button>
+          ) : null}
+        </div>
+
+        {setList.length === 0 ? (
+          <p className="text-sm text-gray-400">Пока нет сетов — прикрепите первый ниже.</p>
+        ) : (
+          <ul className="space-y-2">
+            {setList.map((set, index) => {
+              const active = editing?.id === set.id && !wantNew
+              return (
+                <li
+                  key={set.id}
+                  className={`flex flex-wrap items-center justify-between gap-2 rounded-lg border px-3 py-2 ${
+                    active ? 'border-gray-300 bg-gray-50' : 'border-gray-100'
+                  }`}
+                >
+                  <div>
+                    <p className="font-medium">
+                      {set.offer_title}
+                      {!set.is_active ? (
+                        <span className="ml-2 text-xs font-normal text-gray-400">выкл</span>
+                      ) : null}
+                    </p>
+                    <p className="text-xs text-gray-500">
+                      {formatSetPrice(set.price_kzt ?? event.set_price_kzt)}
+                      {setList.length > 1 ? ` · №${index + 1}` : ''}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      href={`/admin/events/${eventId}/venues/${restaurantId}?set=${set.id}`}
+                      variant="ghost"
+                      size="sm"
+                    >
+                      Изменить
+                    </Button>
+                    <form action={deleteFestivalSet}>
+                      <input type="hidden" name="event_id" value={eventId} />
+                      <input type="hidden" name="restaurant_id" value={restaurantId} />
+                      <input type="hidden" name="offer_id" value={set.id} />
+                      <Button type="submit" variant="ghost" size="sm">
+                        Удалить
+                      </Button>
+                    </form>
+                  </div>
+                </li>
+              )
+            })}
+          </ul>
+        )}
+      </Card>
+
+      <Card padding="lg" className="mt-6 space-y-4">
+        <h2 className="text-lg font-semibold">
+          {editing ? 'Редактировать сет' : 'Прикрепить сет'}
+        </h2>
         <form action={saveFestivalSet} className="space-y-4">
           <input type="hidden" name="event_id" value={eventId} />
           <input type="hidden" name="restaurant_id" value={restaurantId} />
-          {primary ? <input type="hidden" name="offer_id" value={primary.id} /> : null}
+          {editing ? <input type="hidden" name="offer_id" value={editing.id} /> : null}
 
           <Input
             name="offer_title"
             label="Название сета"
-            defaultValue={primary?.offer_title ?? 'Сет №1'}
+            defaultValue={editing?.offer_title ?? `Сет №${nextSetNumber}`}
             required
           />
           <Input
             name="offer_terms_short"
             label="Краткое описание"
-            defaultValue={primary?.offer_terms_short ?? ''}
+            defaultValue={editing?.offer_terms_short ?? ''}
           />
           <Input
             name="price_kzt"
             type="number"
             label="Цена для гостя, ₸"
-            defaultValue={primary?.price_kzt ?? event.set_price_kzt}
+            defaultValue={editing?.price_kzt ?? event.set_price_kzt}
             required
           />
           <Input
@@ -106,8 +219,8 @@ export default async function AdminEventVenuePage({ params }: PageProps) {
             type="number"
             label="Цена по меню (для выгоды), ₸"
             defaultValue={
-              primary?.menu_value_kzt
-              ?? (primary?.price_kzt ?? event.set_price_kzt) + 2000
+              editing?.menu_value_kzt
+              ?? (editing?.price_kzt ?? event.set_price_kzt) + 2000
             }
             required
           />
@@ -125,29 +238,14 @@ export default async function AdminEventVenuePage({ params }: PageProps) {
             <input
               type="checkbox"
               name="is_active"
-              defaultChecked={primary ? !!primary.is_active : true}
+              defaultChecked={editing ? !!editing.is_active : true}
               className="rounded"
             />
             Сет активен
           </label>
 
-          <label className="flex items-center gap-2 text-sm text-gray-600">
-            <input
-              type="checkbox"
-              name="combine_set_with_club_offer"
-              defaultChecked={!!restaurant.combine_set_with_club_offer}
-              className="rounded"
-            />
-            Сет + 1+1 в один визит
-          </label>
-
-          <div>
-            <h2 className="mb-2 text-base font-medium">Расписание подачи</h2>
-            <EventScheduleFields initial={initialSchedule} />
-          </div>
-
           <Button type="submit" className="w-full">
-            {primary ? 'Сохранить сет и расписание' : 'Прикрепить сет'}
+            {editing ? 'Сохранить сет' : 'Прикрепить сет'}
           </Button>
         </form>
       </Card>

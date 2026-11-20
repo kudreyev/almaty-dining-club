@@ -1,3 +1,4 @@
+import Link from 'next/link'
 import { requireAdmin } from '@/lib/admin'
 import {
   OffersRestaurantList,
@@ -17,7 +18,13 @@ export default async function AdminOffersPage() {
     <div className="mx-auto max-w-4xl px-5 py-8">
       <div className="mb-6">
         <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">Офферы</h1>
-        <p className="mt-1 text-base leading-6 text-gray-500">Выберите ресторан для управления офферами</p>
+        <p className="mt-1 text-base leading-6 text-gray-500">
+          Клубные 1+1 и подарки. Сеты фестивалей — в разделе{' '}
+          <Link href="/admin/events" className="font-medium text-accent underline">
+            Фестивали
+          </Link>
+          .
+        </p>
       </div>
 
       <OffersRestaurantList restaurants={restaurants ?? []} />

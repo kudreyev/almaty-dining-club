@@ -1,3 +1,4 @@
+import Link from 'next/link'
 import { requireAdmin } from '@/lib/admin'
 import { createCustomerMetricsScope, type CustomerMetricsScope } from '@/lib/customer-metrics'
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
@@ -301,6 +302,14 @@ export default async function AdminDashboardPage() {
     loadWhatsapp7d(scope),
   ])
 
+  const quickLinks = [
+    { href: '/admin/events', label: 'Фестивали' },
+    { href: '/admin/events/new', label: 'Новый фестиваль' },
+    { href: '/admin/restaurants', label: 'Заведения' },
+    { href: '/admin/offers', label: 'Офферы' },
+    { href: '/admin/users', label: 'Пользователи' },
+  ]
+
   return (
     <div className="mx-auto max-w-6xl px-5 py-8">
       <div className="mb-6">
@@ -310,6 +319,21 @@ export default async function AdminDashboardPage() {
           каждом заходе.
         </p>
       </div>
+
+      <section className="mb-8">
+        <h2 className="mb-3 text-lg font-semibold text-gray-800">Разделы</h2>
+        <div className="flex flex-wrap gap-2">
+          {quickLinks.map((link) => (
+            <Link
+              key={link.href}
+              href={link.href}
+              className="rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-800 transition-colors hover:border-gray-300 hover:bg-gray-50"
+            >
+              {link.label}
+            </Link>
+          ))}
+        </div>
+      </section>
 
       <section className="mb-10">
         <h2 className="mb-3 text-lg font-semibold text-gray-800">1. Гости</h2>

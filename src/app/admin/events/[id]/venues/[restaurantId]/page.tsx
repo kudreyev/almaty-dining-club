@@ -101,9 +101,10 @@ export default async function AdminEventVenuePage({ params, searchParams }: Page
       </p>
 
       <Card padding="lg" className="space-y-4">
-        <h2 className="text-lg font-semibold">Расписание подачи</h2>
+        <h2 className="text-lg font-semibold">Расписание подачи сета</h2>
         <p className="text-sm text-gray-500">
-          Общее для этой площадки — действует на все её сеты.
+          Дни и часы именно для фестиваля — можно задать отдельно от обычного
+          времени работы заведения. Действует на все сеты этой площадки.
         </p>
         <form action={saveFestivalVenueSchedule} className="space-y-4">
           <input type="hidden" name="event_id" value={eventId} />

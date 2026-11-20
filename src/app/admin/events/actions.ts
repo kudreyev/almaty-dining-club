@@ -129,8 +129,49 @@ export async function addFestivalRestaurant(formData: FormData) {
       .eq('id', restaurantId)
   }
 
+  const { error: linkError } = await supabase.from('event_venues').upsert(
+    { event_id: eventId, restaurant_id: restaurantId },
+    { onConflict: 'event_id,restaurant_id' },
+  )
+  if (linkError) throw new Error(linkError.message)
+
   revalidatePath(`/admin/events/${eventId}`)
-  redirect(`/admin/events/${eventId}/venues/${restaurantId}`)
+  // Остаёмся на странице фестиваля — сет прикрепляется отдельно.
+  redirect(`/admin/events/${eventId}`)
+}
+
+export async function removeFestivalRestaurant(formData: FormData) {
+  const { supabase } = await requireAdmin()
+  const eventId = String(formData.get('event_id') || '')
+  const restaurantId = String(formData.get('restaurant_id') || '')
+  if (!eventId || !restaurantId) throw new Error('Missing ids')
+
+  const { count } = await supabase
+    .from('offers')
+    .select('id', { count: 'exact', head: true })
+    .eq('event_id', eventId)
+    .eq('restaurant_id', restaurantId)
+    .eq('offer_type', 'set')
+
+  if ((count ?? 0) > 0) {
+    throw new Error('Сначала удалите или отвяжите сеты этого заведения')
+  }
+
+  await supabase
+    .from('event_venue_schedule')
+    .delete()
+    .eq('event_id', eventId)
+    .eq('restaurant_id', restaurantId)
+
+  const { error } = await supabase
+    .from('event_venues')
+    .delete()
+    .eq('event_id', eventId)
+    .eq('restaurant_id', restaurantId)
+  if (error) throw new Error(error.message)
+
+  revalidatePath(`/admin/events/${eventId}`)
+  redirect(`/admin/events/${eventId}`)
 }
 
 export async function saveFestivalSet(formData: FormData) {
@@ -160,6 +201,13 @@ export async function saveFestivalSet(formData: FormData) {
   const offerKey =
     String(formData.get('offer_key') || '').trim()
     || `set_${slugify(title)}_${Date.now().toString(36)}`
+
+  // Сет можно прикрепить только к площадке фестиваля.
+  const { error: linkError } = await supabase.from('event_venues').upsert(
+    { event_id: eventId, restaurant_id: restaurantId },
+    { onConflict: 'event_id,restaurant_id' },
+  )
+  if (linkError) throw new Error(linkError.message)
 
   if (offerId) {
     const { error } = await supabase

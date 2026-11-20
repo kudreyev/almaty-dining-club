@@ -74,7 +74,9 @@ export default async function AdminEventVenuePage({ params }: PageProps) {
 
       <Card padding="lg" className="space-y-4">
         <h1 className="text-xl font-bold">{restaurant.restaurant_name}</h1>
-        <p className="text-sm text-gray-500">Сеты и расписание · {event.name}</p>
+        <p className="text-sm text-gray-500">
+          {primary ? 'Редактирование сета' : 'Прикрепить сет'} · {event.name}
+        </p>
 
         <form action={saveFestivalSet} className="space-y-4">
           <input type="hidden" name="event_id" value={eventId} />
@@ -145,7 +147,7 @@ export default async function AdminEventVenuePage({ params }: PageProps) {
           </div>
 
           <Button type="submit" className="w-full">
-            Сохранить сет и расписание
+            {primary ? 'Сохранить сет и расписание' : 'Прикрепить сет'}
           </Button>
         </form>
       </Card>

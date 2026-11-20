@@ -1,6 +1,10 @@
 import { notFound } from 'next/navigation'
 import { requireAdmin } from '@/lib/admin'
-import { updateEvent, addFestivalRestaurant } from '../actions'
+import {
+  updateEvent,
+  addFestivalRestaurant,
+  removeFestivalRestaurant,
+} from '../actions'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -9,6 +13,14 @@ import { formatSetPrice } from '@/lib/events'
 import type { City } from '@/lib/cities'
 
 type PageProps = { params: Promise<{ id: string }> }
+
+type SetOfferRow = {
+  id: string
+  restaurant_id: string
+  offer_title: string
+  price_kzt: number | null
+  is_active: boolean
+}
 
 export default async function AdminEventEditPage({ params }: PageProps) {
   const { id } = await params
@@ -22,37 +34,54 @@ export default async function AdminEventEditPage({ params }: PageProps) {
 
   if (!event) notFound()
 
-  const [{ data: setOffers }, { data: restaurants }] = await Promise.all([
-    supabase
-      .from('offers')
-      .select('id, restaurant_id, offer_title, price_kzt, is_active, restaurants ( restaurant_name, slug )')
-      .eq('event_id', id)
-      .eq('offer_type', 'set')
-      .order('created_at', { ascending: true }),
-    supabase
-      .from('restaurants')
-      .select('id, restaurant_name, slug, city')
-      .eq('city', event.city)
-      .eq('is_active', true)
-      .order('restaurant_name', { ascending: true }),
-  ])
+  const [{ data: venueLinks }, { data: setOffers }, { data: restaurants }] =
+    await Promise.all([
+      supabase
+        .from('event_venues')
+        .select('restaurant_id, restaurants ( id, restaurant_name, slug )')
+        .eq('event_id', id),
+      supabase
+        .from('offers')
+        .select('id, restaurant_id, offer_title, price_kzt, is_active')
+        .eq('event_id', id)
+        .eq('offer_type', 'set')
+        .order('created_at', { ascending: true })
+        .returns<SetOfferRow[]>(),
+      supabase
+        .from('restaurants')
+        .select('id, restaurant_name, slug, city')
+        .eq('city', event.city)
+        .eq('is_active', true)
+        .order('restaurant_name', { ascending: true }),
+    ])
 
-  const venuesMap = new Map<
-    string,
-    { id: string; name: string; slug: string; sets: typeof setOffers }
-  >()
+  const setsByRestaurant = new Map<string, SetOfferRow[]>()
   for (const offer of setOffers ?? []) {
-    const rest = offer.restaurants as { restaurant_name: string; slug: string } | null
-    if (!venuesMap.has(offer.restaurant_id)) {
-      venuesMap.set(offer.restaurant_id, {
-        id: offer.restaurant_id,
-        name: rest?.restaurant_name ?? offer.restaurant_id,
-        slug: rest?.slug ?? '',
-        sets: [],
-      })
-    }
-    venuesMap.get(offer.restaurant_id)!.sets!.push(offer)
+    const list = setsByRestaurant.get(offer.restaurant_id) ?? []
+    list.push(offer)
+    setsByRestaurant.set(offer.restaurant_id, list)
   }
+
+  const linkedIds = new Set((venueLinks ?? []).map((v) => v.restaurant_id))
+  const availableRestaurants = (restaurants ?? []).filter((r) => !linkedIds.has(r.id))
+
+  const venues = (venueLinks ?? [])
+    .map((link) => {
+      const rest = link.restaurants as
+        | { id: string; restaurant_name: string; slug: string }
+        | { id: string; restaurant_name: string; slug: string }[]
+        | null
+      const restaurant = Array.isArray(rest) ? rest[0] : rest
+      if (!restaurant) return null
+      return {
+        id: restaurant.id,
+        name: restaurant.restaurant_name,
+        slug: restaurant.slug,
+        sets: setsByRestaurant.get(restaurant.id) ?? [],
+      }
+    })
+    .filter((v): v is NonNullable<typeof v> => Boolean(v))
+    .sort((a, b) => a.name.localeCompare(b.name, 'ru'))
 
   return (
     <div className="mx-auto max-w-3xl px-5 py-8">
@@ -64,6 +93,9 @@ export default async function AdminEventEditPage({ params }: PageProps) {
 
       <Card padding="lg" className="space-y-4">
         <h1 className="text-xl font-bold">{event.name}</h1>
+        <p className="text-sm text-gray-500">
+          Сначала сохраните фестиваль, затем добавьте заведения и прикрепите сеты.
+        </p>
         <form action={updateEvent} className="space-y-4">
           <input type="hidden" name="id" value={event.id} />
           <Input name="name" label="Название" defaultValue={event.name} required />
@@ -74,7 +106,7 @@ export default async function AdminEventEditPage({ params }: PageProps) {
           <Input
             name="set_price_kzt"
             type="number"
-            label="Цена сета, ₸"
+            label="Цена сета по умолчанию, ₸"
             defaultValue={event.set_price_kzt}
             required
           />
@@ -99,28 +131,60 @@ export default async function AdminEventEditPage({ params }: PageProps) {
       </Card>
 
       <Card padding="lg" className="mt-6 space-y-4">
-        <h2 className="text-lg font-semibold">Заведения со сетами</h2>
-        <ul className="space-y-2">
-          {[...venuesMap.values()].map((venue) => (
-            <li key={venue.id} className="flex items-center justify-between gap-2 rounded-lg border border-gray-100 px-3 py-2">
-              <div>
-                <p className="font-medium">{venue.name}</p>
-                <p className="text-xs text-gray-500">
-                  {(venue.sets ?? [])
-                    .map((s) => `${s.offer_title} (${formatSetPrice(s.price_kzt ?? event.set_price_kzt)})`)
-                    .join(', ') || 'нет сетов'}
-                </p>
-              </div>
-              <Button
-                href={`/admin/events/${event.id}/venues/${venue.id}`}
-                variant="secondary"
-                size="sm"
-              >
-                Сеты и расписание
-              </Button>
-            </li>
-          ))}
-        </ul>
+        <div>
+          <h2 className="text-lg font-semibold">Заведения</h2>
+          <p className="mt-1 text-sm text-gray-500">
+            Площадка может быть без сета — прикрепите сет позже.
+          </p>
+        </div>
+
+        {venues.length === 0 ? (
+          <p className="text-sm text-gray-400">Пока нет заведений в этом фестивале.</p>
+        ) : (
+          <ul className="space-y-2">
+            {venues.map((venue) => {
+              const hasSets = venue.sets.length > 0
+              return (
+                <li
+                  key={venue.id}
+                  className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-gray-100 px-3 py-2"
+                >
+                  <div>
+                    <p className="font-medium">{venue.name}</p>
+                    <p className="text-xs text-gray-500">
+                      {hasSets
+                        ? venue.sets
+                            .map(
+                              (s) =>
+                                `${s.offer_title} (${formatSetPrice(s.price_kzt ?? event.set_price_kzt)})`,
+                            )
+                            .join(', ')
+                        : 'сет ещё не прикреплён'}
+                    </p>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Button
+                      href={`/admin/events/${event.id}/venues/${venue.id}`}
+                      variant="secondary"
+                      size="sm"
+                    >
+                      {hasSets ? 'Сет и расписание' : 'Прикрепить сет'}
+                    </Button>
+                    {!hasSets ? (
+                      <form action={removeFestivalRestaurant}>
+                        <input type="hidden" name="event_id" value={event.id} />
+                        <input type="hidden" name="restaurant_id" value={venue.id} />
+                        <Button type="submit" variant="ghost" size="sm">
+                          Убрать
+                        </Button>
+                      </form>
+                    ) : null}
+                  </div>
+                </li>
+              )
+            })}
+          </ul>
+        )}
 
         <form action={addFestivalRestaurant} className="space-y-3 border-t border-gray-100 pt-4">
           <input type="hidden" name="event_id" value={event.id} />
@@ -133,7 +197,7 @@ export default async function AdminEventEditPage({ params }: PageProps) {
               defaultValue=""
             >
               <option value="">— новое ниже —</option>
-              {(restaurants ?? []).map((r) => (
+              {availableRestaurants.map((r) => (
                 <option key={r.id} value={r.id}>
                   {r.restaurant_name}
                 </option>
@@ -150,7 +214,7 @@ export default async function AdminEventEditPage({ params }: PageProps) {
             Сет + 1+1 в один визит
           </label>
           <Button type="submit" variant="secondary">
-            Добавить и настроить
+            Добавить заведение
           </Button>
         </form>
       </Card>

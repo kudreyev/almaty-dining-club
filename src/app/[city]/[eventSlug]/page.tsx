@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { createSupabasePublicClient } from '@/lib/supabase/public'
+import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { isCity, CITY_LABELS } from '@/lib/cities'
 import { pageMetadata } from '@/lib/seo'
 import { DEFAULT_TZ } from '@/lib/opening-hours'
@@ -52,7 +53,10 @@ export default async function FestivalPage({ params }: PageProps) {
   if (!isCity(city) || RESERVED.has(eventSlug)) notFound()
   if (!(await canViewFestivals())) notFound()
 
-  const supabase = createSupabasePublicClient()
+  // Server client: админ видит и скрытые (is_active=false) тестовые точки.
+  const supabase = isFestivalAdminOnly()
+    ? await createSupabaseServerClient()
+    : createSupabasePublicClient()
   const now = new Date()
 
   const { data: event } = await supabase
@@ -67,7 +71,8 @@ export default async function FestivalPage({ params }: PageProps) {
 
   if (!event || !isEventActiveNow(event, now, DEFAULT_TZ)) notFound()
 
-  const { data: setOffers } = await supabase
+  // В admin-preview тестовые точки могут быть is_active=false — их всё равно показываем админу.
+  let setOffersQuery = supabase
     .from('offers')
     .select(`
       id,
@@ -88,7 +93,12 @@ export default async function FestivalPage({ params }: PageProps) {
     .eq('event_id', event.id)
     .eq('offer_type', 'set')
     .eq('is_active', true)
-    .eq('restaurants.is_active', true)
+
+  if (!isFestivalAdminOnly()) {
+    setOffersQuery = setOffersQuery.eq('restaurants.is_active', true)
+  }
+
+  const { data: setOffers } = await setOffersQuery
 
   type OfferRow = {
     id: string

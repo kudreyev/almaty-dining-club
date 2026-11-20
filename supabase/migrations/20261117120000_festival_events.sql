@@ -1020,6 +1020,7 @@ begin
   end if;
 
   -- Venue A: club 1+1 + set
+  -- is_active=false: сид не светится гостям в каталоге; админы смотрят в превью.
   insert into public.restaurants (
     restaurant_name, slug, city, address, cuisine, is_active,
     combine_set_with_club_offer
@@ -1030,12 +1031,12 @@ begin
     'almaty',
     'Тестовая 1',
     'Кофейня',
-    true,
+    false,
     false
   )
   on conflict (slug) do update
     set restaurant_name = excluded.restaurant_name,
-        is_active = true,
+        is_active = false,
         combine_set_with_club_offer = false
   returning id into v_rest_a;
 
@@ -1088,12 +1089,12 @@ begin
     'almaty',
     'Тестовая 2',
     'Кофейня',
-    true,
+    false,
     false
   )
   on conflict (slug) do update
     set restaurant_name = excluded.restaurant_name,
-        is_active = true
+        is_active = false
   returning id into v_rest_b;
 
   if v_rest_b is null then

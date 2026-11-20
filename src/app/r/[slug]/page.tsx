@@ -105,17 +105,22 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     return { title: 'Заведение не найдено — KudaClub' }
   }
   const supabase = await createSupabaseServerClient()
+  const allowInactivePreview =
+    isFestivalAdminOnly() && (await canViewFestivals()) && slug.startsWith('testfest-')
 
-  const { data: restaurant } = await supabase
+  let metaQuery = supabase
     .from('restaurants')
     .select('restaurant_name, address, offers ( offer_type, offer_title, is_active, end_date )')
     .eq('slug', slug)
-    .eq('is_active', true)
-    .single<{
-      restaurant_name: string
-      address: string | null
-      offers: Pick<Offer, 'offer_type' | 'offer_title' | 'is_active' | 'end_date'>[] | null
-    }>()
+  if (!allowInactivePreview) {
+    metaQuery = metaQuery.eq('is_active', true)
+  }
+
+  const { data: restaurant } = await metaQuery.single<{
+    restaurant_name: string
+    address: string | null
+    offers: Pick<Offer, 'offer_type' | 'offer_title' | 'is_active' | 'end_date'>[] | null
+  }>()
 
   if (!restaurant) {
     return { title: 'Заведение не найдено — KudaClub' }
@@ -136,13 +141,19 @@ export default async function RestaurantPage({ params }: PageProps) {
   if (!(await canViewFestivalPreviewVenue(slug))) notFound()
 
   const supabase = await createSupabaseServerClient()
+  const allowInactivePreview =
+    isFestivalAdminOnly() && (await canViewFestivals()) && slug.startsWith('testfest-')
 
-  const { data: restaurant, error: restaurantError } = await supabase
+  let restaurantQuery = supabase
     .from('restaurants')
     .select(SELECT_RESTAURANT)
     .eq('slug', slug)
-    .eq('is_active', true)
-    .single<Restaurant>()
+
+  if (!allowInactivePreview) {
+    restaurantQuery = restaurantQuery.eq('is_active', true)
+  }
+
+  const { data: restaurant, error: restaurantError } = await restaurantQuery.single<Restaurant>()
 
   if (restaurantError || !restaurant) notFound()
 

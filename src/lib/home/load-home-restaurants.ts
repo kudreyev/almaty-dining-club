@@ -114,7 +114,6 @@ async function loadHomeRestaurantsUncached(city: City): Promise<HomeRestaurantsR
         .lte('starts_at', today)
         .gte('ends_at', today)
         .order('starts_at', { ascending: false })
-        .limit(1)
         .returns<FestivalEvent[]>()
     : Promise.resolve({ data: [] as FestivalEvent[] })
 
@@ -123,9 +122,15 @@ async function loadHomeRestaurantsUncached(city: City): Promise<HomeRestaurantsR
     eventsQuery,
   ])
 
-  const activeEvent = showFestivals
-    ? ((events ?? []).find((event) => isEventActiveNow(event, now, DEFAULT_TZ)) ?? null)
-    : null
+  const activeEvents = showFestivals
+    ? (events ?? []).filter((event) => isEventActiveNow(event, now, DEFAULT_TZ))
+    : []
+  // Плашка каталога: реальный фестиваль (KudaFest и т.п.), не сид testfest-*.
+  const activeEvent =
+    activeEvents.find((event) => !event.slug.startsWith('testfest-'))
+    ?? activeEvents[0]
+    ?? null
+  const eventsById = new Map(activeEvents.map((event) => [event.id, event]))
 
   const safeRestaurants: SupabaseRow[] = (restaurants ?? [])
     .map((r) => ({
@@ -138,16 +143,19 @@ async function loadHomeRestaurantsUncached(city: City): Promise<HomeRestaurantsR
     // Сид TestFest не показываем гостям в основном каталоге.
     .filter((r) => showFestivals || !isFestivalPreviewVenueSlug(r.slug))
 
-  const scheduleByRestaurant = new Map<string, EventVenueScheduleRow[]>()
-  if (activeEvent && safeRestaurants.length > 0) {
+  // schedule keyed by `${eventId}:${restaurantId}`
+  const scheduleByEventRestaurant = new Map<string, EventVenueScheduleRow[]>()
+  if (activeEvents.length > 0 && safeRestaurants.length > 0) {
     const restaurantIds = safeRestaurants.map((item) => item.id)
+    const eventIds = activeEvents.map((event) => event.id)
     const { data: scheduleRows } = await supabase
       .from('event_venue_schedule')
-      .select('restaurant_id, offer_id, weekday, open_time, close_time')
-      .eq('event_id', activeEvent.id)
+      .select('event_id, restaurant_id, offer_id, weekday, open_time, close_time')
+      .in('event_id', eventIds)
       .in('restaurant_id', restaurantIds)
       .returns<
         Array<{
+          event_id: string
           restaurant_id: string
           offer_id: string | null
           weekday: number
@@ -157,14 +165,15 @@ async function loadHomeRestaurantsUncached(city: City): Promise<HomeRestaurantsR
       >()
 
     for (const row of scheduleRows ?? []) {
-      const list = scheduleByRestaurant.get(row.restaurant_id) ?? []
+      const key = `${row.event_id}:${row.restaurant_id}`
+      const list = scheduleByEventRestaurant.get(key) ?? []
       list.push({
         weekday: row.weekday,
         open_time: row.open_time,
         close_time: row.close_time,
         offer_id: row.offer_id,
       })
-      scheduleByRestaurant.set(row.restaurant_id, list)
+      scheduleByEventRestaurant.set(key, list)
     }
   }
 
@@ -187,22 +196,27 @@ async function loadHomeRestaurantsUncached(city: City): Promise<HomeRestaurantsR
   }
 
   const restaurantsWithStatus: RestaurantWithStatus[] = safeRestaurants.map((restaurant) => {
-    const setOffers = activeEvent
-      ? pickSetOffers(restaurant.offers).filter((o) => o.event_id === activeEvent.id)
-      : []
     let activeSetBadge: ActiveSetBadge | null = null
-    if (activeEvent && setOffers.length > 0) {
-      const setOffer = setOffers[0]
+    const setOffers = pickSetOffers(restaurant.offers).filter(
+      (o) => o.event_id && eventsById.has(o.event_id),
+    )
+    if (setOffers.length > 0) {
+      // Предпочитаем сет «главного» фестиваля (плашка), иначе любой активный.
+      const preferred =
+        (activeEvent
+          ? setOffers.find((o) => o.event_id === activeEvent.id)
+          : null) ?? setOffers[0]
+      const event = eventsById.get(preferred.event_id!)!
       const schedule = resolveSetSchedule(
-        scheduleByRestaurant.get(restaurant.id) ?? [],
+        scheduleByEventRestaurant.get(`${event.id}:${restaurant.id}`) ?? [],
         null,
       )
       const status = getSetServingStatus(schedule, now, DEFAULT_TZ)
-      const price = setOffer.price_kzt ?? activeEvent.set_price_kzt
+      const price = preferred.price_kzt ?? event.set_price_kzt
       activeSetBadge = {
-        eventName: activeEvent.name,
-        eventSlug: activeEvent.slug,
-        accentColor: activeEvent.accent_color,
+        eventName: event.name,
+        eventSlug: event.slug,
+        accentColor: event.accent_color,
         priceKzt: price,
         statusLabel: status.badgeLabel,
         isServing: status.isServing,

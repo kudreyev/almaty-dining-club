@@ -69,10 +69,10 @@ export function RestaurantCard({ restaurant, distanceKm }: Props) {
             })}
             {setBadge ? (
               <span
-                className="max-w-full truncate rounded-md px-2 py-[4px] text-[11px] font-medium text-white backdrop-blur-md"
+                className="max-w-full truncate rounded-md px-2.5 py-[5px] text-xs font-medium text-white backdrop-blur-md"
                 style={{ backgroundColor: `${setBadge.accentColor}eb` }}
               >
-                Сет {setBadge.eventName} {formatSetPrice(setBadge.priceKzt)}
+                {setBadge.eventName} · {formatSetPrice(setBadge.priceKzt)}
                 <span className="opacity-90"> · {setBadge.statusLabel}</span>
               </span>
             ) : null}

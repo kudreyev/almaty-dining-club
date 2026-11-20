@@ -220,8 +220,7 @@ export default async function RedeemPage({ params, searchParams }: PageProps) {
             className="mt-3 text-lg font-semibold leading-snug"
             style={{ color: accent }}
           >
-            {offer.offer_title}
-            {event ? ` ${event.name}` : ''}
+            {formatOfferHeadline(offer.offer_type, offer.offer_title, event?.name)}
             {price != null ? ` · к оплате ${formatSetPrice(price)}` : ''}
           </p>
         ) : (

@@ -4,6 +4,7 @@ import { Clock } from 'lucide-react'
 import {
   formatEstimatedValue,
   formatOfferTitle,
+  formatSetOfferTitle,
   type OfferType,
 } from '@/lib/offers'
 import { formatSetPrice, parseSetItems, type SetItem } from '@/lib/events'
@@ -107,7 +108,7 @@ export function RestaurantOffersList({
               до {block.endsLabel}
             </h2>
             <div className="flex flex-col" style={{ gap: '12px', marginTop: '12px' }}>
-              {block.offers.map((offer) => (
+              {block.offers.map((offer, index) => (
                 <OfferCard
                   key={offer.id}
                   offer={offer}
@@ -115,6 +116,8 @@ export function RestaurantOffersList({
                   restaurantSlug={restaurantSlug}
                   restaurantName={restaurantName}
                   isMember={isMember}
+                  showSetNumber={block.offers.length > 1}
+                  setIndex={index}
                 />
               ))}
             </div>
@@ -137,13 +140,19 @@ type OfferCardProps = {
   restaurantSlug: string
   restaurantName: string
   isMember: boolean
+  showSetNumber?: boolean
+  setIndex?: number
 }
 
 function OfferCard(props: OfferCardProps) {
-  const { offer } = props
+  const { offer, showSetNumber = false, setIndex } = props
   const isSet = offer.offer_type === 'set'
   const title = isSet
-    ? offer.offer_title
+    ? formatSetOfferTitle(offer.event_name, {
+        showNumber: showSetNumber,
+        offerTitle: offer.offer_title,
+        index: setIndex,
+      })
     : formatOfferTitle(offer.offer_type, offer.offer_title, offer.event_name)
   const benefitLabel = formatEstimatedValue(offer.estimated_value)
   const typeBadge = formatTypeBadge(offer)
@@ -297,6 +306,8 @@ function OfferCta({
   restaurantSlug,
   restaurantName,
   isMember,
+  showSetNumber = false,
+  setIndex,
 }: OfferCardProps) {
   const baseStyle: React.CSSProperties = {
     fontSize: '13px',
@@ -333,7 +344,12 @@ function OfferCta({
       href={href}
       onClick={() => {
         trackMetaPixel('AddToCart', {
-          content_name: formatOfferTitle(offer.offer_type, offer.offer_title, offer.event_name),
+          content_name: formatOfferTitle(
+            offer.offer_type,
+            offer.offer_title,
+            offer.event_name,
+            { showSetNumber, setIndex },
+          ),
           content_ids: [offer.id],
           value: offer.estimated_value ?? META_OFFER_DEFAULT_VALUE_KZT,
           currency: 'KZT',
@@ -362,7 +378,7 @@ function formatTypeBadge(offer: RestaurantOffer): { label: string; bg: string } 
   }
   if (offer.offer_type === 'set') {
     return {
-      label: offer.event_name ? `Сет ${offer.event_name}` : 'Сет',
+      label: formatSetOfferTitle(offer.event_name),
       bg: offer.accent_color || '#5B21B6',
     }
   }

@@ -9,6 +9,7 @@ type Props = {
   event: FestivalEvent
 }
 
+/** Отдельная плашка активного фестиваля над каталогом. */
 export function FestivalBanner({ city, event }: Props) {
   return (
     <div className="mx-auto max-w-6xl px-5 pt-4 md:pt-6">
@@ -19,11 +20,22 @@ export function FestivalBanner({ city, event }: Props) {
       ) : null}
       <Link
         href={`/${city}/${event.slug}`}
-        className="flex items-center justify-between gap-3 rounded-2xl px-4 py-3 text-sm font-medium text-white transition-opacity hover:opacity-95"
+        className="block overflow-hidden rounded-2xl shadow-sm transition-opacity hover:opacity-95"
         style={{ backgroundColor: event.accent_color }}
       >
-        <span>{formatActiveEventBanner(event)}</span>
-        <span className="shrink-0 text-white/85">Смотреть →</span>
+        <div className="flex items-center justify-between gap-4 px-4 py-3.5 sm:px-5 sm:py-4">
+          <div className="min-w-0">
+            <p className="text-[11px] font-medium uppercase tracking-wide text-white/75">
+              Фестиваль
+            </p>
+            <p className="mt-0.5 truncate text-base font-semibold text-white sm:text-lg">
+              {formatActiveEventBanner(event)}
+            </p>
+          </div>
+          <span className="shrink-0 rounded-lg bg-white/15 px-3 py-1.5 text-sm font-medium text-white">
+            Смотреть →
+          </span>
+        </div>
       </Link>
     </div>
   )

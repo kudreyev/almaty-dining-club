@@ -185,31 +185,66 @@ export function hasCatalogActiveOffers<T extends CatalogOfferLike>(
   return offers.some((offer) => isOfferCatalogActive(offer, todayString))
 }
 
+/**
+ * Заголовок сета: «KudaFest сет» или «KudaFest сет №1», если сетов в заведении больше одного.
+ * Номер берётся из offer_title («Сет №1») или из index (0-based).
+ */
+export function formatSetOfferTitle(
+  eventName?: string | null,
+  options?: {
+    showNumber?: boolean
+    offerTitle?: string | null
+    index?: number
+  },
+): string {
+  const name = (eventName?.trim() || 'KudaFest')
+  if (!options?.showNumber) return `${name} сет`
+
+  const fromTitle = options.offerTitle?.match(/№\s*(\d+)/i)?.[1]
+  const num =
+    fromTitle ?? (options.index != null ? String(options.index + 1) : null)
+  return num ? `${name} сет №${num}` : `${name} сет`
+}
+
 export function formatOfferHeadline(
   offerType: OfferType,
   offerTitle: string,
   eventName?: string | null,
+  options?: { showSetNumber?: boolean; setIndex?: number },
 ): string {
   if (offerType === '2for1') return `1+1 · ${offerTitle}`
-  if (offerType === 'set') return eventName ? `Сет ${eventName} · ${offerTitle}` : `Сет · ${offerTitle}`
+  if (offerType === 'set') {
+    return formatSetOfferTitle(eventName, {
+      showNumber: options?.showSetNumber,
+      offerTitle,
+      index: options?.setIndex,
+    })
+  }
   return `${offerTitle} в подарок`
 }
 
-/** Развёрнутый заголовок оффера с пробелами: «1+1 · {название}» / «{название} в подарок». */
+/** Развёрнутый заголовок оффера: «1+1 · …» / «{event} сет» / «{название} в подарок». */
 export function formatOfferTitle(
   offerType: OfferType,
   offerTitle: string,
   eventName?: string | null,
+  options?: { showSetNumber?: boolean; setIndex?: number },
 ): string {
   if (offerType === '2for1') return `1+1 · ${offerTitle}`
-  if (offerType === 'set') return eventName ? `Сет ${eventName} · ${offerTitle}` : `Сет · ${offerTitle}`
+  if (offerType === 'set') {
+    return formatSetOfferTitle(eventName, {
+      showNumber: options?.showSetNumber,
+      offerTitle,
+      index: options?.setIndex,
+    })
+  }
   return `${offerTitle} в подарок`
 }
 
 /** Лейбл плашки оффера на карточке заведения (только клубные). */
 export function formatOfferChipLabel(offerType: OfferType, offerTitle: string): string {
   if (offerType === '2for1') return `1+1 · ${offerTitle}`
-  if (offerType === 'set') return `Сет · ${offerTitle}`
+  if (offerType === 'set') return formatSetOfferTitle(null, { showNumber: true, offerTitle })
   return `${offerTitle} в подарок`
 }
 

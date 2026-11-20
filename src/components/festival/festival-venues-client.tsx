@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { formatSetPrice } from '@/lib/events'
+import { formatSetOfferTitle } from '@/lib/offers'
 
 export type FestivalVenueCard = {
   restaurantId: string
@@ -68,7 +69,7 @@ export function FestivalVenuesClient({ venues, accentColor, eventName }: Props) 
                   {venue.address ? ` · ${venue.address}` : ''}
                 </p>
                 <p className="mt-3 text-sm font-medium" style={{ color: accentColor }}>
-                  {venue.offerTitle} · {formatSetPrice(venue.priceKzt)}
+                  {formatSetOfferTitle(eventName)} · {formatSetPrice(venue.priceKzt)}
                 </p>
                 <p className="mt-1 text-xs text-neutral-500">
                   {eventName}: {venue.statusLabel}

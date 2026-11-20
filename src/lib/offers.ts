@@ -217,7 +217,9 @@ export function isFestivalSetOffer(offer: {
 
 /** Название похоже на фестивальный сет («Сет №1»), а не на клубный подарок. */
 function looksLikeSetTitle(offerTitle: string): boolean {
-  return /^сет\b/i.test(offerTitle.trim().replace(/\s*в подарок\s*$/i, ''))
+  // Не используем \b — в JS это не работает с кириллицей.
+  const cleaned = offerTitle.trim().replace(/\s*в подарок\s*$/i, '')
+  return /^сет(?=$|[\s№#.,:!?\-–—])/i.test(cleaned)
 }
 
 function formatGiftTitle(offerTitle: string): string {

@@ -98,7 +98,13 @@ describe('weekly report format', () => {
     expect(text).toContain('Без погашений: 6 заведений (Кафе А, Кафе Б, Кафе В)')
     expect(text).toContain('Каналы: instagram 31 · ref 24 · qr 18 · неизвестно 14')
     expect(text).toContain('Пик: пт 19–21 ч')
-    expect(/[↑↓→←]/.test(text) || text.includes('✅') || text.includes('🔥')).toBe(false)
+    // Стрелка в строке фестиваля («после сета → клуб») допустима; emoji/тренды — нет.
+    const withoutFestivalArrow = text.replace('после сета → клуб', 'после сета к клуб')
+    expect(
+      /[↑↓→←]/.test(withoutFestivalArrow)
+      || withoutFestivalArrow.includes('✅')
+      || withoutFestivalArrow.includes('🔥'),
+    ).toBe(false)
   })
 
   it('builds csv and snaps week to monday', () => {

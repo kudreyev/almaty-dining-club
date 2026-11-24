@@ -1,7 +1,7 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
-import { redirect } from 'next/navigation'
+import { redirect, unstable_rethrow } from 'next/navigation'
 import { requireAdmin } from '@/lib/admin'
 import { revalidateCatalogPaths } from '@/lib/revalidate-catalog'
 import { DEFAULT_CITY, isCity } from '@/lib/cities'
@@ -35,10 +35,18 @@ function slugifyOfferKey(input: string): string {
   return ascii || 'set'
 }
 
-function venuePath(eventId: string, restaurantId: string, error?: string) {
+function venuePath(
+  eventId: string,
+  restaurantId: string,
+  opts?: { error?: string; ok?: boolean; setId?: string },
+) {
   const base = `/admin/events/${eventId}/venues/${restaurantId}`
-  if (!error) return base
-  return `${base}?error=${encodeURIComponent(error.slice(0, 280))}`
+  const qs = new URLSearchParams()
+  if (opts?.error) qs.set('error', opts.error.slice(0, 280))
+  if (opts?.ok) qs.set('ok', '1')
+  if (opts?.setId) qs.set('set', opts.setId)
+  const q = qs.toString()
+  return q ? `${base}?${q}` : base
 }
 
 function eventPath(eventId: string, error?: string) {
@@ -232,76 +240,119 @@ export async function removeFestivalRestaurant(formData: FormData) {
 }
 
 export async function saveFestivalSet(formData: FormData) {
-  await requireAdmin()
-  const supabase = createSupabaseAdminClient()
   const eventId = String(formData.get('event_id') || '')
   const restaurantId = String(formData.get('restaurant_id') || '')
-  const offerId = String(formData.get('offer_id') || '').trim()
-  if (!eventId || !restaurantId) redirect('/admin/events')
+  try {
+    await requireAdmin()
+    const supabase = createSupabaseAdminClient()
+    const offerId = String(formData.get('offer_id') || '').trim()
+    if (!eventId || !restaurantId) redirect('/admin/events')
 
-  const title = String(formData.get('offer_title') || '').trim()
-  if (!title) redirect(venuePath(eventId, restaurantId, 'Укажите название сета'))
-
-  const priceKzt = parseIntField(formData.get('price_kzt'), 3500)
-  const menuValue = parseIntField(formData.get('menu_value_kzt'), priceKzt + 2000)
-  const estimatedValue = Math.max(0, menuValue - priceKzt)
-
-  let items: unknown = null
-  const itemsRaw = String(formData.get('items_json') || '').trim()
-  if (itemsRaw) {
-    try {
-      items = JSON.parse(itemsRaw)
-    } catch {
-      redirect(venuePath(eventId, restaurantId, 'Состав сета: некорректный JSON'))
+    const title = String(formData.get('offer_title') || '').trim()
+    if (!title) {
+      redirect(venuePath(eventId, restaurantId, { error: 'Укажите название сета' }))
     }
-  }
 
-  const offerKey =
-    String(formData.get('offer_key') || '').trim()
-    || `set_${slugifyOfferKey(title)}_${Date.now().toString(36)}`
+    const priceKzt = parseIntField(formData.get('price_kzt'), 3500)
+    const menuValue = parseIntField(formData.get('menu_value_kzt'), priceKzt + 2000)
+    const estimatedValue = Math.max(0, menuValue - priceKzt)
 
-  const linkError = await ensureEventVenue(supabase, eventId, restaurantId)
-  if (linkError) redirect(venuePath(eventId, restaurantId, linkError))
+    let items: unknown = null
+    const itemsRaw = String(formData.get('items_json') || '')
+      .trim()
+      .replace(/^\uFEFF/, '')
+      .replace(/[“”]/g, '"')
+      .replace(/[‘’]/g, "'")
+    if (itemsRaw) {
+      try {
+        items = JSON.parse(itemsRaw)
+      } catch {
+        redirect(
+          venuePath(eventId, restaurantId, {
+            error: 'Состав сета: некорректный JSON. Можно очистить поле и сохранить без состава.',
+          }),
+        )
+      }
+    }
 
-  if (offerId) {
-    const { error } = await supabase
+    const offerKey =
+      String(formData.get('offer_key') || '').trim()
+      || `set_${slugifyOfferKey(title)}_${Date.now().toString(36)}`
+
+    const linkError = await ensureEventVenue(supabase, eventId, restaurantId)
+    if (linkError) {
+      redirect(venuePath(eventId, restaurantId, { error: linkError }))
+    }
+
+    if (offerId) {
+      const { error } = await supabase
+        .from('offers')
+        .update({
+          offer_title: title,
+          offer_terms_short: String(formData.get('offer_terms_short') || ''),
+          price_kzt: priceKzt,
+          menu_value_kzt: menuValue,
+          estimated_value: estimatedValue,
+          items,
+          is_active: formData.get('is_active') === 'on',
+        })
+        .eq('id', offerId)
+        .eq('restaurant_id', restaurantId)
+        .eq('event_id', eventId)
+      if (error) {
+        redirect(
+          venuePath(eventId, restaurantId, {
+            error: explainDbError(error.message),
+            setId: offerId,
+          }),
+        )
+      }
+      revalidateCatalogPaths()
+      revalidatePath(`/admin/events/${eventId}`)
+      revalidatePath(`/admin/events/${eventId}/venues/${restaurantId}`)
+      redirect(venuePath(eventId, restaurantId, { ok: true, setId: offerId }))
+    }
+
+    const { data: created, error } = await supabase
       .from('offers')
-      .update({
+      .insert({
+        restaurant_id: restaurantId,
+        event_id: eventId,
+        offer_type: 'set',
+        offer_key: offerKey,
         offer_title: title,
         offer_terms_short: String(formData.get('offer_terms_short') || ''),
+        offer_terms_full: '',
         price_kzt: priceKzt,
         menu_value_kzt: menuValue,
         estimated_value: estimatedValue,
         items,
         is_active: formData.get('is_active') === 'on',
+        takeaway_only: false,
       })
-      .eq('id', offerId)
-      .eq('restaurant_id', restaurantId)
-      .eq('event_id', eventId)
-    if (error) redirect(venuePath(eventId, restaurantId, explainDbError(error.message)))
-  } else {
-    const { error } = await supabase.from('offers').insert({
-      restaurant_id: restaurantId,
-      event_id: eventId,
-      offer_type: 'set',
-      offer_key: offerKey,
-      offer_title: title,
-      offer_terms_short: String(formData.get('offer_terms_short') || ''),
-      offer_terms_full: '',
-      price_kzt: priceKzt,
-      menu_value_kzt: menuValue,
-      estimated_value: estimatedValue,
-      items,
-      is_active: formData.get('is_active') === 'on',
-      takeaway_only: false,
-    })
-    if (error) redirect(venuePath(eventId, restaurantId, explainDbError(error.message)))
-  }
+      .select('id')
+      .single<{ id: string }>()
 
-  revalidateCatalogPaths()
-  revalidatePath(`/admin/events/${eventId}`)
-  revalidatePath(`/admin/events/${eventId}/venues/${restaurantId}`)
-  redirect(venuePath(eventId, restaurantId))
+    if (error || !created) {
+      redirect(
+        venuePath(eventId, restaurantId, {
+          error: explainDbError(error?.message || 'Не удалось создать сет'),
+        }),
+      )
+    }
+
+    revalidateCatalogPaths()
+    revalidatePath(`/admin/events/${eventId}`)
+    revalidatePath(`/admin/events/${eventId}/venues/${restaurantId}`)
+    redirect(venuePath(eventId, restaurantId, { ok: true }))
+  } catch (e) {
+    unstable_rethrow(e)
+    const message = e instanceof Error ? e.message : 'Неизвестная ошибка при сохранении сета'
+    if (eventId && restaurantId) {
+      redirect(venuePath(eventId, restaurantId, { error: explainDbError(message) }))
+    }
+    redirect('/admin/events?error=' + encodeURIComponent(explainDbError(message)))
+  }
 }
 
 /** Расписание подачи — на уровне заведения (общее для всех его сетов). */
@@ -313,13 +364,13 @@ export async function saveFestivalVenueSchedule(formData: FormData) {
   if (!eventId || !restaurantId) redirect('/admin/events')
 
   const linkError = await ensureEventVenue(supabase, eventId, restaurantId)
-  if (linkError) redirect(venuePath(eventId, restaurantId, linkError))
+  if (linkError) redirect(venuePath(eventId, restaurantId, { error: linkError }))
 
   try {
     await saveVenueSchedule(supabase, eventId, restaurantId, formData)
   } catch (e) {
     const message = e instanceof Error ? e.message : 'Не удалось сохранить расписание'
-    redirect(venuePath(eventId, restaurantId, explainDbError(message)))
+    redirect(venuePath(eventId, restaurantId, { error: explainDbError(message) }))
   }
 
   const combine = formData.get('combine_set_with_club_offer') === 'on'
@@ -331,7 +382,7 @@ export async function saveFestivalVenueSchedule(formData: FormData) {
   revalidateCatalogPaths()
   revalidatePath(`/admin/events/${eventId}`)
   revalidatePath(`/admin/events/${eventId}/venues/${restaurantId}`)
-  redirect(venuePath(eventId, restaurantId))
+  redirect(venuePath(eventId, restaurantId, { ok: true }))
 }
 
 export async function deleteFestivalSet(formData: FormData) {
@@ -349,12 +400,14 @@ export async function deleteFestivalSet(formData: FormData) {
     .eq('event_id', eventId)
     .eq('restaurant_id', restaurantId)
     .eq('offer_type', 'set')
-  if (error) redirect(venuePath(eventId, restaurantId, explainDbError(error.message)))
+  if (error) {
+    redirect(venuePath(eventId, restaurantId, { error: explainDbError(error.message) }))
+  }
 
   revalidateCatalogPaths()
   revalidatePath(`/admin/events/${eventId}`)
   revalidatePath(`/admin/events/${eventId}/venues/${restaurantId}`)
-  redirect(venuePath(eventId, restaurantId))
+  redirect(venuePath(eventId, restaurantId, { ok: true }))
 }
 
 async function saveVenueSchedule(

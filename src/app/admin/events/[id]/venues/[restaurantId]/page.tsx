@@ -16,7 +16,7 @@ import {
 
 type PageProps = {
   params: Promise<{ id: string; restaurantId: string }>
-  searchParams: Promise<{ set?: string; new?: string; error?: string }>
+  searchParams: Promise<{ set?: string; new?: string; error?: string; ok?: string }>
 }
 
 type SetRow = {
@@ -61,9 +61,8 @@ export default async function AdminEventVenuePage({ params, searchParams }: Page
   if (!event || !restaurant) notFound()
 
   const setList = sets ?? []
-  const wantNew = sp.new === '1' || setList.length === 0
-  const editingId = wantNew ? null : (sp.set || setList[0]?.id || null)
-  const editing = editingId ? setList.find((s) => s.id === editingId) ?? null : null
+  // Редактируем только если явно выбрали ?set=id. Иначе форма всегда создаёт новый сет.
+  const editing = sp.set ? setList.find((s) => s.id === sp.set) ?? null : null
 
   const initialSchedule: Partial<Record<number, ScheduleDayState>> = {}
   for (const row of schedule ?? []) {
@@ -106,6 +105,12 @@ export default async function AdminEventVenuePage({ params, searchParams }: Page
         </div>
       ) : null}
 
+      {sp.ok === '1' ? (
+        <div className="mb-6 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+          Сет сохранён.
+        </div>
+      ) : null}
+
       <Card padding="lg" className="space-y-4">
         <h2 className="text-lg font-semibold">Расписание подачи сета</h2>
         <p className="text-sm text-gray-500">
@@ -132,25 +137,14 @@ export default async function AdminEventVenuePage({ params, searchParams }: Page
       </Card>
 
       <Card padding="lg" className="mt-6 space-y-4">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <h2 className="text-lg font-semibold">Сеты</h2>
-          {setList.length > 0 ? (
-            <Button
-              href={`/admin/events/${eventId}/venues/${restaurantId}?new=1`}
-              variant="secondary"
-              size="sm"
-            >
-              + Ещё сет
-            </Button>
-          ) : null}
-        </div>
+        <h2 className="text-lg font-semibold">Сеты ({setList.length})</h2>
 
         {setList.length === 0 ? (
-          <p className="text-sm text-gray-400">Пока нет сетов — прикрепите первый ниже.</p>
+          <p className="text-sm text-gray-400">Пока нет сетов — добавьте первый ниже.</p>
         ) : (
           <ul className="space-y-2">
             {setList.map((set, index) => {
-              const active = editing?.id === set.id && !wantNew
+              const active = editing?.id === set.id
               return (
                 <li
                   key={set.id}
@@ -192,12 +186,27 @@ export default async function AdminEventVenuePage({ params, searchParams }: Page
             })}
           </ul>
         )}
+
+        {editing ? (
+          <Button
+            href={`/admin/events/${eventId}/venues/${restaurantId}`}
+            variant="secondary"
+            size="sm"
+          >
+            + Новый сет
+          </Button>
+        ) : null}
       </Card>
 
       <Card padding="lg" className="mt-6 space-y-4">
         <h2 className="text-lg font-semibold">
-          {editing ? 'Редактировать сет' : 'Прикрепить сет'}
+          {editing ? 'Редактировать сет' : 'Добавить сет'}
         </h2>
+        <p className="text-sm text-gray-500">
+          {editing
+            ? 'Сохраняет изменения выбранного сета.'
+            : 'Форма создаёт новый сет. Чтобы править существующий — нажмите «Изменить» в списке.'}
+        </p>
         <form action={saveFestivalSet} className="space-y-4">
           <input type="hidden" name="event_id" value={eventId} />
           <input type="hidden" name="restaurant_id" value={restaurantId} />
@@ -232,7 +241,7 @@ export default async function AdminEventVenuePage({ params, searchParams }: Page
             required
           />
           <label className="block text-sm text-gray-600">
-            Состав (JSON)
+            Состав (JSON, необязательно)
             <textarea
               name="items_json"
               rows={6}
@@ -252,7 +261,7 @@ export default async function AdminEventVenuePage({ params, searchParams }: Page
           </label>
 
           <Button type="submit" className="w-full">
-            {editing ? 'Сохранить сет' : 'Прикрепить сет'}
+            {editing ? 'Сохранить изменения' : 'Добавить сет'}
           </Button>
         </form>
       </Card>

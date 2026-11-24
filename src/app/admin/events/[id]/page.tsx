@@ -12,7 +12,10 @@ import { RestaurantCityField } from '@/components/admin/restaurant-city-field'
 import { formatSetPrice } from '@/lib/events'
 import type { City } from '@/lib/cities'
 
-type PageProps = { params: Promise<{ id: string }> }
+type PageProps = {
+  params: Promise<{ id: string }>
+  searchParams: Promise<{ error?: string }>
+}
 
 type SetOfferRow = {
   id: string
@@ -22,8 +25,9 @@ type SetOfferRow = {
   is_active: boolean
 }
 
-export default async function AdminEventEditPage({ params }: PageProps) {
+export default async function AdminEventEditPage({ params, searchParams }: PageProps) {
   const { id } = await params
+  const sp = await searchParams
   const { supabase } = await requireAdmin()
 
   const { data: event } = await supabase
@@ -96,6 +100,11 @@ export default async function AdminEventEditPage({ params }: PageProps) {
         <p className="text-sm text-gray-500">
           Сначала сохраните фестиваль, затем добавьте заведения и прикрепите сеты.
         </p>
+        {sp.error ? (
+          <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+            {sp.error}
+          </div>
+        ) : null}
         <form action={updateEvent} className="space-y-4">
           <input type="hidden" name="id" value={event.id} />
           <Input name="name" label="Название" defaultValue={event.name} required />

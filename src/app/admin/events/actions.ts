@@ -5,6 +5,8 @@ import { redirect } from 'next/navigation'
 import { requireAdmin } from '@/lib/admin'
 import { revalidateCatalogPaths } from '@/lib/revalidate-catalog'
 import { DEFAULT_CITY, isCity } from '@/lib/cities'
+import { createSupabaseAdminClient } from '@/lib/supabase/admin'
+import type { SupabaseClient } from '@supabase/supabase-js'
 
 function parseCity(value: FormDataEntryValue | null): 'almaty' | 'astana' {
   return isCity(value) ? value : DEFAULT_CITY
@@ -23,10 +25,62 @@ function slugify(input: string): string {
     .slice(0, 60) || 'event'
 }
 
+/** ASCII-only key — безопаснее для unique offer_key. */
+function slugifyOfferKey(input: string): string {
+  const ascii = input
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/gi, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 40)
+  return ascii || 'set'
+}
+
+function venuePath(eventId: string, restaurantId: string, error?: string) {
+  const base = `/admin/events/${eventId}/venues/${restaurantId}`
+  if (!error) return base
+  return `${base}?error=${encodeURIComponent(error.slice(0, 280))}`
+}
+
+function eventPath(eventId: string, error?: string) {
+  const base = `/admin/events/${eventId}`
+  if (!error) return base
+  return `${base}?error=${encodeURIComponent(error.slice(0, 280))}`
+}
+
+function explainDbError(message: string): string {
+  const m = message.toLowerCase()
+  if (m.includes('event_venues') || m.includes('pgrst205')) {
+    return 'Нет таблицы event_venues. Прогоните в Supabase SQL: supabase/migrations/20261120140000_event_venues.sql'
+  }
+  if (m.includes('offer_type') || m.includes('offers_offer_type_check')) {
+    return 'В БД ещё нет типа set. Прогоните supabase/migrations/20261117120000_festival_events.sql'
+  }
+  if (m.includes('event_id') || m.includes('offers_set_event_required')) {
+    return 'Сет должен быть привязан к фестивалю (event_id). Прогоните festival_events миграцию.'
+  }
+  if (m.includes('price_kzt') || m.includes('menu_value_kzt') || m.includes('items')) {
+    return 'В offers нет колонок сета. Прогоните supabase/migrations/20261117120000_festival_events.sql'
+  }
+  return message
+}
+
+async function ensureEventVenue(
+  supabase: SupabaseClient,
+  eventId: string,
+  restaurantId: string,
+): Promise<string | null> {
+  const { error } = await supabase.from('event_venues').upsert(
+    { event_id: eventId, restaurant_id: restaurantId },
+    { onConflict: 'event_id,restaurant_id' },
+  )
+  return error ? explainDbError(error.message) : null
+}
+
 export async function createEvent(formData: FormData) {
-  const { supabase } = await requireAdmin()
+  await requireAdmin()
+  const supabase = createSupabaseAdminClient()
   const name = String(formData.get('name') || '').trim()
-  if (!name) throw new Error('Укажите название фестиваля')
+  if (!name) redirect('/admin/events/new?error=' + encodeURIComponent('Укажите название фестиваля'))
 
   const slugRaw = String(formData.get('slug') || '').trim() || slugify(name)
   const payload = {
@@ -43,7 +97,7 @@ export async function createEvent(formData: FormData) {
   }
 
   if (!payload.starts_at || !payload.ends_at) {
-    throw new Error('Укажите даты начала и конца')
+    redirect('/admin/events/new?error=' + encodeURIComponent('Укажите даты начала и конца'))
   }
 
   const { data, error } = await supabase
@@ -52,7 +106,9 @@ export async function createEvent(formData: FormData) {
     .select('id')
     .single<{ id: string }>()
 
-  if (error) throw new Error(error.message)
+  if (error || !data) {
+    redirect('/admin/events/new?error=' + encodeURIComponent(explainDbError(error?.message || 'Не удалось создать')))
+  }
 
   revalidateCatalogPaths()
   revalidatePath('/admin/events')
@@ -60,9 +116,10 @@ export async function createEvent(formData: FormData) {
 }
 
 export async function updateEvent(formData: FormData) {
-  const { supabase } = await requireAdmin()
+  await requireAdmin()
+  const supabase = createSupabaseAdminClient()
   const id = String(formData.get('id') || '')
-  if (!id) throw new Error('Missing id')
+  if (!id) redirect('/admin/events')
 
   const payload = {
     name: String(formData.get('name') || '').trim(),
@@ -78,7 +135,7 @@ export async function updateEvent(formData: FormData) {
   }
 
   const { error } = await supabase.from('events').update(payload).eq('id', id)
-  if (error) throw new Error(error.message)
+  if (error) redirect(eventPath(id, explainDbError(error.message)))
 
   revalidateCatalogPaths()
   revalidatePath('/admin/events')
@@ -87,9 +144,10 @@ export async function updateEvent(formData: FormData) {
 }
 
 export async function addFestivalRestaurant(formData: FormData) {
-  const { supabase } = await requireAdmin()
+  await requireAdmin()
+  const supabase = createSupabaseAdminClient()
   const eventId = String(formData.get('event_id') || '')
-  if (!eventId) throw new Error('Missing event_id')
+  if (!eventId) redirect('/admin/events')
 
   const existingId = String(formData.get('restaurant_id') || '').trim()
   let restaurantId = existingId
@@ -97,7 +155,7 @@ export async function addFestivalRestaurant(formData: FormData) {
   if (!restaurantId) {
     const name = String(formData.get('new_restaurant_name') || '').trim()
     const slug = String(formData.get('new_restaurant_slug') || '').trim() || slugify(name)
-    if (!name) throw new Error('Выберите заведение или создайте новое')
+    if (!name) redirect(eventPath(eventId, 'Выберите заведение или создайте новое'))
 
     const { data: event } = await supabase
       .from('events')
@@ -119,7 +177,9 @@ export async function addFestivalRestaurant(formData: FormData) {
       .select('id')
       .single<{ id: string }>()
 
-    if (error) throw new Error(error.message)
+    if (error || !created) {
+      redirect(eventPath(eventId, explainDbError(error?.message || 'Не удалось создать заведение')))
+    }
     restaurantId = created.id
   } else {
     const combine = formData.get('combine_set_with_club_offer') === 'on'
@@ -129,22 +189,19 @@ export async function addFestivalRestaurant(formData: FormData) {
       .eq('id', restaurantId)
   }
 
-  const { error: linkError } = await supabase.from('event_venues').upsert(
-    { event_id: eventId, restaurant_id: restaurantId },
-    { onConflict: 'event_id,restaurant_id' },
-  )
-  if (linkError) throw new Error(linkError.message)
+  const linkError = await ensureEventVenue(supabase, eventId, restaurantId)
+  if (linkError) redirect(eventPath(eventId, linkError))
 
   revalidatePath(`/admin/events/${eventId}`)
-  // Остаёмся на странице фестиваля — сет прикрепляется отдельно.
   redirect(`/admin/events/${eventId}`)
 }
 
 export async function removeFestivalRestaurant(formData: FormData) {
-  const { supabase } = await requireAdmin()
+  await requireAdmin()
+  const supabase = createSupabaseAdminClient()
   const eventId = String(formData.get('event_id') || '')
   const restaurantId = String(formData.get('restaurant_id') || '')
-  if (!eventId || !restaurantId) throw new Error('Missing ids')
+  if (!eventId || !restaurantId) redirect('/admin/events')
 
   const { count } = await supabase
     .from('offers')
@@ -154,7 +211,7 @@ export async function removeFestivalRestaurant(formData: FormData) {
     .eq('offer_type', 'set')
 
   if ((count ?? 0) > 0) {
-    throw new Error('Сначала удалите или отвяжите сеты этого заведения')
+    redirect(eventPath(eventId, 'Сначала удалите сеты этого заведения'))
   }
 
   await supabase
@@ -168,21 +225,22 @@ export async function removeFestivalRestaurant(formData: FormData) {
     .delete()
     .eq('event_id', eventId)
     .eq('restaurant_id', restaurantId)
-  if (error) throw new Error(error.message)
+  if (error) redirect(eventPath(eventId, explainDbError(error.message)))
 
   revalidatePath(`/admin/events/${eventId}`)
   redirect(`/admin/events/${eventId}`)
 }
 
 export async function saveFestivalSet(formData: FormData) {
-  const { supabase } = await requireAdmin()
+  await requireAdmin()
+  const supabase = createSupabaseAdminClient()
   const eventId = String(formData.get('event_id') || '')
   const restaurantId = String(formData.get('restaurant_id') || '')
   const offerId = String(formData.get('offer_id') || '').trim()
-  if (!eventId || !restaurantId) throw new Error('Missing ids')
+  if (!eventId || !restaurantId) redirect('/admin/events')
 
   const title = String(formData.get('offer_title') || '').trim()
-  if (!title) throw new Error('Укажите название сета')
+  if (!title) redirect(venuePath(eventId, restaurantId, 'Укажите название сета'))
 
   const priceKzt = parseIntField(formData.get('price_kzt'), 3500)
   const menuValue = parseIntField(formData.get('menu_value_kzt'), priceKzt + 2000)
@@ -194,20 +252,16 @@ export async function saveFestivalSet(formData: FormData) {
     try {
       items = JSON.parse(itemsRaw)
     } catch {
-      throw new Error('Состав сета: некорректный JSON')
+      redirect(venuePath(eventId, restaurantId, 'Состав сета: некорректный JSON'))
     }
   }
 
   const offerKey =
     String(formData.get('offer_key') || '').trim()
-    || `set_${slugify(title)}_${Date.now().toString(36)}`
+    || `set_${slugifyOfferKey(title)}_${Date.now().toString(36)}`
 
-  // Сет можно прикрепить только к площадке фестиваля.
-  const { error: linkError } = await supabase.from('event_venues').upsert(
-    { event_id: eventId, restaurant_id: restaurantId },
-    { onConflict: 'event_id,restaurant_id' },
-  )
-  if (linkError) throw new Error(linkError.message)
+  const linkError = await ensureEventVenue(supabase, eventId, restaurantId)
+  if (linkError) redirect(venuePath(eventId, restaurantId, linkError))
 
   if (offerId) {
     const { error } = await supabase
@@ -224,7 +278,7 @@ export async function saveFestivalSet(formData: FormData) {
       .eq('id', offerId)
       .eq('restaurant_id', restaurantId)
       .eq('event_id', eventId)
-    if (error) throw new Error(error.message)
+    if (error) redirect(venuePath(eventId, restaurantId, explainDbError(error.message)))
   } else {
     const { error } = await supabase.from('offers').insert({
       restaurant_id: restaurantId,
@@ -239,30 +293,34 @@ export async function saveFestivalSet(formData: FormData) {
       estimated_value: estimatedValue,
       items,
       is_active: formData.get('is_active') === 'on',
+      takeaway_only: false,
     })
-    if (error) throw new Error(error.message)
+    if (error) redirect(venuePath(eventId, restaurantId, explainDbError(error.message)))
   }
 
   revalidateCatalogPaths()
   revalidatePath(`/admin/events/${eventId}`)
   revalidatePath(`/admin/events/${eventId}/venues/${restaurantId}`)
-  redirect(`/admin/events/${eventId}/venues/${restaurantId}`)
+  redirect(venuePath(eventId, restaurantId))
 }
 
 /** Расписание подачи — на уровне заведения (общее для всех его сетов). */
 export async function saveFestivalVenueSchedule(formData: FormData) {
-  const { supabase } = await requireAdmin()
+  await requireAdmin()
+  const supabase = createSupabaseAdminClient()
   const eventId = String(formData.get('event_id') || '')
   const restaurantId = String(formData.get('restaurant_id') || '')
-  if (!eventId || !restaurantId) throw new Error('Missing ids')
+  if (!eventId || !restaurantId) redirect('/admin/events')
 
-  const { error: linkError } = await supabase.from('event_venues').upsert(
-    { event_id: eventId, restaurant_id: restaurantId },
-    { onConflict: 'event_id,restaurant_id' },
-  )
-  if (linkError) throw new Error(linkError.message)
+  const linkError = await ensureEventVenue(supabase, eventId, restaurantId)
+  if (linkError) redirect(venuePath(eventId, restaurantId, linkError))
 
-  await saveVenueSchedule(supabase, eventId, restaurantId, formData)
+  try {
+    await saveVenueSchedule(supabase, eventId, restaurantId, formData)
+  } catch (e) {
+    const message = e instanceof Error ? e.message : 'Не удалось сохранить расписание'
+    redirect(venuePath(eventId, restaurantId, explainDbError(message)))
+  }
 
   const combine = formData.get('combine_set_with_club_offer') === 'on'
   await supabase
@@ -273,15 +331,16 @@ export async function saveFestivalVenueSchedule(formData: FormData) {
   revalidateCatalogPaths()
   revalidatePath(`/admin/events/${eventId}`)
   revalidatePath(`/admin/events/${eventId}/venues/${restaurantId}`)
-  redirect(`/admin/events/${eventId}/venues/${restaurantId}`)
+  redirect(venuePath(eventId, restaurantId))
 }
 
 export async function deleteFestivalSet(formData: FormData) {
-  const { supabase } = await requireAdmin()
+  await requireAdmin()
+  const supabase = createSupabaseAdminClient()
   const eventId = String(formData.get('event_id') || '')
   const restaurantId = String(formData.get('restaurant_id') || '')
   const offerId = String(formData.get('offer_id') || '')
-  if (!eventId || !restaurantId || !offerId) throw new Error('Missing ids')
+  if (!eventId || !restaurantId || !offerId) redirect('/admin/events')
 
   const { error } = await supabase
     .from('offers')
@@ -290,16 +349,16 @@ export async function deleteFestivalSet(formData: FormData) {
     .eq('event_id', eventId)
     .eq('restaurant_id', restaurantId)
     .eq('offer_type', 'set')
-  if (error) throw new Error(error.message)
+  if (error) redirect(venuePath(eventId, restaurantId, explainDbError(error.message)))
 
   revalidateCatalogPaths()
   revalidatePath(`/admin/events/${eventId}`)
   revalidatePath(`/admin/events/${eventId}/venues/${restaurantId}`)
-  redirect(`/admin/events/${eventId}/venues/${restaurantId}`)
+  redirect(venuePath(eventId, restaurantId))
 }
 
 async function saveVenueSchedule(
-  supabase: Awaited<ReturnType<typeof requireAdmin>>['supabase'],
+  supabase: SupabaseClient,
   eventId: string,
   restaurantId: string,
   formData: FormData,

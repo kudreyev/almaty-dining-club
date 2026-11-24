@@ -16,7 +16,7 @@ import {
 
 type PageProps = {
   params: Promise<{ id: string; restaurantId: string }>
-  searchParams: Promise<{ set?: string; new?: string }>
+  searchParams: Promise<{ set?: string; new?: string; error?: string }>
 }
 
 type SetRow = {
@@ -99,6 +99,12 @@ export default async function AdminEventVenuePage({ params, searchParams }: Page
       <p className="mb-6 text-sm text-gray-500">
         У площадки свои дни/часы подачи и свои сеты (можно несколько разных).
       </p>
+
+      {sp.error ? (
+        <div className="mb-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+          {sp.error}
+        </div>
+      ) : null}
 
       <Card padding="lg" className="space-y-4">
         <h2 className="text-lg font-semibold">Расписание подачи сета</h2>
